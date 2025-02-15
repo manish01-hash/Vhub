@@ -1,3 +1,5 @@
 from django.test import TestCase
 
-# Create your tests here.
+from django.urls import get_resolver
+for url in get_resolver().url_patterns:
+    print(url)

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { v4 as uuidv4 } from "uuid"; 
 import axios from "axios";
 import './create.css';
+import volunteers from "../functions/volunteers";
 
 
 
@@ -39,16 +40,14 @@ function CreateVolunteer() {
     
         console.log("Sending Data:", data); // ✅ Debugging Step
     
-        axios.post("http://127.0.0.1:8000/api/volunteers/", data, {
-            headers: { "Content-Type": "application/json" }  // ✅ Ensure JSON format
-        })
         
+        volunteers.createVolunteer(data)
         .then(response => setMessage("Added to Database Successfully"))
         .catch(error => {
             console.error("Error:", error.response?.data || error.message);
             setMessage("Error adding volunteer: " + (error.response?.data || error.message));
         });
-    }
+    }   
     
 
     return (

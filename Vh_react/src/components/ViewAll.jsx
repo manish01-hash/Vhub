@@ -19,7 +19,7 @@ useEffect(()=>{
 
 
     return (
-        <div className=" h-[90%] w-full border relative flex flex-col items-center bg-gray-900 gap-3">
+        <div className=" h-[90%] w-full  relative flex flex-col items-center bg-gray-900 gap-3">
             <h1 className="text-center text-5xl font-bold mt-10 text-white mb-10">
                 View All Volunteers
             </h1>
@@ -33,10 +33,11 @@ useEffect(()=>{
 
                 {
                     volunteers &&
-                    <table className="w-full border-collapse border border-gray-600 text-center">
+                    <table className="w-full border-collapse border-2 border-gray-600 text-center">
                         <thead>
                             <tr className="text-white bg-gray-800">
                                 <th className="p-2">Name</th>
+                                <th className="p-2">Phone No</th>
                                 <th className="p-2">Gender</th>
                                 <th className="p-2">Age</th>
                                 <th className="p-2">Status</th>
@@ -48,7 +49,7 @@ useEffect(()=>{
                             {
                                 volunteers.map((volunteer)=>(
                                     
-                                        <Volunteer id={volunteer.V_ID} name={volunteer.V_Name} gender={volunteer.V_Gender} age={volunteer.V_Age} status={volunteer.V_Status}/>
+                                        <Volunteer id={volunteer.V_ID} name={volunteer.V_Name} gender={volunteer.V_Gender} age={volunteer.V_Age} status={volunteer.V_Status} phone={volunteer.V_Phone_No}/>
                             
                                 ))
                             }
