@@ -3,6 +3,8 @@ import './App.css';
 import CreateVolunteer from './components/CreateVolunteer';
 import DeleteVolunteer from './components/DeleteVolunteer';
 import UpdateVolunteer from './components/UpdateVolunteer';
+import CreateEvent from './components/events/CreateEvent';
+import ViewEvents from './components/events/ViewEvents';
 import ViewAll from './components/ViewAll';
 
 
@@ -11,6 +13,8 @@ function App() {
   const [delete1, setDelete] = useState(null);
   const [all, setAll] = useState(null);
   const [update, setUpdate] = useState(null);
+  const[volunteer,setVolunteer]=useState(true);
+  const[events,setEvents] = useState(false);
   
  function handleAdd(){
    setAdd(true);
@@ -38,12 +42,21 @@ function handleUpdate(){
   setDelete(false);
   setAll(false);
 }
-  
+function handleVolunteer(){
+  setVolunteer(true)
+  setEvents(false)
+}
+ 
+function handleEvents(){
+  setEvents(true)
+  setVolunteer(false)
+}
 
   return (
     <div className="w-[100vw] h-[100vh] flex flex-col 	bg-gray-900">
-      <div className="w-full h-[10%]  flex justify-center gap-4 items-center bg-gray-700">
-          <button className="w-[10%] bg-green-400 h-[80%] rounded-md text-xl font-bold"
+      <div className=" navbar w-full h-[20%]  flex flex-col justify-around gap-4 items-center bg-gray-700">
+          <div className="w-full h-[50%]  flex  justify-center gap-4 items-center bg-gray-700">
+          <button className="w-[10%] bg-green-500 h-[80%] rounded-md text-xl font-bold"
           onClick={handleAdd}>Add</button>
           <button className="w-[10%] bg-red-400 h-[80%] rounded-md text-xl font-bold"
           onClick={handleDelete}>Delete</button>
@@ -52,20 +65,43 @@ function handleUpdate(){
           onClick={handleUpdate}>Update</button>
           <button className="w-[10%] bg-blue-400 h-[80%] rounded-md text-xl font-bold"
           onClick={handleAll}>View All</button>
+          </div>
+
+          <div className=" w-full h-[50%] flex justify-around items-center py-4">
+              <button className="h-full w-[15%] text-black font-bold rounded-md bg-[thistle]" onClick={handleVolunteer}>Volunteer</button>
+              <button className="h-full w-[15%] text-white font-bold rounded-md bg-[#708090]">Registrations</button>
+              <button className="h-full w-[15%] text-black font-bold rounded-md bg-[mistyRose]" onClick={handleEvents}>Events</button>
+              <button className="h-full w-[15%] text-white font-bold rounded-md bg-[#696969]">Tasks</button>
+              <button className="h-full w-[15%] text-BLACK font-bold rounded-md bg-[#AFEEEE]">Roles</button>
+              <button className="h-full w-[15%] text-white font-bold rounded-md bg-[lightCoral]">Skills</button>
+          </div>
 
       </div>
       
       {
-        add && <CreateVolunteer/>
+        add && volunteer && <CreateVolunteer/>
       }
       {
-        delete1 && <DeleteVolunteer/>
+        delete1 && volunteer && <DeleteVolunteer/>
       }
       {
-        all && <ViewAll/>
+        all && volunteer && <ViewAll/>
       }
       {
-        update && <UpdateVolunteer/>
+        update && volunteer && <UpdateVolunteer/>
+      }
+
+      {
+        add && events && <CreateEvent/>
+      }
+      {
+        delete1 && events && <DeleteVolunteer/>
+      }
+      {
+        all && events && <ViewEvents/>
+      }
+      {
+        update && events && <UpdateVolunteer/>
       }
       
      

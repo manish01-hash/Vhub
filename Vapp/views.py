@@ -1,8 +1,8 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import Volunteer
+from .models import Volunteer,Event
 from rest_framework import status
-from .serializers import VolunteerSerializer
+from .serializers import VolunteerSerializer,EventSerializer
 import uuid
 
 @api_view(['GET', 'POST'])
@@ -58,3 +58,58 @@ def get_volunteer_by_phone(request, phone_no):
         return Response(serializer.data, status=status.HTTP_200_OK)
     except Volunteer.DoesNotExist:
         return Response({"error": "Volunteer Not Found!"}, status=status.HTTP_404_NOT_FOUND)
+    
+@api_view(['POST'])
+def create_event(request):
+    serializer = EventSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({"message": "Event created successfully!"}, status=201)
+    print("Serializer Errors:", serializer.errors)  # Debugging Line
+    return Response(serializer.errors, status=400)
+
+
+
+
+@api_view(['DELETE'])
+def delete_event(request, event_id):
+    try:
+        event = Event.objects.get(id=event_id)
+        event.delete()
+        return Response({"message": "Event deleted successfully!"}, status=200)
+    except Event.DoesNotExist:
+        return Response({"error": "Event not found!"}, status=404)
+
+
+@api_view(['PUT'])
+def update_event(request, event_id):
+    try:
+        event = Event.objects.get(id=event_id)
+    except Event.DoesNotExist:
+        return Response({"error": "Event not found!"}, status=status.HTTP_404_NOT_FOUND)
+
+    serializer = EventSerializer(event, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({"message": "Event updated successfully!"}, status=status.HTTP_200_OK)
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+def get_event_by_id(request, event_id):
+    try:
+        event = Event.objects.get(id=event_id)
+        serializer = EventSerializer(event)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Event.DoesNotExist:
+        return Response({"error": "Event Not Found!"}, status=status.HTTP_404_NOT_FOUND)
+    
+@api_view(['GET'])
+def get_all_events(request):
+    try:
+        events = Event.objects.all()  # Get all event records
+        serializer = EventSerializer(events, many=True)  # Serialize data
+        return Response(serializer.data, status=status.HTTP_200_OK)  # Return JSON response
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

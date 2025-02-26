@@ -33,7 +33,7 @@ function CreateVolunteer() {
             V_Skills: skill,
             V_Availability: Boolean(availability),
             V_Gender:gender,
-            V_Age: age,  // ✅ Use entered age or default to 18
+            V_Age: age, 
             V_Image_Urls: imageUrl || "", 
         };
         
@@ -41,11 +41,13 @@ function CreateVolunteer() {
         console.log("Sending Data:", data); // ✅ Debugging Step
     
         
-        volunteers.createVolunteer(data)
-        .then(response => setMessage("Added to Database Successfully"))
+        axios.post("http://127.0.0.1:8000/api/volunteers/", data, {         //!  Create Volunteer Function
+            headers: { "Content-Type": "application/json" }  
+        })
+        .then(response => console.log("Added to Database Successfully"),alert("Added to Database Successfully"))
         .catch(error => {
             console.error("Error:", error.response?.data || error.message);
-            setMessage("Error adding volunteer: " + (error.response?.data || error.message));
+            console.log("Error adding volunteer: " + (error.response?.data || error.message));
         });
     }   
     
@@ -55,7 +57,7 @@ function CreateVolunteer() {
             <h1 className="text-center text-5xl font-bold my-10 text-white  ">Create Volunteer</h1>
 
             <div className="flex flex-col justify-around items-center h-[60%] w-[30vw] mx-auto gap-3 ">
-                <input type="text" placeholder="Name" onChange={(e) => setName(e.target.value)} />
+                <input type="text"  placeholder="Name" onChange={(e) => setName(e.target.value)} />
                 <input type="email" placeholder="Email" onChange={(e) => setEmail(e.target.value)} />
                 <input type="text" placeholder="Phone Number" onChange={(e) => setPhone(e.target.value)} />
                 <input type="text" placeholder="Address" onChange={(e) => setAddress(e.target.value)} />
@@ -82,10 +84,12 @@ function CreateVolunteer() {
                 </div>
 
                 <button className=" px-[150px] py-5 rounded-xl text-white font-bold text-xl"
-                    onClick={handleSubmit}>Submit</button>
+                    onClick={handleSubmit}
+                    disabled={!name || !phone || !address || !email || !status || !skill  || !age || !gender}
+                    >Submit</button>
             </div>
 
-            {message && <p className="text-center text-xl mt-4 absolute bottom-12 text-xl font-bold text-white">{message}</p>}
+            
         </div>
     );
 }

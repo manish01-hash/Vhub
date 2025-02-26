@@ -66,20 +66,23 @@ class Event(models.Model):
     E_Description = models.TextField()  # Event Description
     E_Start_Date = models.DateTimeField()  # Start Date
     E_End_Date = models.DateTimeField()  # End Date
-    E_Required_Volunteers = models.IntegerField()  # Required Volunteers
+    E_Required_Volunteers = models.IntegerField(blank=True, null=True)  # Required Volunteers
     E_Assigned_Volunteers = models.IntegerField(default=0)  # Assigned Volunteers
     E_Completed = models.BooleanField(default=False)  # Completion Status
-    E_Total_Tasks = models.IntegerField()  # Total Tasks
-    E_Location = models.GenericIPAddressField()  # Event Location (IP Address)
+    E_Total_Tasks = models.IntegerField(blank=True, null=True)  # Total Tasks
+    E_Location = models.TextField()  # Event Location (IP Address)
 
+    # 
     # Relationships
-    V_ID = models.ForeignKey(Volunteer, on_delete=models.CASCADE, related_name='events')
-    T_ID = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='event_tasks')
+    # V_ID = models.ForeignKey(Volunteer, on_delete=models.CASCADE, related_name='events',blank=True)
+    # T_ID = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='event_tasks',blank=True)
+    T_ID = models.ForeignKey(Task, on_delete=models.CASCADE, default=None,null=True,blank=True)  # Change '1' to a valid ID
+
 
     # Store as JSON (lists)
-    E_Volunteers = models.JSONField(default=list)  # List of Volunteer IDs
-    E_Tasks = models.JSONField(default=list)  # List of Task IDs
-    E_Image_Urls = models.JSONField(default=list)  # List of Image URLs
+    E_Volunteers = models.JSONField(default=list,blank=True, null=True)  # List of Volunteer IDs
+    E_Tasks = models.JSONField(default=list,blank=True, null=True)  # List of Task IDs
+    E_Image_Urls = models.JSONField(default=list,blank=True, null=True)  # List of Image URLs
 
     def __str__(self):
         return self.E_Name
