@@ -1,18 +1,15 @@
 import { useEffect, useState } from 'react';
 
-import CreateVolunteer from './components/volunteers/CreateVolunteer';
-import DeleteVolunteer from './components/volunteers/DeleteVolunteer';
-import UpdateVolunteer from './components/volunteers/UpdateVolunteer';
-import CreateEvent from './components/events/CreateEvent';
-import ViewEvents from './components/events/ViewEvents';
-import ViewAll from './components/volunteers/ViewAll';
-import AdminDashboard from './pages/AdminDashboard';
+import Login from './components/authentication/Login';
+import Signup from './components/authentication/Signup';
+import Home from './components/Home';
 
 
 function App() {
  
   return (
-   <AdminDashboard/>
+  //  <AdminDashboard/>
+  <Home/>
   );
 }
 
