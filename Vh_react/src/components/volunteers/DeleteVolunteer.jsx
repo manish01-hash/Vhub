@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import volunteers from "../functions/volunteers";
+import volunteers from "../../functions/volunteers";
 
 import axios from "axios";
 
@@ -13,10 +13,14 @@ function DeleteVolunteer() {
 
 
 
-    function handleSubmit(){
+    async function handleSubmit(){
         setMessage("");  
         
-        console.log("Sending phone no:", phoneNo); // ✅ Debugging Step
+        // console.log("Sending phone no:", phoneNo); // ✅ Debugging Step
+        // axios.get("http://127.0.0.1:8000/api/volunteers/")
+        // .then(response => console.log(response.data))
+        // .catch(error => console.log("Error fetching volunteers!..."));
+        
     
         volunteers.deleteVolunteer(phoneNo)
     .then(response => setMessage("Deleted Successfully"))

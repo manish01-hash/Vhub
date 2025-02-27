@@ -10,12 +10,19 @@ function ViewAll() {
 
 const [volunteers, setVolunteers] = useState([]);
 const [message,setMessage] = useState("")
+const [flag, setFlag] = useState(false);
 
 useEffect(()=>{
     axios.get("http://127.0.0.1:8000/api/volunteers/")
     .then(response => setVolunteers(response.data))
     .catch(error => setMessage("Error fetching volunteers!..."));
 },[])
+
+useEffect(()=>{
+    axios.get("http://127.0.0.1:8000/api/volunteers/")
+    .then(response => setVolunteers(response.data))
+    .catch(error => setMessage("Error fetching volunteers!..."));
+},[flag])
 
 
     return (
@@ -41,6 +48,7 @@ useEffect(()=>{
                                 <th className="p-2">Gender</th>
                                 <th className="p-2">Age</th>
                                 <th className="p-2">Status</th>
+                                <th className="p-2">Delete</th>
                             </tr>
                         </thead>
 
@@ -49,7 +57,7 @@ useEffect(()=>{
                             {
                                 volunteers.map((volunteer)=>(
                                     
-                                        <Volunteer id={volunteer.V_ID} name={volunteer.V_Name} gender={volunteer.V_Gender} age={volunteer.V_Age} status={volunteer.V_Status} phone={volunteer.V_Phone_No}/>
+                                        <Volunteer id={volunteer.V_Phone_No} name={volunteer.V_Name} gender={volunteer.V_Gender} age={volunteer.V_Age} status={volunteer.V_Status} phone={volunteer.V_Phone_No} flag={flag} setFlag={setFlag}/>
                             
                                 ))
                             }

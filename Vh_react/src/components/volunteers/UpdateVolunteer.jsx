@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import volunteers from "../functions/volunteers";
+import volunteers from "../../functions/volunteers";
 import axios from "axios";
 
 function UpdateVolunteer() {
