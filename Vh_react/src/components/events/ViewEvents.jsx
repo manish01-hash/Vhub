@@ -1,6 +1,7 @@
 import React,{useEffect,useState} from "react";
 import axios from "axios";
 import Event from "./Event";
+import './event.css'
 
 
 function ViewEvents() {
@@ -17,13 +18,13 @@ useEffect(()=>{
 
 
     return (
-        <div className=" h-[90%] w-full  relative flex flex-col items-center bg-gray-900 gap-3">
+        <div className=" h-[100%] w-full  relative flex flex-col items-center bg-gray-900 gap-3">
             <h1 className="text-center text-5xl font-bold mt-10 text-white mb-10">
                 View All events
             </h1>
 
             
-            <div className=" w-[70%] h-full overflow-auto">
+            <div className=" w-[70%] h-[78%] overflow-auto position-relative  ">
 
                 {
                     !events && <p>Currently There is No events...</p>
@@ -32,7 +33,7 @@ useEffect(()=>{
                 {
                     events &&
                     <table className="w-full border-collapse border-2 border-gray-600 text-center">
-                        <thead>
+                        <thead className="position-sticky top-0">
                             <tr className="text-white bg-gray-800">
                                 <th className="p-2">Event Name</th>
                                 <th className="p-2">Description</th>
