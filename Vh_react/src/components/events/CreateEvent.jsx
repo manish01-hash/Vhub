@@ -47,7 +47,7 @@ function CreateEvent() {
         console.log("Sending Data:", data); // ✅ Debugging Step
     
         
-        axios.post("http://127.0.0.1:8000/event/", data)            
+        axios.post("http://127.0.0.1:8000/api/event/", data)            
         .then(response => {
             console.log("Added to Database Successfully");
             alert("Added to Database Successfully");
