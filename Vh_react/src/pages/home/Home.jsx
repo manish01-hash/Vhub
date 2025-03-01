@@ -19,7 +19,7 @@ function Home() {
             {/* Main Content */}
             <div className="w-3/4 flex flex-col">
                 {/* Navbar */}
-                <nav className="w-full bg-[#2d3748] p-4 flex justify-between items-center shadow-md px-10">
+                <nav className="w-full bg-[#1a202c] p-4 flex justify-between items-center shadow-md px-10">
                     <div className="text-xl font-bold">VMS</div>
                     <div className="flex space-x-6">
                         <span className="text-lg flex items-center space-x-2 hover:text-[#60a5fa] transition-all cursor-pointer">
@@ -35,7 +35,7 @@ function Home() {
                 </nav>
                 
                 {/* Middle Bar */}
-                <div className="w-full bg-[#2d3748] p-6 flex justify-around items-center shadow-md mt-4 rounded-lg">
+                <div className="w-full bg-[#2d3748] p-6 flex justify-around items-center shadow-md ">
                     <div className="flex items-center space-x-3">
                         <FaClipboardList size={30} />
                         <span className="text-lg font-semibold">Manage Volunteers</span>
@@ -48,7 +48,7 @@ function Home() {
 
                 {/* Content Section with Image and Features */}
                 <div className="flex-grow flex flex-col items-center justify-center p-6">
-                    <img src="/images/volunteer.jpg" alt="Volunteering" className="max-w-full h-auto rounded-lg shadow-lg mb-6" />
+                    <img src="https://img.freepik.com/free-vector/people-volunteering-donating-money_53876-66112.jpg?semt=ais_hybrid" alt="Volunteering" className="max-w-full h-auto rounded-lg shadow-lg mb-6" />
                     <div className="text-center max-w-2xl">
                         <h2 className="text-4xl font-bold">Join Our Volunteer Community</h2>
                         <p className="text-lg mt-4">Be part of something meaningful. Register, manage events, and contribute to a better world!</p>

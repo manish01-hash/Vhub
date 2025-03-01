@@ -77,9 +77,9 @@ function handleEvents(){
           </div> */}
 
         <div className=" w-full h-[50%] flex justify-around items-center py-4">
-              <button className={`h-full w-[15%] text-white font-bold rounded-md bg-[#708090] ${volunteer ? " bg-blue-400" : ""}`} onClick={handleVolunteer}>Volunteer</button>
+              <button className={`h-full w-[15%] text-white font-bold rounded-md bg-[#708090] ${volunteer ? " bg-blue-400  mb-3" : ""}`} onClick={handleVolunteer}>Volunteer</button>
               <button className={`h-full w-[15%] text-white font-bold rounded-md bg-[#708090]`}>Registrations</button>
-              <button className={`h-full w-[15%] text-white font-bold rounded-md bg-[#708090] ${events ? " bg-blue-400" : ""}`} onClick={handleEvents}>Events</button>
+              <button className={`h-full w-[15%] text-white font-bold rounded-md bg-[#708090] ${events ? " bg-blue-400 mb-3" : ""}`} onClick={handleEvents}>Events</button>
               <button className={`h-full w-[15%] text-white font-bold rounded-md bg-[#708090] ${add ? " " : ""}`}>Tasks</button>
               <button className={`h-full w-[15%] text-white font-bold rounded-md bg-[#708090] ${add ? "" : ""}`}>Roles</button>
               <button className={`h-full w-[15%] text-white font-bold rounded-md bg-[#708090] ${add ? "" : ""}`}>Skills</button>
