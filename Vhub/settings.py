@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'Vapp'
+    
 ]
 
 MIDDLEWARE = [
@@ -80,6 +81,11 @@ WSGI_APPLICATION = 'Vhub.wsgi.application'
 
 #SuperUser = Vadmin
 #Password = vcoders@123
+
+AUTH_USER_MODEL = 'Vapp.User'
+
+
+
 
 
 DATABASES = {
@@ -156,7 +162,11 @@ REST_FRAMEWORK = {
 
 # JWT Authentication settings
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'AUTH_HEADER_TYPES': ('Bearer',),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "USER_ID_FIELD": "id",  
 }
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+)

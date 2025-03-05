@@ -1,135 +1,91 @@
-// import React from "react";
-// import { FaHome, FaUserFriends, FaInfoCircle, FaEnvelope, FaSignInAlt, FaClipboardList, FaUsers } from "react-icons/fa";
-
-// function Home() {
-//     return (
-//         <div className="w-full min-h-screen flex bg-[#1a202c] text-white">
-//             {/* Sidebar */}
-//             <div className="w-1/4 min-h-screen bg-[#2d3748] flex flex-col justify-between p-6 shadow-lg">
-//                 <div className="flex items-center space-x-3 text-2xl font-bold">
-//                     <FaHome size={24} />
-//                     <span>Home</span>
-//                 </div>
-//                 <h1 className="text-3xl font-bold text-center mt-20">Volunteer Management System</h1>
-//                 <button className="bg-[#22c55e] text-white font-bold text-xl px-6 py-3 rounded-md w-full hover:bg-[#1f9d4d] transition-all">
-//                     Apply Now
-//                 </button>
-//             </div>
-
-//             {/* Main Content */}
-//             <div className="w-3/4 flex flex-col">
-//                 {/* Navbar */}
-//                 <nav className="w-full bg-[#1a202c] p-4 flex justify-between items-center shadow-md px-10">
-//                     <div className="text-xl font-bold">VMS</div>
-//                     <div className="flex space-x-6">
-//                         <span className="text-lg flex items-center space-x-2 hover:text-[#60a5fa] transition-all cursor-pointer">
-//                             <FaInfoCircle /> <span>About Us</span>
-//                         </span>
-//                         <span className="text-lg flex items-center space-x-2 hover:text-[#60a5fa] transition-all cursor-pointer">
-//                             <FaEnvelope /> <span>Contact</span>
-//                         </span>
-//                         <span className="text-lg flex items-center space-x-2 bg-[#22c55e] px-4 py-2 rounded-md hover:bg-[#1f9d4d] transition-all cursor-pointer">
-//                             <FaSignInAlt /> <span>Login</span>
-//                         </span>
-//                     </div>
-//                 </nav>
-                
-//                 {/* Middle Bar */}
-//                 <div className="w-full bg-[#2d3748] p-6 flex justify-around items-center shadow-md ">
-//                     <div className="flex items-center space-x-3">
-//                         <FaClipboardList size={30} />
-//                         <span className="text-lg font-semibold">Manage Volunteers</span>
-//                     </div>
-//                     <div className="flex items-center space-x-3">
-//                         <FaUsers size={30} />
-//                         <span className="text-lg font-semibold">Community Engagement</span>
-//                     </div>
-//                 </div>
-
-//                 {/* Content Section with Image and Features */}
-//                 <div className="flex-grow flex flex-col items-center justify-center p-6">
-//                     <img src="https://img.freepik.com/free-vector/people-volunteering-donating-money_53876-66112.jpg?semt=ais_hybrid" alt="Volunteering" className="max-w-full h-auto rounded-lg shadow-lg mb-6" />
-//                     <div className="text-center max-w-2xl">
-//                         <h2 className="text-4xl font-bold">Join Our Volunteer Community</h2>
-//                         <p className="text-lg mt-4">Be part of something meaningful. Register, manage events, and contribute to a better world!</p>
-//                     </div>
-//                 </div>
-//             </div>
-//         </div>
-//     );
-// }
-
-// export default Home;
-
-
-import React from "react";
+import React, { useState } from "react";
+import { FaClipboardList, FaEnvelope, FaHome, FaInfoCircle, FaSignInAlt, FaUser, FaUsers, FaCalendarCheck, FaTasks } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import { FaHome, FaUserFriends, FaInfoCircle, FaEnvelope, FaSignInAlt, FaClipboardList, FaUsers } from "react-icons/fa";
+import Profile from "../Profile";
+import "./home.css";
+import { useAuth } from "../../context/AuthContext";
+import SidebarIcon from "../../components/icons/SidebarIcon";
+import AllEvents from "../AllEvents";
 
 function Home() {
+    const { user, logout } = useAuth();
+    const username = user ? user.username : "Guest";
     const navigate = useNavigate();
+    const [activePage, setActivePage] = useState("home");
+    const [isCollapsed, setIsCollapsed] = useState(false); // ✅ Sidebar toggle
 
     return (
         <div className="w-full min-h-screen flex bg-[#1a202c] text-white">
-            {/* Sidebar */}
-            <div className="w-1/4 min-h-screen bg-[#2d3748] flex flex-col justify-between p-6 shadow-lg">
-                <div className="flex items-center space-x-3 text-2xl font-bold">
-                    <FaHome size={24} />
-                    <span>Home</span>
+            {/* ✅ Sidebar (Consistent for all pages) */}
+            <div 
+                className={`min-h-screen bg-[#2d3748] flex flex-col justify-around p-6 shadow-lg transition-all ${isCollapsed ? "w-20" : "w-64"}`}
+            >
+                {/* Expand/Collapse Sidebar */}
+                <SidebarIcon isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+                <div className="flex flex-col space-y-4">
+                    <div className=" h-[700px] flex flex-col justify-around">
+                        <div className="flex items-center space-x-3 text-xl cursor-pointer" onClick={() => setActivePage("home")}>
+                            <FaHome size={24} />
+                            {!isCollapsed && <span>Home</span>}
+                        </div>
+                        <div className="flex items-center space-x-3 text-lg hover:text-green-400 transition cursor-pointer" onClick={() => setActivePage("events")}>
+                            <FaCalendarCheck size={24} />
+                            {!isCollapsed && <span>My Events</span>}
+                        </div>
+                        <div className="flex items-center space-x-3 text-lg hover:text-blue-400 transition cursor-pointer" onClick={() => setActivePage("tasks")}>
+                            <FaTasks size={24} />
+                            {!isCollapsed && <span>Tasks</span>}
+                        </div>
+                        <div className="flex items-center space-x-3 text-lg hover:text-green-400 transition cursor-pointer" onClick={() => setActivePage("community")}>
+                            <FaUsers size={24} />
+                            {!isCollapsed && <span>Community</span>}
+                        </div>
+                        
+                        <div className="flex items-center space-x-3 text-lg hover:text-yellow-400 transition cursor-pointer" onClick={() => setActivePage("about us")}>
+                            <FaInfoCircle size={24} />
+                            {!isCollapsed && <span>About us</span>}
+                        </div>
+                        <div className="flex items-center space-x-3 text-lg hover:text-yellow-400 transition cursor-pointer" onClick={() => setActivePage("contact")}>
+                            <FaEnvelope size={24} />
+                            {!isCollapsed && <span>Contact</span>}
+                        </div>
+                        <div className="flex items-center space-x-3 text-lg hover:text-yellow-400 transition cursor-pointer" onClick={() => setActivePage("profile")}>
+                            <FaUser size={24} />
+                            {!isCollapsed && <span>My Profile</span>}
+                        </div>
+                    </div>
                 </div>
-                <h1 className="text-3xl font-bold text-center mt-20">Volunteer Management System</h1>
-                <button
-                    onClick={() => navigate("/signup")}  // ✅ Navigate to Signup
-                    className="bg-[#22c55e] text-white font-bold text-xl px-6 py-3 rounded-md w-full hover:bg-[#1f9d4d] transition-all"
-                >
-                    Apply Now
+
+                {/* Logout Button */}
+                <button onC fix div matchlick={() => { logout(); navigate('/login'); }} className="flex items-center p-3 bg-red-500 hover:bg-red-700 rounded-md mt-4">
+                    <FaSignInAlt /> {!isCollapsed && <span className="ml-2">Logout</span>}
                 </button>
             </div>
 
-            {/* Main Content */}
-            <div className="w-3/4 flex flex-col">
-                {/* Navbar */}
-                <nav className="w-full bg-[#1a202c] p-4 flex justify-between items-center shadow-md px-10">
-                    <div className="text-xl font-bold">VMS</div>
-                    <div className="flex space-x-6">
-                        <span className="text-lg flex items-center space-x-2 hover:text-[#60a5fa] transition-all cursor-pointer">
-                            <FaInfoCircle /> <span>About Us</span>
-                        </span>
-                        <span className="text-lg flex items-center space-x-2 hover:text-[#60a5fa] transition-all cursor-pointer">
-                            <FaEnvelope /> <span>Contact</span>
-                        </span>
-                        <span
-                            onClick={() => navigate("/login")}  // ✅ Navigate to Login
-                            className="text-lg flex items-center space-x-2 bg-[#22c55e] px-4 py-2 rounded-md hover:bg-[#1f9d4d] transition-all cursor-pointer"
-                        >
-                            <FaSignInAlt /> <span>Login</span>
-                        </span>
-                    </div>
-                </nav>
+            {/* ✅ Main Content (Changes Dynamically) */}
+            <div className="w-full flex flex-col">
                 
-                {/* Middle Bar */}
-                <div className="w-full bg-[#2d3748] p-6 flex justify-around items-center shadow-md ">
-                    <div className="flex items-center space-x-3">
-                        <FaClipboardList size={30} />
-                        <span className="text-lg font-semibold">Manage Volunteers</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                        <FaUsers size={30} />
-                        <span className="text-lg font-semibold">Community Engagement</span>
-                    </div>
-                </div>
-
-                {/* Content Section with Image and Features */}
-                <div className="flex-grow flex flex-col items-center justify-center p-6">
-                    <img src="https://img.freepik.com/free-vector/people-volunteering-donating-money_53876-66112.jpg?semt=ais_hybrid" alt="Volunteering" className="max-w-full h-auto rounded-lg shadow-lg mb-6" />
-                    <div className="text-center max-w-2xl">
-                        <h2 className="text-4xl font-bold">Join Our Volunteer Community</h2>
-                        <p className="text-lg mt-4">Be part of something meaningful. Register, manage events, and contribute to a better world!</p>
-                    </div>
+                {/* Dynamic Content - Switches based on activePage */}
+                <div className="flex-grow flex flex-col items-center justify-center p-6 text-center">
+                    {activePage === "home" && (
+                        <>
+                            <img className="rounded-xl" src="https://img.freepik.com/free-vector/people-volunteering-donating-money_53876-66112.jpg" alt="" />
+                            <h2 className="text-4xl font-bold">Join Our Volunteer Community</h2>
+                            <p className="text-lg mt-4">Be part of something meaningful. Register, manage events, and contribute to a better world!</p>
+                        </>
+                    )}
+                    {activePage === "profile" && <Profile />}
+                    {activePage === "events" && <AllEvents/>}
+                    {activePage === "tasks" && <h2 className="text-3xl font-bold">Manage Your Tasks</h2>}
+                    {activePage === "community" && <h2 className="text-3xl font-bold">Community Engagement</h2>}
+                    {activePage === "about us" && <h2 className="text-3xl font-bold">About Us</h2>}
+                    {activePage === "contact" && <h2 className="text-3xl font-bold">Contact</h2>}
                 </div>
             </div>
-        </div>
+            </div>
+                        
+        
     );
 }
 
-export default Home;
+export default Home;         

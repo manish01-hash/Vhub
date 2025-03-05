@@ -1,50 +1,35 @@
-// import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-// import { AuthProvider } from './context/AuthContext';
-// import Login from './components/authentication/Login';
-// import Signup from './components/authentication/Signup';
-// import AdminDashboard from './pages/AdminDashboard';
-// import Home from "./pages/home/Home"; 
-
-// function App() {
-//   return (
-//     <AuthProvider> {/* ✅ Wrap app with authentication context */}
-//       <Router>
-//         <Routes>
-//           <Route path="/" element={<Login />} />
-//           <Route path="/signup" element={<Signup />} />
-//           <Route path="/register" element={<Signup />} /> 
-//           <Route path="/admin/*" element={<AdminDashboard />} />
-//           <Route path="/login" element={<Login />} />
-//           <Route path="home" element={<Home />} />
-//         </Routes>
-//       </Router>
-//     </AuthProvider>
-//   );
-// }
-
-// export default App;
-
-
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
-import Login from "./components/authentication/Login";
-import Signup from "./components/authentication/Signup";
+import React from "react";
+import { Routes, Route } from "react-router-dom";
+import { AuthProvider } from "../src/context/AuthContext";
+import ProtectedRoute from "../src/components/ProtectedRoute";
+import Login from "../src/pages/Login";
+import Signup from "../src/pages/Signup";
+import AllEvents from "./pages/AllEvents";
 import AdminDashboard from "./pages/AdminDashboard";
+import Events from "./pages/Events";
+import CertificateDownload from "../src/pages/CertificateDownload";
+import QRCodeScanner from "../src/pages/QRCodeScanner";
+import Unauthorized from "./pages/Unauthorized";
 import Home from "./pages/home/Home";
+import SidebarLayout from "./components/SidebarLayout";
 
 function App() {
   return (
-    <AuthProvider> {/* ✅ Wrap app with authentication context */}
-      <Router>
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/register" element={<Signup />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/admin/*" element={<AdminDashboard />} /> {/* ✅ Nested routes */}
-        </Routes>
-      </Router>
+    <AuthProvider>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/volunteer-dashboard" element={<AllEvents />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+        </Route>
+        <Route path="/events" element={<Events />} />
+        <Route path="/certificate" element={<CertificateDownload />} />
+        <Route path="/qr-scanner" element={<QRCodeScanner />} />
+        <Route path="/unauthorized" element={<Unauthorized />} />
+      </Routes>
     </AuthProvider>
   );
 }

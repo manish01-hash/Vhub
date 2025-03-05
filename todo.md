@@ -1,1 +1,1 @@
-#
+# add hover to sidebarIcon

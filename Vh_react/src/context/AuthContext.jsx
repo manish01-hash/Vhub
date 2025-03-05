@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const AuthContext = createContext();
@@ -6,20 +7,15 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
-    // Check if the user is already logged in
+    // Load user from localStorage on app start
     useEffect(() => {
-        const token = localStorage.getItem("accessToken");
-        if (token) {
-            axios.get("http://127.0.0.1:8000/api/auth/user/", {
-                headers: { Authorization: `Bearer ${token}` }
-            })
-            .then(response => {
-                setUser(response.data);
-            })
-            .catch(() => {
-                logout();
-            });
+        const accessToken = localStorage.getItem("accessToken");
+        const storedUser = localStorage.getItem("user");
+
+        if (accessToken && storedUser) {
+            setUser(JSON.parse(storedUser));
         }
         setLoading(false);
     }, []);
@@ -27,13 +23,18 @@ export const AuthProvider = ({ children }) => {
     // Login function
     const login = async (email, password) => {
         try {
-            const response = await axios.post("http://127.0.0.1:8000/api/auth/login/", { email, password });
+            const response = await axios.post("http://127.0.0.1:8000/api/auth/login/", { email, password }, {
+                headers: { "Content-Type": "application/json" }
+            });
+
             localStorage.setItem("accessToken", response.data.access);
             localStorage.setItem("refreshToken", response.data.refresh);
+            localStorage.setItem("user", JSON.stringify(response.data.user));
+
             setUser(response.data.user);
             return { success: true };
         } catch (error) {
-            return { success: false, message: error.response?.data?.detail || "Login failed" };
+            return { success: false, message: error.response?.data?.error || "Login failed!" };
         }
     };
 
@@ -41,7 +42,9 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
+        localStorage.removeItem("user");
         setUser(null);
+        navigate("/login");
     };
 
     return (
@@ -51,4 +54,4 @@ export const AuthProvider = ({ children }) => {
     );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => React.useContext(AuthContext);

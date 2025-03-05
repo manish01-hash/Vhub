@@ -10,8 +10,5 @@ urlpatterns = [
     path('', home),  # ✅ Add homepage route
     path('admin/', admin.site.urls),
     path('api/', include('Vapp.urls')),
-    path("api/auth/signup/", signup, name="signup"),  # ✅ Signup Route
-    path("api/auth/login/", login_view, name="login"),  # ✅ Login Route
-    path("api/auth/logout/", logout_view, name="logout"),  # ✅ Logout Route
-    path("api/", include("Vapp.urls")),  # ✅ Include app-specific routes
+    
 ]
