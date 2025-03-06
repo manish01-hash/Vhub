@@ -10,6 +10,10 @@ from .serializers import (
     EventSerializer, TaskSerializer, AttendanceSerializer,RegistrationSerializer
 )
 from django.contrib.auth.hashers import make_password
+from django.http import FileResponse, Http404
+import os
+from rest_framework.views import APIView
+from django.shortcuts import get_object_or_404
 
 User = get_user_model()
 
@@ -20,20 +24,19 @@ User = get_user_model()
 @permission_classes([AllowAny])
 def signup(request):
     try:
-        print("Received Data:", request.data)  # 🔍 Debugging: Print incoming request data
+        print("📩 Received Signup Data:", request.data)  # ✅ Debugging line
         serializer = SignupSerializer(data=request.data)
 
         if serializer.is_valid():
             serializer.save()
             return Response({"message": "User registered successfully!"}, status=status.HTTP_201_CREATED)
         
-        print("Serializer Errors:", serializer.errors)  # 🔍 Debugging: Print validation errors
+        print("❌ Serializer Errors:", serializer.errors)  # ✅ Debugging line
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     except Exception as e:
-        print("Signup Error:", str(e))  # 🔍 Debugging: Print any other errors
+        print("❌ Signup Error:", str(e))
         return Response({"error": "Something went wrong on the server."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 # Login View
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -69,6 +72,14 @@ def get_users(request):
     serializer = UserSerializer(users, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_volunteers(request):
+    volunteers = User.objects.filter(role="Volunteer")  # ✅ Only fetch volunteers
+    serializer = UserSerializer(volunteers, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 # Get User by ID
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -80,48 +91,83 @@ def get_user_by_id(request, user_id):
     except User.DoesNotExist:
         return Response({"error": "User not found!"}, status=status.HTTP_404_NOT_FOUND)
 
+
+
+
+
 ### ------------------- EVENT MANAGEMENT ------------------- ###
 
 # Get All Events
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])  # Only authenticated users can access
+@permission_classes([IsAuthenticated])
 def get_events(request):
     events = Event.objects.all()
-
     if not events.exists():
-        return Response({"message": "No events available"}, status=status.HTTP_200_OK)  # ✅ Return message instead of 404
+        return Response({"message": "No events available"}, status=status.HTTP_200_OK)
 
     serializer = EventSerializer(events, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
+
+# Register for an Event
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def register_for_event(request, event_id):
-    user = request.user  # Get logged-in user
-    try:
-        event = Event.objects.get(E_ID=event_id)
-        # ✅ Check if the user is already registered
-        if Registration.objects.filter(event=event, volunteer=user).exists():
-            return Response({"message": "Already registered!"}, status=status.HTTP_400_BAD_REQUEST)
+    user = request.user  # ✅ Ensure user is authenticated
+    event = get_object_or_404(Event, E_ID=event_id)  # ✅ Ensure event exists
 
-        # ✅ Register user for event
-        registration = Registration.objects.create(event=event, volunteer=user)
-        return Response(
-            {"message": "Registered successfully!", "qr_code": registration.qr_code.url}, 
-            status=status.HTTP_201_CREATED
-        )
+    # ✅ Check if user is already registered
+    if Registration.objects.filter(event=event, volunteer=user).exists():
+        return Response({"error": "Already registered"}, status=status.HTTP_400_BAD_REQUEST)
 
-    except Event.DoesNotExist:
-        return Response({"error": "Event not found"}, status=status.HTTP_404_NOT_FOUND)
+    # ✅ Register user
+    registration = Registration.objects.create(event=event, volunteer=user)
+    
+    return Response(
+        {"message": "Successfully registered", "qr_code": registration.qr_code.url},
+        status=status.HTTP_201_CREATED
+    )
+
+#Check Registration Status
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def check_registration_status(request, event_id):
+    """Check if the user is registered for an event."""
+    user = request.user
+    event = get_object_or_404(Event, E_ID=event_id)  # ✅ Use the correct Event primary key field
+
+    # ✅ Check if the user is registered in the Registration model
+    is_registered = Registration.objects.filter(event=event, volunteer=user).exists()
+
+    return Response({"registered": is_registered}, status=status.HTTP_200_OK)
+
+# Leave Event
+class LeaveEventView(APIView):
+    def post(self, request, event_id):
+        try:
+            # Get the event
+            event = get_object_or_404(Event, E_ID=event_id)
+            user = request.user  # Get the logged-in user
+            
+            # Check if the user is registered for the event
+            registration = Registration.objects.filter(event=event, volunteer=user).first()
+            if registration:
+                registration.delete()  # Remove registration
+                return Response({"message": "Successfully left the event"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"error": "User is not registered for this event"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 # Get Event by ID
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_event_by_id(request, E_ID):
-    try:
-        event = Event.objects.get(E_ID=E_ID)
-        serializer = EventSerializer(event)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    except Event.DoesNotExist:
-        return Response({"error": "Event not found!"}, status=status.HTTP_404_NOT_FOUND)
+    event = get_object_or_404(Event, E_ID=E_ID)
+    serializer = EventSerializer(event)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 # Create Event
 @api_view(['POST'])
@@ -129,35 +175,85 @@ def get_event_by_id(request, E_ID):
 def create_event(request):
     serializer = EventSerializer(data=request.data)
     if serializer.is_valid():
-        serializer.save(E_Created_By=request.user)  # Set event creator
+        serializer.save(E_Created_By=request.user)
         return Response({"message": "Event created successfully!"}, status=status.HTTP_201_CREATED)
+
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 # Update Event
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
 def update_event(request, E_ID):
-    try:
-        event = Event.objects.get(E_ID=E_ID)
-    except Event.DoesNotExist:
-        return Response({"error": "Event not found!"}, status=status.HTTP_404_NOT_FOUND)
+    event = get_object_or_404(Event, E_ID=E_ID)
 
-    serializer = EventSerializer(event, data=request.data, partial=True)
+    if request.user != event.E_Created_By and request.user.role != "Admin":
+        return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+
+    data = request.data.copy()
+
+    # Handle Image Upload
+    if 'E_Photo' in request.FILES:
+        data['E_Photo'] = request.FILES['E_Photo']
+
+    # Remove empty UUIDs to avoid validation errors
+    for field in ['E_Coordinators', 'E_Super_Volunteers']:
+        if field in data and not data[field]:
+            del data[field]
+
+    serializer = EventSerializer(event, data=data, partial=True)
     if serializer.is_valid():
         serializer.save()
         return Response({"message": "Event updated successfully!"}, status=status.HTTP_200_OK)
+
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 # Delete Event
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def delete_event(request, E_ID):
-    try:
-        event = Event.objects.get(E_ID=E_ID)
-        event.delete()
-        return Response({"message": "Event deleted successfully!"}, status=status.HTTP_200_OK)
-    except Event.DoesNotExist:
-        return Response({"error": "Event not found!"}, status=status.HTTP_404_NOT_FOUND)
+    event = get_object_or_404(Event, E_ID=E_ID)
+
+    if request.user != event.E_Created_By and request.user.role != "Admin":
+        return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+
+    event.delete()
+    return Response({"message": "Event deleted successfully!"}, status=status.HTTP_200_OK)
+
+
+# Assign Event Role
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def assign_event_role(request, E_ID):
+    event = get_object_or_404(Event, E_ID=E_ID)
+
+    if request.user != event.E_Created_By and request.user.role != "Admin":
+        return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+
+    user_id = request.data.get("user_id")
+    role = request.data.get("role")
+    user = get_object_or_404(User, id=user_id)
+
+    if role == "Coordinator":
+        event.E_Coordinators.add(user)
+    elif role == "Super Volunteer":
+        event.E_Super_Volunteers.add(user)
+    else:
+        return Response({"error": "Invalid event role"}, status=status.HTTP_400_BAD_REQUEST)
+
+    event.save()
+    return Response({"message": f"{user.name} assigned as {role} successfully!"}, status=status.HTTP_200_OK)
+
+
+# Serve Image (For Debugging)
+def serve_image(request, path):
+    file_path = os.path.abspath(path)
+    if os.path.exists(file_path):
+        return FileResponse(open(file_path, 'rb'))
+    else:
+        raise Http404("Image not found")
+
 
 ### ------------------- TASK MANAGEMENT ------------------- ###
 
@@ -251,3 +347,22 @@ def get_attendance(request, E_ID):
         return Response(serializer.data, status=status.HTTP_200_OK)
     except Event.DoesNotExist:
         return Response({"error": "Event not found!"}, status=status.HTTP_404_NOT_FOUND)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_attendance_rate(request):
+    try:
+        total_registered = Registration.objects.count()  # ✅ Count total event registrations
+        total_attended = Attendance.objects.count()  # ✅ Count total marked attendances
+
+        if total_registered == 0:
+            attendance_rate = 0  # ✅ Avoid division by zero
+        else:
+            attendance_rate = round((total_attended / total_registered) * 100, 2)  # ✅ Round to 2 decimal places
+
+        return Response({"attendance_rate": attendance_rate}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+

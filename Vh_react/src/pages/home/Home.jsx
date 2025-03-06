@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FaClipboardList, FaEnvelope, FaHome, FaInfoCircle, FaSignInAlt, FaUser, FaUsers, FaCalendarCheck, FaTasks } from "react-icons/fa";
+import { FaClipboardList, FaEnvelope, FaHome, FaInfoCircle, FaSignInAlt, FaUser, FaUsers, FaCalendarCheck, FaTasks, FaSignOutAlt } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import Profile from "../Profile";
 import "./home.css";
@@ -23,7 +23,7 @@ function Home() {
                 {/* Expand/Collapse Sidebar */}
                 <SidebarIcon isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
                 <div className="flex flex-col space-y-4">
-                    <div className=" h-[700px] flex flex-col justify-around">
+                    <div className="h-[700px] flex flex-col justify-around">
                         <div className="flex items-center space-x-3 text-xl cursor-pointer" onClick={() => setActivePage("home")}>
                             <FaHome size={24} />
                             {!isCollapsed && <span>Home</span>}
@@ -56,15 +56,21 @@ function Home() {
                     </div>
                 </div>
 
-                {/* Logout Button */}
-                <button onC fix div matchlick={() => { logout(); navigate('/login'); }} className="flex items-center p-3 bg-red-500 hover:bg-red-700 rounded-md mt-4">
-                    <FaSignInAlt /> {!isCollapsed && <span className="ml-2">Logout</span>}
+                {/* ✅ Fixed Logout Button */}
+                <button 
+                    onClick={() => {
+                        console.log("🔴 Logout Clicked"); // Debugging Log
+                        logout();
+                        navigate('/login');
+                    }} 
+                    className="flex items-center p-3 bg-red-500 hover:bg-red-700 rounded-md mt-4"
+                >
+                    <FaSignOutAlt /> <span className="ml-2">Logout</span>
                 </button>
             </div>
 
             {/* ✅ Main Content (Changes Dynamically) */}
             <div className="w-full flex flex-col">
-                
                 {/* Dynamic Content - Switches based on activePage */}
                 <div className="flex-grow flex flex-col items-center justify-center p-6 text-center">
                     {activePage === "home" && (
@@ -75,17 +81,15 @@ function Home() {
                         </>
                     )}
                     {activePage === "profile" && <Profile />}
-                    {activePage === "events" && <AllEvents/>}
+                    {activePage === "events" && <AllEvents />}
                     {activePage === "tasks" && <h2 className="text-3xl font-bold">Manage Your Tasks</h2>}
                     {activePage === "community" && <h2 className="text-3xl font-bold">Community Engagement</h2>}
                     {activePage === "about us" && <h2 className="text-3xl font-bold">About Us</h2>}
                     {activePage === "contact" && <h2 className="text-3xl font-bold">Contact</h2>}
                 </div>
             </div>
-            </div>
-                        
-        
+        </div>
     );
 }
 
-export default Home;         
+export default Home;

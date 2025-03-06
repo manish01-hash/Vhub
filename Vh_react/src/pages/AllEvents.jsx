@@ -4,10 +4,10 @@ import axios from "axios";
 import EventPost from "./EventPost"; // Event Card Component
 
 function AllEvents() {
-    const { user } = useAuth();
+    const { user, logout } = useAuth(); 
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [noEventsMessage, setNoEventsMessage] = useState("");
+    const [errorMessage, setErrorMessage] = useState("");
 
     useEffect(() => {
         fetchEvents();
@@ -16,21 +16,39 @@ function AllEvents() {
     async function fetchEvents() {
         try {
             console.log("🟡 Fetching events...");
+
+            const token = localStorage.getItem("accessToken");
+            if (!token) {
+                console.error("🚨 No access token found. Redirecting to login.");
+                setErrorMessage("Unauthorized! Please log in again.");
+                return;
+            }
+
             const response = await axios.get("http://127.0.0.1:8000/api/events/", {
-                headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
+                headers: { Authorization: `Bearer ${token}` },
             });
 
-            if (response.data.length === 0) {
-                console.log("🔴 No events available");
-                setNoEventsMessage("No upcoming volunteer events. Stay tuned for new opportunities!");
-            } else {
-                console.log("✅ Events Fetched:", response.data);
+            console.log("✅ API Response:", response.data);
+
+            if (Array.isArray(response.data) && response.data.length > 0) {
                 setEvents(response.data);
-                setNoEventsMessage(""); 
+                setErrorMessage(""); 
+            } else {
+                console.warn("🚨 No events available:", response.data);
+                setErrorMessage(response.data?.message || "No events available.");
+                setEvents([]);
             }
         } catch (error) {
             console.error("❌ Error fetching events:", error.response?.status, error.response?.data);
-            setNoEventsMessage("No events are available at the moment.");
+
+            if (error.response?.status === 401) {
+                setErrorMessage("Session expired. Please log in again.");
+                logout();
+            } else {
+                setErrorMessage("Failed to load events. Try again later.");
+            }
+
+            setEvents([]);
         } finally {
             setLoading(false);
         }
@@ -38,7 +56,7 @@ function AllEvents() {
 
     return (
         <div>
-            <h1 className="text-4xl font-bold mb-4">Welcome, {user?.name}!</h1>
+            <h1 className="text-4xl font-bold mb-4">Welcome, {user?.name || "Guest"}!</h1>
             <p className="text-gray-600">Explore upcoming events and volunteer opportunities.</p>
 
             {loading ? (
@@ -48,10 +66,9 @@ function AllEvents() {
                 </div>
             ) : (
                 <>
-                    {noEventsMessage ? (
-                        <div className="text-center mt-10 text-gray-500">
-                            <p className="text-xl">{noEventsMessage}</p>
-                            <img src="/no-events.svg" alt="No Events" className="mx-auto mt-5 w-60 opacity-75" />
+                    {errorMessage ? (
+                        <div className="text-center mt-10 text-red-500">
+                            <p className="text-xl">{errorMessage}</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
@@ -62,7 +79,8 @@ function AllEvents() {
                                         event={event}  
                                         description={event.E_Description} 
                                         requiredVolunteers={event.E_Required_Volunteers} 
-                                        totVolunteers={event.E_Volunteers.length} 
+                                        totVolunteers={event.E_Volunteers?.length || 0} 
+                                        fetchEvents={fetchEvents} // ✅ Ensure fetchEvents is passed
                                     />
                                 </div>
                             ))}
@@ -74,4 +92,4 @@ function AllEvents() {
     );
 }
 
-export default AllEvents;
+export default AllEvents;   

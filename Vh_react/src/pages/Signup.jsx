@@ -35,38 +35,43 @@ function Signup() {
             setErrorMessage("All fields are required.");
             return;
         }
-        if (password.length < 8) {
-            setErrorMessage("Password must be at least 8 characters long.");
+        if (password.length < 6) {
+            setErrorMessage("Password must be at least 6 characters long.");
             return;
         }
-
+    
         setLoading(true);
         setErrorMessage("");
-
+    
         try {
             const response = await axios.post("http://127.0.0.1:8000/api/auth/signup/", {
                 name,
                 email,
                 phone,
                 password,
-                role,
-                college_name: college,
-                faculty,
-                year_of_study: year
+                role,  
+                college_name: college || "",  
+                faculty: faculty || "",
+                year_of_study: year || null,
             }, {
                 headers: { "Content-Type": "application/json" }
             });
-
+    
             alert("Signup successful! Redirecting to login...");
             navigate("/login");
         } catch (error) {
-            console.log(error.response);
-            setErrorMessage(error.response?.data?.error || "Signup failed! Try again.");
+            console.log("❌ Signup Error:", error.response?.data);
+            
+            if (error.response?.data?.email) {
+                setErrorMessage("❌ Email is already registered! Try a different one.");
+            } else {
+                setErrorMessage(error.response?.data?.error || "Signup failed! Try again.");
+            }
         } finally {
             setLoading(false);
         }
     }
-
+    
     return (
         <div className="w-full h-screen flex flex-col justify-center items-center bg-[#1a202c]">
             <h1 className="text-4xl font-bold text-white mb-5">Create Account</h1>
@@ -77,23 +82,27 @@ function Signup() {
                     onChange={handleSignupChange} />
 
                 <input type="email" name="email" placeholder="Email" value={email}
+                    autoComplete="email"  // ✅ Fix autofill issue
                     className="w-full h-12 px-3 rounded-md bg-gray-700 text-lg focus:outline-none mt-3"
                     onChange={handleSignupChange} />
+
 
                 <input type="text" name="phone" placeholder="Phone Number" value={phone}
                     className="w-full h-12 px-3 rounded-md bg-gray-700 text-lg focus:outline-none mt-3"
                     onChange={handleSignupChange} />
 
                 <input type="password" name="password" placeholder="Password" value={password}
+                    autoComplete="new-password"  // ✅ Fix password autofill
                     className="w-full h-12 px-3 rounded-md bg-gray-700 text-lg focus:outline-none mt-3"
                     onChange={handleSignupChange} />
 
+
+                {/* ✅ Updated Role Selection */}
                 <select name="role" value={role} onChange={handleSignupChange}
                     className="w-full h-12 px-3 rounded-md bg-gray-700 text-lg focus:outline-none mt-3">
                     <option value="Volunteer">Volunteer</option>
+                    <option value="Event Organizer">Event Organizer</option>
                     <option value="Admin">Admin</option>
-                    <option value="Coordinator">Coordinator</option>
-                    <option value="Moderator">Moderator</option>
                 </select>
 
                 <input type="text" name="college" placeholder="College Name (Optional)" value={college}

@@ -15,8 +15,8 @@ function SidebarLayout() {
     const sections = {
         events: <VolunteerDashboard />,
         profile: <Profile />,
-        tasks: <TasksPage />,
-        community: <CommunityPage />
+        // tasks: <TasksPage />,
+        //community: <CommunityPage />
     };
 
     return (
@@ -31,14 +31,14 @@ function SidebarLayout() {
                                 onClick={() => setActiveTab("events")}>
                                 <FaCalendarCheck /> <span className="ml-2">My Events</span>
                             </li>
-                            <li className={`p-3 rounded-md cursor-pointer ${activeTab === "tasks" ? "bg-blue-500" : "hover:bg-gray-700"}`} 
+                            {/* <li className={`p-3 rounded-md cursor-pointer ${activeTab === "tasks" ? "bg-blue-500" : "hover:bg-gray-700"}`} 
                                 onClick={() => setActiveTab("tasks")}>
                                 <FaTasks /> <span className="ml-2">Tasks</span>
-                            </li>
-                            <li className={`p-3 rounded-md cursor-pointer ${activeTab === "community" ? "bg-blue-500" : "hover:bg-gray-700"}`} 
+                            </li> */}
+                            {/* <li className={`p-3 rounded-md cursor-pointer ${activeTab === "community" ? "bg-blue-500" : "hover:bg-gray-700"}`} 
                                 onClick={() => setActiveTab("community")}>
                                 <FaUsers /> <span className="ml-2">Community</span>
-                            </li>
+                            </li> */}
                             <li className={`p-3 rounded-md cursor-pointer ${activeTab === "profile" ? "bg-blue-500" : "hover:bg-gray-700"}`} 
                                 onClick={() => setActiveTab("profile")}>
                                 <FaUser /> <span className="ml-2">My Profile</span>

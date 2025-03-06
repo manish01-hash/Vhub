@@ -31,11 +31,11 @@ class UserManager(BaseUserManager):
 # User Model (Volunteer & Admin)
 class User(AbstractBaseUser, PermissionsMixin):
     ROLE_CHOICES = (
-        ("Volunteer", "Volunteer"),
-        ("Admin", "Admin"),
-        ("Coordinator", "Coordinator"),
-        ("Moderator", "Moderator"),
-    )
+    ("Volunteer", "Volunteer"),
+    ("Event Organizer", "Event Organizer"),
+    ("Admin", "Admin"),
+)
+
     id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=255)
@@ -74,9 +74,12 @@ class Event(models.Model):
 
 
     # ✅ Restore These Fields
-    E_Photo = models.ImageField(upload_to="event_photos/", blank=True, null=True)  # Event Image
+    E_Photo = models.ImageField(upload_to="event_photos/", blank=True, null=True)
     E_Required_Volunteers = models.PositiveIntegerField(default=10)  # Volunteers Needed
     E_Volunteers = models.ManyToManyField("User", through="Registration", related_name="volunteered_events", blank=True)  
+
+    E_Coordinators = models.ManyToManyField(User, related_name="coordinated_events", blank=True)
+    E_Super_Volunteers = models.ManyToManyField(User, related_name="super_volunteer_events", blank=True)
 
     E_Status = models.CharField(
         max_length=20,

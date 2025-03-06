@@ -21,17 +21,16 @@ class SignupSerializer(serializers.ModelSerializer):
         fields = ['email', 'name', 'phone', 'role', 'college_name', 'faculty', 'year_of_study', 'password']
 
     def create(self, validated_data):
-        user = User.objects.create_user(
+        return User.objects.create_user(
             email=validated_data['email'],
             name=validated_data['name'],
-            phone=validated_data.get('phone', ''),
-            role=validated_data['role'],
-            college_name=validated_data.get('college_name', ''),
+            phone=validated_data.get('phone', ''),  # ✅ Default to empty string if not provided
+            role=validated_data.get('role', 'Volunteer'),  # ✅ Default role as "Volunteer"
+            college_name=validated_data.get('college_name', ''),  # ✅ Default to empty
             faculty=validated_data.get('faculty', ''),
-            year_of_study=validated_data.get('year_of_study', None),
+            year_of_study=validated_data.get('year_of_study', None),  # ✅ Allow null
             password=validated_data['password']
         )
-        return user
 
 # ✅ Login Serializer
 class LoginSerializer(serializers.Serializer):
@@ -61,11 +60,16 @@ class EventSerializer(serializers.ModelSerializer):
     E_Created_By = UserSerializer(read_only=True)  # Show event creator details
     E_Volunteers = UserSerializer(many=True, read_only=True)  # Show registered volunteers
     E_Registered_Count = serializers.IntegerField(read_only=True)  # Track number of registered volunteers
-
+    E_Photo = serializers.SerializerMethodField()  
     class Meta:
         model = Event
         fields = '__all__'
         read_only_fields = ['E_ID']
+    def get_E_Photo(self, obj):
+        request = self.context.get('request')  # ✅ Get request context for full URL
+        if obj.E_Photo:
+            return request.build_absolute_uri(obj.E_Photo.url)  # ✅ Full URL
+        return None
 
 # ✅ Task Serializer (Shows assigned user & related event)
 class TaskSerializer(serializers.ModelSerializer):

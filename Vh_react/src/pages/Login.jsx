@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";  // ✅ Import useRef
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -10,84 +10,72 @@ function Login() {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
     
-    const isMounted = useRef(false);  // ✅ Track first render
+    const isMounted = useRef(false);
 
     async function handleLogin(e) {
         e.preventDefault();
-
         if (!email || !password) {
             setErrorMessage("All fields are required.");
             return;
         }
-
+    
         setLoading(true);
         setErrorMessage("");
-
+    
         try {
             const response = await axios.post("http://127.0.0.1:8000/api/auth/login/", {
                 email,
                 password,
-                role,
+                role, // This should be sent correctly
             }, {
                 headers: { "Content-Type": "application/json" }
             });
-
+    
+            console.log("🔍 Login Response:", response.data); // Debugging log
+    
             if (response.status === 200) {
-                console.log("✅ Login Success:", response.data);
-
-                // Debug: Check LocalStorage Updates
-                console.log("🔍 Before setting role:", localStorage.getItem("userRole"));
                 localStorage.setItem("accessToken", response.data.access);
                 localStorage.setItem("refreshToken", response.data.refresh);
-                localStorage.setItem("userRole", response.data.role);
-                console.log("✅ After setting role:", localStorage.getItem("userRole"));
-
-                // ✅ Redirect based on role
+                localStorage.setItem("userRole", response.data.role); // Ensure role is stored correctly
+    
+                console.log("✅ User role stored:", response.data.role); // Debugging log
+    
                 setTimeout(() => {
-                    console.log("🚀 Redirecting after delay...");
-
                     if (response.data.role === "Admin") {
-                        console.log("🔵 Navigating to /admin-dashboard");
                         navigate("/admin-dashboard", { replace: true });
+                    } else if (response.data.role === "Event Organizer") {
+                        navigate("/organizer-dashboard", { replace: true });
                     } else {
-                        console.log("🟢 Navigating to /volunteer-dashboard");
-                        navigate("/volunteer-dashboard", { replace: true });
+                        navigate("/home", { replace: true });
                     }
                 }, 200);
             } else {
                 setErrorMessage("Invalid credentials! Please try again.");
             }
         } catch (error) {
-            console.error("❌ Login Error:", error.response);
             setErrorMessage(error.response?.data?.error || "Invalid credentials! Please try again.");
         } finally {
             setLoading(false);
         }
     }
-
-    // ✅ Prevent Infinite Loop - Ensures useEffect runs only once
+    
     useEffect(() => {
-        if (isMounted.current) return;  // ✅ Prevents multiple executions
+        if (isMounted.current) return;
 
-        console.log("⚡ Checking userRole on first mount...");
         const userRole = localStorage.getItem("userRole");
-        console.log("🔍 Stored userRole:", userRole);
-
         if (userRole && window.location.pathname === "/") {
-            console.log("🔁 Redirecting due to existing session...");
             setTimeout(() => {
                 if (userRole === "Admin") {
-                    console.log("🔵 Navigating to /admin-dashboard");
                     navigate("/admin-dashboard", { replace: true });
+                } else if (userRole === "Event Organizer") {
+                    navigate("/organizer-dashboard", { replace: true });
                 } else {
-                    console.log("🟢 Navigating to /volunteer-dashboard");
-                    navigate("/volunteer-dashboard", { replace: true });
+                    navigate("/home", { replace: true });
                 }
             }, 200);
         }
-
-        isMounted.current = true;  // ✅ Marks that useEffect has run
-    }, [navigate]);  // ✅ Now runs only **once**
+        isMounted.current = true;
+    }, [navigate]);
 
     return (
         <div className="w-full h-screen flex flex-col justify-center items-center bg-[#1a202c]">
@@ -128,6 +116,7 @@ function Login() {
                         required
                     >
                         <option value="Volunteer">Volunteer</option>
+                        <option value="Event Organizer">Event Organizer</option>
                         <option value="Admin">Admin</option>
                     </select>
 
