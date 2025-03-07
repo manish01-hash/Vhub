@@ -22,23 +22,21 @@ class CustomUserAdmin(UserAdmin):
 
 admin.site.register(User, CustomUserAdmin)
 
-# ✅ Event Admin - Fix ManyToManyField Issue
-from django.contrib import admin
-from .models import Event
+
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ("E_Name", "E_Start_Date", "E_End_Date", "E_Status")
+    list_display = ("E_ID", "E_Name", "E_Start_Date", "E_End_Date", "E_Status")  # ✅ Added E_ID
     list_filter = ("E_Status", "E_Start_Date", "E_End_Date")
     search_fields = ("E_Name", "E_Location")
 
     fieldsets = (
-        ("Event Details", {"fields": ("E_Name", "E_Description", "E_Location", "E_Status")}),
+        ("Event Details", {"fields": ("E_ID", "E_Name", "E_Description", "E_Location", "E_Status")}),  # ✅ Added E_ID
         ("Schedule", {"fields": ("E_Start_Date", "E_End_Date")}),
         ("Media", {"fields": ("E_Photo",)}),
     )
 
-    readonly_fields = ("E_Created_By",)  # ✅ Show but don't let users edit
+    readonly_fields = ("E_ID", "E_Created_By")  # ✅ Make E_ID read-only
 
     def save_model(self, request, obj, form, change):
         """Automatically assign E_Created_By to the logged-in admin."""
@@ -46,25 +44,29 @@ class EventAdmin(admin.ModelAdmin):
             obj.E_Created_By = request.user  # ✅ Assign logged-in admin
         obj.save()
 
-
-
     def get_required_volunteers(self, obj):
         """Display required volunteers count safely."""
         return obj.E_Required_Volunteers if hasattr(obj, "E_Required_Volunteers") else "N/A"
+    
     get_required_volunteers.short_description = "Required Volunteers"
+
+
+
 
 # ✅ Task Admin
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
-    list_display = ("T_Name", "T_Priority_Level", "T_Status", "T_Deadline")
-    search_fields = ("T_Name",)
-    list_filter = ("T_Priority_Level", "T_Status")
+    list_display = ("title", "priority", "status", "deadline")  # ✅ Use correct field names
+    list_filter = ("priority", "status")  # ✅ Use correct field names
+    search_fields = ("title", "description")
+
+
 
 # ✅ Registration Admin (Volunteer-Event Link)
 @admin.register(Registration)
 class RegistrationAdmin(admin.ModelAdmin):
-    list_display = ("volunteer", "event", "display_qr_code")  
-    search_fields = ("volunteer__name", "event__E_Name")
+    list_display = ("volunteer", "event", "display_qr_code" ,"event__E_ID")  
+    search_fields = ("volunteer__name", "event__E_Name ")
 
     def display_qr_code(self, obj):
         """Show QR code in admin panel."""

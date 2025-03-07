@@ -4,10 +4,11 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import User, Event, Task, Attendance,Registration
+from .models import User, Event, Task, Attendance,Registration,SampleTask,EventAnnouncement
 from .serializers import (
     UserSerializer, SignupSerializer, LoginSerializer,
-    EventSerializer, TaskSerializer, AttendanceSerializer,RegistrationSerializer
+    EventSerializer, TaskSerializer, AttendanceSerializer,RegistrationSerializer,EventAnnouncementSerializer
+    ,SampleTaskSerializer
 )
 from django.contrib.auth.hashers import make_password
 from django.http import FileResponse, Http404
@@ -56,6 +57,7 @@ def login_view(request):
     return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
+
 # Logout View
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -102,19 +104,22 @@ def get_user_by_id(request, user_id):
 @permission_classes([IsAuthenticated])
 def get_events(request):
     events = Event.objects.all()
+    
+    # Ensure an empty list is returned instead of an object with a message
     if not events.exists():
-        return Response({"message": "No events available"}, status=status.HTTP_200_OK)
+        return Response([], status=status.HTTP_200_OK)
 
     serializer = EventSerializer(events, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+
 # Register for an Event
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
-def register_for_event(request, event_id):
+def register_for_event(request, E_ID):
     user = request.user  # ✅ Ensure user is authenticated
-    event = get_object_or_404(Event, E_ID=event_id)  # ✅ Ensure event exists
+    event = get_object_or_404(Event, E_ID=E_ID)  # ✅ Ensure event exists
 
     # ✅ Check if user is already registered
     if Registration.objects.filter(event=event, volunteer=user).exists():
@@ -127,6 +132,20 @@ def register_for_event(request, event_id):
         {"message": "Successfully registered", "qr_code": registration.qr_code.url},
         status=status.HTTP_201_CREATED
     )
+    
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_all_registrations(request):
+    """Fetch all registrations with event and volunteer details"""
+    registrations = Registration.objects.all()
+    
+    if not registrations.exists():
+        return Response({"message": "No registrations found"}, status=status.HTTP_200_OK)
+
+    serializer = RegistrationSerializer(registrations, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 #Check Registration Status
 @api_view(["GET"])
@@ -165,8 +184,19 @@ class LeaveEventView(APIView):
 @permission_classes([IsAuthenticated])
 def get_event_by_id(request, E_ID):
     event = get_object_or_404(Event, E_ID=E_ID)
-    serializer = EventSerializer(event)
+    serializer = EventSerializer(event, context={"request": request})
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_qr_code(request, event_id):
+    registration = get_object_or_404(Registration, event__E_ID=event_id, volunteer=request.user)
+    
+    if not registration.qr_code:
+        return Response({"error": "QR Code not found. Try registering again."}, status=status.HTTP_404_NOT_FOUND)
+
+    return Response({"qr_code_url": request.build_absolute_uri(registration.qr_code.url)}, status=status.HTTP_200_OK)
+
 
 
 # Create Event
@@ -211,10 +241,15 @@ def update_event(request, E_ID):
 
 # Delete Event
 @api_view(['DELETE'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated])  # Ensure only logged-in users can delete
 def delete_event(request, E_ID):
     event = get_object_or_404(Event, E_ID=E_ID)
 
+    # ✅ Debugging: Print user details
+    print("User trying to delete:", request.user)
+    print("Event created by:", event.E_Created_By)
+
+    # ✅ Check if the user is either the event creator OR an Admin
     if request.user != event.E_Created_By and request.user.role != "Admin":
         return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
 
@@ -253,17 +288,72 @@ def serve_image(request, path):
         return FileResponse(open(file_path, 'rb'))
     else:
         raise Http404("Image not found")
+    
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def post_announcement(request, event_id):
+    event = get_object_or_404(Event, E_ID=event_id)
+
+    if request.user not in event.E_Coordinators.all() and request.user.role != "Admin":
+        return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+
+    serializer = EventAnnouncementSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save(event=event, posted_by=request.user)
+        return Response({"message": "Announcement posted successfully!"}, status=status.HTTP_201_CREATED)
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_announcements(request, E_ID):  # Make sure to accept E_ID
+    event = get_object_or_404(Event, E_ID=E_ID)
+    
+    announcements = EventAnnouncement.objects.filter(event=event)
+    if not announcements.exists():
+        return Response({"message": "No announcements found"}, status=status.HTTP_200_OK)
+
+    serializer = EventAnnouncementSerializer(announcements, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+
+
 
 
 ### ------------------- TASK MANAGEMENT ------------------- ###
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_sample_task(request, event_id):
+    event = get_object_or_404(Event, E_ID=event_id)
+    sample_task = SampleTask.objects.filter(event=event).first()
+
+    if not sample_task:
+        return Response({"message": "No sample task available."}, status=status.HTTP_200_OK)
+
+    serializer = SampleTaskSerializer(sample_task)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 # Get All Tasks
-@api_view(['GET'])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def get_tasks(request):
-    tasks = Task.objects.all()
+def get_tasks(request, E_ID):
+    event = get_object_or_404(Event, E_ID=E_ID)  # Ensure event exists
+    
+    if request.user.role != "Admin" and request.user not in event.E_Coordinators.all() and request.user != event.E_Created_By:
+        return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+
+    tasks = Task.objects.filter(event=event)
+    
+    if not tasks.exists():
+        return Response({"message": "No tasks found for this event"}, status=status.HTTP_200_OK)
+
     serializer = TaskSerializer(tasks, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 
 # Get Task by ID
 @api_view(['GET'])
@@ -277,14 +367,70 @@ def get_task_by_id(request, T_ID):
         return Response({"error": "Task not found!"}, status=status.HTTP_404_NOT_FOUND)
 
 # Create Task
-@api_view(['POST'])
+@api_view(["POST"])
 @permission_classes([IsAuthenticated])
-def create_task(request):
+def create_task(request, event_id):
+    event = get_object_or_404(Event, E_ID=event_id)
+
+    # ✅ Ensure only Admins, Coordinators, or the Event Organizer can create tasks
+    if request.user.role != "Admin" and request.user not in event.E_Coordinators.all() and request.user != event.E_Created_By:
+        return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+
     serializer = TaskSerializer(data=request.data)
     if serializer.is_valid():
-        serializer.save()
-        return Response({"message": "Task created successfully!"}, status=status.HTTP_201_CREATED)
+        serializer.save(event=event, created_by=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def assign_task(request, task_id):
+    task = get_object_or_404(Task, T_ID=task_id)
+    
+    # ✅ Ensure only Admins, Coordinators, or the Event Organizer can assign tasks
+    if request.user.role != "Admin" and request.user not in task.event.E_Coordinators.all() and request.user != task.event.E_Created_By:
+        return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+
+    user_id = request.data.get("user_id")
+    user = get_object_or_404(User, id=user_id)
+    
+    task.assigned_to.add(user)
+    task.save()
+    
+    return Response({"message": "Task assigned successfully!"}, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def self_assign_task(request, task_id):
+    task = get_object_or_404(Task, T_ID=task_id)
+
+    if request.user.role != "Volunteer":
+        return Response({"error": "Only volunteers can self-assign tasks"}, status=status.HTTP_403_FORBIDDEN)
+
+    task.assigned_to.add(request.user)
+    task.save()
+
+    return Response({"message": "Task self-assigned successfully!"}, status=status.HTTP_200_OK)
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def update_task_status(request, task_id):
+    task = get_object_or_404(Task, T_ID=task_id)
+
+    # ✅ Only Admins, Coordinators, Assigned Volunteers, or the Event Organizer can update task status
+    if request.user.role != "Admin" and request.user not in task.event.E_Coordinators.all() and request.user not in task.assigned_to.all() and request.user != task.event.E_Created_By:
+        return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+
+    new_status = request.data.get("status")
+    if new_status not in ["Not Started", "In Progress", "Completed"]:
+        return Response({"error": "Invalid status"}, status=status.HTTP_400_BAD_REQUEST)
+
+    task.status = new_status
+    task.save()
+
+    return Response({"message": f"Task status updated to {new_status}"}, status=status.HTTP_200_OK)
 
 # Update Task
 @api_view(['PUT'])

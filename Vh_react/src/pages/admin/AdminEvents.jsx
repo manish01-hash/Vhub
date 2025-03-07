@@ -1,143 +1,193 @@
 import React, { useEffect, useState } from "react";
-import { FaPlus, FaEdit, FaTrash } from "react-icons/fa";
-import Sidebar from "./Sidebar";
+import { FaPlusCircle, FaEdit, FaTrash, FaEye ,FaSearch} from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import CreateEvent from "./CreateEvent";
-import EditEvent from "./EditEvent";
+import Sidebar from "./Sidebar";
+import { useAuth } from "../../context/AuthContext";
 
 function AdminEvents() {
     const [events, setEvents] = useState([]);
-    const [search, setSearch] = useState("");
-    const [showCreateModal, setShowCreateModal] = useState(false);
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [selectedEventId, setSelectedEventId] = useState(null);
+    const [allEvents, setAllEvents] = useState([]);
+    const[backupEvents,setBackupEvents]= useState([]);
+    const navigate = useNavigate();
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterStatus, setFilterStatus] = useState('all');
+    const { updateEventId } = useAuth();
+
+    const fetchEvents = async () => {
+        try {
+            const token = localStorage.getItem("accessToken");
+    
+            if (!token) {
+                console.error("❌ No access token found! User might not be logged in.");
+                return;
+            }
+    
+            const response = await axios.get("http://127.0.0.1:8000/api/events/", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+    
+            // Ensure we only store an array in events
+            if (Array.isArray(response.data)) {
+                setEvents(response.data);
+                setAllEvents(response.data);
+                setBackupEvents(response.data);
+            } else {
+                console.warn("⚠ API returned unexpected data:", response.data);
+                setEvents([]); // Fallback to empty array
+            }
+        } catch (error) {
+            console.error("❌ Error fetching events:", error);
+            setEvents([]); // Ensure state is an array to prevent .map() errors
+        }
+    };
+
+    function searchEvents(e) {
+        const search = e.target.value
+        setSearchQuery(search)
+        setAllEvents(backupEvents)
+        const searchedEvents = allEvents.filter((event) => {
+            return event.E_Name.toLowerCase().includes(e.target.value.trim().toLowerCase())
+        })
+
+        setEvents(searchedEvents)
+        setAllEvents(backupEvents)
+    }
+    
+    useEffect(() => {
+        console.log("🟡 Filter Status:", filterStatus);
+
+        setAllEvents(backupEvents);
+
+        let filteredEvents = allEvents.filter((event) => filterStatus === 'all' || event.E_Status === filterStatus)
+        
+        setEvents(filteredEvents);
+        setAllEvents(backupEvents);
+    }, [filterStatus]);
 
     useEffect(() => {
         fetchEvents();
+        // const interval = setInterval(fetchEvents, 5000); // ✅ Real-time updates every 5 seconds
+        // return () => clearInterval(interval);
     }, []);
 
-    async function fetchEvents() {
-        try {
-            const token = localStorage.getItem("accessToken");
-            const headers = { Authorization: `Bearer ${token}` };
-            const response = await axios.get("http://127.0.0.1:8000/api/events/", { headers });
-            
-            // Ensure response is an array
-            setEvents(Array.isArray(response.data) ? response.data : []);
-        } catch (error) {
-            console.error("Error fetching events:", error);
-            setEvents([]); // Prevent undefined errors
+    const formatDate = (dateString) => {
+        const options = { day: "numeric", month: "long", year: "numeric" };
+        return new Date(dateString).toLocaleDateString("en-US", options);
+    };
+
+
+    function handleDelete(id) { 
+        const token = localStorage.getItem("accessToken");
+
+        let msg = confirm("Are you sure you want to delete this event?");
+        console.log("🟡 Confirm:", msg);
+
+        if (msg) {
+            axios.delete(`http://127.0.0.1:8000/api/events/${id}/delete/`,{
+                headers: { Authorization: `Bearer ${token}` } // ✅ Pass token in headers
+            })
+                .then(() => {
+                    alert("Event Deleted Successfully")
+                    fetchEvents();
+                })
+                .catch(error => alert("Event Not Found!"));
         }
     }
 
-    const handleEditClick = (eventId) => {
-        setSelectedEventId(eventId);
-        setShowEditModal(true);
-    };
-
-    const handleDeleteClick = async (eventId) => {
-        if (!window.confirm("Are you sure you want to delete this event?")) return;
-        try {
-            const token = localStorage.getItem("accessToken");
-            const headers = { Authorization: `Bearer ${token}` };
-            await axios.delete(`http://127.0.0.1:8000/api/events/delete/${eventId}/`, { headers });
-            alert("Event deleted successfully!");
-            fetchEvents();
-        } catch (error) {
-            console.error("Error deleting event:", error);
-        }
-    };
-
-    const filteredEvents = Array.isArray(events)
-        ? events.filter(event =>
-            event?.E_Name?.toLowerCase().includes(search.toLowerCase())
-        )
-        : [];
-
-    const getImageUrl = (imagePath) => {
-        return imagePath ? `http://127.0.0.1:8000${imagePath}` : "/default-image.jpg";
-    };
-
     return (
-        <div className="flex min-h-screen bg-gray-100">
+        <div className="flex min-h-screen bg-[#1a202c] text-white">
+            {/* ✅ Sidebar Navigation */}
             <Sidebar />
-            <main className="flex-1 p-6">
-                <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-3xl font-bold">Manage Events</h1>
-                    <button onClick={() => setShowCreateModal(true)} className="bg-blue-500 text-white px-4 py-2 rounded-md flex items-center">
-                        <FaPlus className="mr-2" /> Add Event
+
+            {/* ✅ Main Content */}
+            <div className="flex-1 p-6">
+                <h1 className="text-4xl font-bold mb-6">Manage Events</h1>
+
+                {/* ✅ Create Event Button */}
+                <div className="flex flex-wrap items-center justify-between mb-6">
+                    <button 
+                        onClick={() => navigate("/admin/events/create")} 
+                        className="flex items-center bg-green-500 hover:bg-green-700 p-4 rounded-lg text-lg font-bold"
+                    >
+                        <FaPlusCircle className="mr-3" /> Create Event
                     </button>
+
+                    {/* ✅ Search Bar */}
+                    <div className="flex items-center bg-gray-700 p-3 rounded-lg w-[40%]">
+                        <FaSearch className="text-gray-300 mr-2" />
+                        <input 
+                            type="text" 
+                            placeholder="Search events..." 
+                            className="bg-transparent focus:outline-none text-white w-full"
+                            value={searchQuery}
+                            onChange={(e) =>(searchEvents(e))}
+                        />
+                    </div>
+
+                    {/* ✅ Filter Dropdown */}
+                    <div className="relative w-[20%] mr-[8%]">
+                        <select 
+                            className="bg-gray-700 p-3 w-full rounded-lg text-white focus:outline-none"
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                        >
+                            <option value="all">All Status</option>
+                            <option value="Upcoming">Upcoming</option>
+                            <option value="Ongoing">Ongoing</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
                 </div>
-                <input
-                    type="text"
-                    placeholder="Search events..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full p-3 mb-4 rounded-md border"
-                />
-                <table className="w-full bg-white shadow-md rounded-lg overflow-hidden">
-                    <thead>
-                        <tr className="bg-gray-200 text-gray-700">
-                            <th className="p-3">Image</th>
-                            <th className="p-3">Event Name</th>
-                            <th className="p-3">Start Date</th>
-                            <th className="p-3">End Date</th>
-                            <th className="p-3">Location</th>
-                            <th className="p-3">Status</th>
-                            <th className="p-3">Volunteers Needed</th>
-                            <th className="p-3">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredEvents.length > 0 ? (
-                            filteredEvents.map(event => (
-                                <tr key={event?.E_ID} className="border-t">
-                                    <td className="p-3">
-                                        {event?.E_Photo ? (
-                                            <img
-                                                src={getImageUrl(event?.E_Photo)}
-                                                alt="Event"
-                                                className="w-16 h-16 object-cover rounded"
-                                                onError={(e) => e.target.src = "/default-image.jpg"}
-                                            />
-                                        ) : (
-                                            <span className="text-gray-500">No Image</span>
-                                        )}
-                                    </td>
-                                    <td className="p-3">{event?.E_Name || "N/A"}</td>
-                                    <td className="p-3">{event?.E_Start_Date ? new Date(event.E_Start_Date).toLocaleDateString() : "N/A"}</td>
-                                    <td className="p-3">{event?.E_End_Date ? new Date(event.E_End_Date).toLocaleDateString() : "N/A"}</td>
-                                    <td className="p-3">{event?.E_Location || "N/A"}</td>
-                                    <td className="p-3">
-                                        <span className={`px-2 py-1 rounded text-white ${
-                                            event?.E_Status === "Upcoming" ? "bg-blue-500" :
-                                            event?.E_Status === "Ongoing" ? "bg-green-500" :
-                                            "bg-gray-500"
-                                        }`}>
-                                            {event?.E_Status || "N/A"}
-                                        </span>
-                                    </td>
-                                    <td className="p-3">{event?.E_Required_Volunteers || "N/A"}</td>
-                                    <td className="p-3 flex gap-2">
-                                        <button onClick={() => handleEditClick(event?.E_ID)} className="bg-green-500 text-white px-3 py-1 rounded flex items-center">
-                                            <FaEdit className="mr-1" /> Edit
-                                        </button>
-                                        <button onClick={() => handleDeleteClick(event?.E_ID)} className="bg-red-500 text-white px-3 py-1 rounded flex items-center">
-                                            <FaTrash className="mr-1" /> Delete
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan="8" className="text-center p-4 text-gray-500">No events found</td>
+
+                {/* ✅ Events Table */}
+                <div className="bg-[#2d3748] p-6 rounded-lg shadow-md">
+                    <table className="w-full text-left">
+                        <thead>
+                            <tr className="border-b border-gray-600">
+                                <th className="p-2">Event Name</th>
+                                <th className="p-2" >Location</th>
+                                <th className="p-2">Volunteers</th>
+                                <th className="p-2">Start Date</th>
+                                <th className="p-2">End Date</th>
+                                <th className="p-2">Status</th>
+                                <th className="p-2">Actions</th>
+
                             </tr>
-                        )}
-                    </tbody>
-                </table>
-            </main>
-            {showCreateModal && <CreateEvent closeModal={() => setShowCreateModal(false)} refreshEvents={fetchEvents} />}
-            {showEditModal && <EditEvent eventId={selectedEventId} closeModal={() => setShowEditModal(false)} refreshEvents={fetchEvents} />}
+                        </thead>
+                        <tbody>
+                            {Array.isArray(events) && events.length > 0 ? (
+                                events.map((event) => (
+                                    <tr key={event.E_ID} className="border-b border-gray-700">
+                                        <td className="p-2">{event.E_Name}</td>
+                                        <td className="p-2">{event.E_Location}</td>
+                                        <td className="p-2"><button onClick={()=>(updateEventId(event.E_ID), navigate("/admin/event-specific-volunteers"))} className=" w-[40%] h-full py-1 bg-blue-500 rounded-md hover:bg-blue-800">View</button></td>
+                                        <td className="p-2">{formatDate(event.E_Start_Date)}</td>
+                                        <td className="p-2">{formatDate(event.E_End_Date)}</td>
+                                        <td className="p-2">{event.E_Status}</td>
+                                        <td className="p-2 flex space-x-3">
+                                            <button title="View" onClick={() => navigate(`/events/${event.E_ID}`)} className="text-blue-400 hover:text-blue-600">
+                                                <FaEye />
+                                            </button>
+                                            <button title="Edit" onClick={() => navigate(`/admin/events/edit/${event.E_ID}`)} className="text-yellow-400 hover:text-yellow-600">
+                                                <FaEdit />
+                                            </button>
+                                            <button title="Delete" className="text-red-400 hover:text-red-600" onClick={()=>handleDelete(event.E_ID)}>
+                                                <FaTrash />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="5" className="p-4 text-center">No events available</td>
+                                </tr>
+                            )}
+                        </tbody>
+
+                    </table>
+                </div>
+            </div>
         </div>
     );
 }

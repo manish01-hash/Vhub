@@ -36,6 +36,8 @@ STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 
+
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -46,7 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'Vapp'
+    'Vapp',
     
 ]
 
@@ -182,3 +184,6 @@ AUTHENTICATION_BACKENDS = (
 )
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+
+

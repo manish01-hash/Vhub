@@ -1,83 +1,104 @@
-import React, { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import axios from "axios";
-import SidebarLayout from "../components/SidebarLayout";
 
-function EventRegistration() {
+function EventDetails() {
     const { eventId } = useParams();
-    const navigate = useNavigate();
-    const [volunteerDetails, setVolunteerDetails] = useState({
-        name: "",
-        email: "",
-        phone: "",
-        college: "",
-        year: "",
-        skills: "",
-    });
-    const [loading, setLoading] = useState(false);
+    const [event, setEvent] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [errorMessage, setErrorMessage] = useState("");
+    const [qrCode, setQrCode] = useState(null);
+    const [newAnnouncement, setNewAnnouncement] = useState("");
 
-    const handleChange = (e) => {
-        setVolunteerDetails({ ...volunteerDetails, [e.target.name]: e.target.value });
-    };
+    useEffect(() => {
+        fetchEventDetails();
+    }, []);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-    
-        if (!volunteerDetails.name || !volunteerDetails.email || !volunteerDetails.phone) {
-            alert("⚠️ Please fill in all required fields.");
-            setLoading(false);
-            return;
-        }
-    
-        console.log("🟢 Sending Registration Data:", volunteerDetails);
-    
+    async function fetchEventDetails() {
         try {
             const token = localStorage.getItem("accessToken");
-            console.log("🔑 Access Token:", token);
-    
-            const response = await axios.post(
-                `http://127.0.0.1:8000/api/events/${eventId}/register/`,
-                volunteerDetails,
+            const response = await axios.get(`http://127.0.0.1:8000/api/events/${eventId}/`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setEvent(response.data);
+        } catch (error) {
+            setErrorMessage("Failed to load event details. Try again later.");
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function generateQrCode() {
+        try {
+            const token = localStorage.getItem("accessToken");
+            const response = await axios.get(`http://127.0.0.1:8000/api/events/${eventId}/qr/`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setQrCode(response.data.qr_code_url);
+        } catch (error) {
+            alert("Error generating QR Code");
+        }
+    }
+
+    async function postAnnouncement() {
+        try {
+            const token = localStorage.getItem("accessToken");
+            await axios.post(
+                `http://127.0.0.1:8000/api/events/${eventId}/announcements/`,
+                { message: newAnnouncement },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-    
-            console.log("🔄 Response Status:", response.status);
-            
-            if (response.status === 201) {
-                alert("✅ Registered Successfully!");
-                console.log("✅ Navigating to:", `/events/${eventId}`);
-                navigate(`/events/${eventId}`);
-            } else {
-                alert("⚠️ Registration failed. Please try again.");
-            }
+            setNewAnnouncement("");
+            fetchEventDetails(); // Refresh announcements
         } catch (error) {
-            console.error("❌ Registration failed:", error.response?.data || error.message);
-            alert("❌ Registration failed. Check console for details.");
+            alert("Error posting announcement. You may not have permission.");
         }
-        setLoading(false);
-    };
-    
+    }
+
+    if (loading) return <p>Loading event details...</p>;
+    if (errorMessage) return <p className="text-red-500">{errorMessage}</p>;
 
     return (
-        <SidebarLayout>
-            <div className="p-6 max-w-lg mx-auto bg-white shadow-lg rounded-lg">
-                <h2 className="text-2xl font-semibold text-center">Register for Event</h2>
-                <p className="text-gray-600 text-center mb-4">Fill in your details to participate</p>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <input type="text" name="name" placeholder="Full Name" className="w-full p-2 border rounded" onChange={handleChange} required />
-                    <input type="email" name="email" placeholder="Email Address" className="w-full p-2 border rounded" onChange={handleChange} required />
-                    <input type="tel" name="phone" placeholder="Phone Number" className="w-full p-2 border rounded" onChange={handleChange} required />
-                    <input type="text" name="college" placeholder="College Name" className="w-full p-2 border rounded" onChange={handleChange} />
-                    <input type="text" name="year" placeholder="Year of Study" className="w-full p-2 border rounded" onChange={handleChange} />
-                    <textarea name="skills" placeholder="List Your Skills" className="w-full p-2 border rounded" onChange={handleChange}></textarea>
-                    <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded-lg" disabled={loading}>
-                        {loading ? "Registering..." : "Submit Registration"}
-                    </button>
-                </form>
+        <div className="flex justify-center items-center min-h-screen bg-gray-100">
+            <div className="p-6 max-w-4xl mx-auto bg-white shadow-lg rounded-lg">
+                <h2 className="text-3xl font-bold">{event.E_Name}</h2>
+                <p className="text-gray-600">{event.E_Description}</p>
+                <p className="text-sm text-gray-500">Status: {event.E_Status}</p>
+                <p className="text-sm text-gray-500">Location: {event.E_Location}</p>
+                <p className="text-sm text-gray-500">Date: {event.E_Start_Date} - {event.E_End_Date}</p>
+                {event.E_Photo && <img src={event.E_Photo} alt="Event" className="mt-4 rounded-lg w-full h-60 object-cover" />}
+                
+                <h3 className="mt-6 text-xl font-semibold">Volunteers: {event.E_Volunteers.length}/{event.E_Required_Volunteers}</h3>
+                <h3 className="mt-2 text-xl font-semibold">Coordinators & Super Volunteers</h3>
+                {event.E_Coordinators.length > 0 || event.E_Super_Volunteers.length > 0 ? (
+                    <ul>
+                        {event.E_Coordinators.map(coord => (
+                            <li key={coord.id} className="text-gray-700">{coord.name} (Coordinator)</li>
+                        ))}
+                        {event.E_Super_Volunteers.map(sv => (
+                            <li key={sv.id} className="text-gray-700">{sv.name} (Super Volunteer)</li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p className="text-gray-500">No coordinators or super volunteers assigned yet.</p>
+                )}
+
+                <div className="mt-6">
+                    <button onClick={generateQrCode} className="bg-blue-500 text-white px-4 py-2 rounded-lg">Generate QR Code</button>
+                    {qrCode && <img src={qrCode} alt="QR Code" className="mt-4" />}
+                </div>
+
+                <div className="mt-6">
+                    <h3 className="text-xl font-semibold">Event Announcements</h3>
+                    {event.announcements.map(ann => (
+                        <p key={ann.A_ID} className="border-b py-2">{ann.message} - <span className="text-gray-500 text-sm">{ann.posted_by.name}</span></p>
+                    ))}
+                    <input type="text" value={newAnnouncement} onChange={(e) => setNewAnnouncement(e.target.value)} placeholder="Post an announcement..." className="border px-2 py-1 rounded w-full mt-2" />
+                    <button onClick={postAnnouncement} className="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg">Post</button>
+                </div>
             </div>
-        </SidebarLayout>
+        </div>
     );
 }
 
-export default EventRegistration;
+export default EventDetails;

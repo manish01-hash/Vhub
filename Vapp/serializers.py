@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-from .models import User, Event, Task, Attendance, Registration
+from .models import User, Event, Task, Attendance, Registration,EventAnnouncement,SampleTask
+
 
 # ✅ User Serializer
 class UserSerializer(serializers.ModelSerializer):
@@ -46,14 +47,21 @@ class LoginSerializer(serializers.Serializer):
         return {'user': user}
 
 # ✅ Registration Serializer (Handles event sign-ups & QR codes)
-class RegistrationSerializer(serializers.ModelSerializer):
-    volunteer = UserSerializer(read_only=True)
-    event = serializers.PrimaryKeyRelatedField(queryset=Event.objects.all())
+
+
+
+class EventAnnouncementSerializer(serializers.ModelSerializer):
+    posted_by = UserSerializer(read_only=True)
 
     class Meta:
-        model = Registration
-        fields = ['R_ID', 'event', 'volunteer', 'qr_code']
-        read_only_fields = ['R_ID', 'qr_code']
+        model = EventAnnouncement
+        fields = "__all__"
+
+class SampleTaskSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SampleTask
+        fields = "__all__"
+
 
 # ✅ Event Serializer (Includes Volunteers & Registration Count)
 class EventSerializer(serializers.ModelSerializer):
@@ -61,25 +69,34 @@ class EventSerializer(serializers.ModelSerializer):
     E_Volunteers = UserSerializer(many=True, read_only=True)  # Show registered volunteers
     E_Registered_Count = serializers.IntegerField(read_only=True)  # Track number of registered volunteers
     E_Photo = serializers.SerializerMethodField()  
+    announcements = EventAnnouncementSerializer(many=True, read_only=True)
+    sample_tasks = SampleTaskSerializer(many=True, read_only=True)
     class Meta:
         model = Event
         fields = '__all__'
         read_only_fields = ['E_ID']
     def get_E_Photo(self, obj):
-        request = self.context.get('request')  # ✅ Get request context for full URL
+        request = self.context.get('request')  # ✅ Get request context
+
         if obj.E_Photo:
-            return request.build_absolute_uri(obj.E_Photo.url)  # ✅ Full URL
-        return None
+            if request:  # ✅ Prevent AttributeError
+                return request.build_absolute_uri(obj.E_Photo.url)  # ✅ Full URL
+            return obj.E_Photo.url  # ✅ Return relative URL if no request
+
+        return None  # ✅ Handle case where no photo is uploaded
+
+
+
 
 # ✅ Task Serializer (Shows assigned user & related event)
 class TaskSerializer(serializers.ModelSerializer):
-    Assigned_To = UserSerializer(read_only=True)  # Show user details
-    Related_Event = EventSerializer(read_only=True)  # Show event details
+    assigned_to = UserSerializer(many=True, read_only=True)
+    created_by = UserSerializer(read_only=True)
 
     class Meta:
         model = Task
-        fields = '__all__'
-        read_only_fields = ['T_ID']
+        fields = "__all__"
+
 
 # ✅ Attendance Serializer (Handles QR Code Scanning)
 class AttendanceSerializer(serializers.ModelSerializer):
@@ -90,3 +107,13 @@ class AttendanceSerializer(serializers.ModelSerializer):
         model = Attendance
         fields = '__all__'
         read_only_fields = ['A_ID', 'scanned_at']
+        
+
+class RegistrationSerializer(serializers.ModelSerializer):
+    volunteer = UserSerializer(read_only=True)  # ✅ Return full volunteer details
+    event = EventSerializer(read_only=True)  # ✅ Return full event details instead of just ID
+
+    class Meta:
+        model = Registration
+        fields = ['R_ID', 'event', 'volunteer', 'qr_code']
+        read_only_fields = ['R_ID', 'qr_code']

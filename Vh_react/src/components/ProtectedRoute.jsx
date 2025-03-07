@@ -3,7 +3,7 @@ import { Navigate, Outlet } from "react-router-dom";
 
 const ProtectedRoute = ({ allowedRoles }) => {
     const token = localStorage.getItem("accessToken");
-    const userRole = localStorage.getItem("userRole");
+    const userRole = localStorage.getItem("userRole") || "Volunteer"; // Default to Volunteer
 
     // Redirect to login if no token is found
     if (!token) {

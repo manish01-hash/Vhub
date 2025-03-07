@@ -1,53 +1,53 @@
-import React from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { FaHome, FaCalendarAlt, FaUsers, FaChartLine, FaSignOutAlt } from "react-icons/fa";
+import React, { useState } from "react";
+import { FaHome, FaCalendarCheck, FaTasks, FaUsers, FaClipboardList, FaBullhorn, FaSignOutAlt } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 function Sidebar() {
-    const location = useLocation(); // ✅ Get current route
-    const navigate = useNavigate(); // ✅ For redirection
-
-    const handleLogout = () => {
-        localStorage.clear(); // ✅ Clear stored user data
-        navigate("/login"); // ✅ Redirect to login page
-    };
+    const { logout } = useAuth();
+    const navigate = useNavigate();
+    const [isCollapsed, setIsCollapsed] = useState(false); // ✅ Sidebar toggle
 
     return (
-        <aside className="w-64 min-h-screen bg-gray-900 text-white p-6">
-            <h2 className="text-2xl font-bold mb-6">Admin Panel</h2>
-            <nav>
-                <ul className="space-y-4">
-                    <li>
-                        <Link to="/admin-dashboard" 
-                            className={`flex items-center p-3 rounded-md ${location.pathname === "/admin-dashboard" ? "bg-blue-500" : "hover:bg-gray-700"}`}>
-                            <FaHome className="mr-3" /> Dashboard
-                        </Link>
-                    </li>
-                    <li>
-                        <Link to="/admin/events" 
-                            className={`flex items-center p-3 rounded-md ${location.pathname === "/admin/events" ? "bg-blue-500" : "hover:bg-gray-700"}`}>
-                            <FaCalendarAlt className="mr-3" /> Manage Events
-                        </Link>
-                    </li>
-                    <li>
-                        <Link to="/admin/volunteers" 
-                            className={`flex items-center p-3 rounded-md ${location.pathname === "/admin/volunteers" ? "bg-blue-500" : "hover:bg-gray-700"}`}>
-                            <FaUsers className="mr-3" /> Manage Volunteers
-                        </Link>
-                    </li>
-                    <li>
-                        <Link to="/admin/attendance" 
-                            className={`flex items-center p-3 rounded-md ${location.pathname === "/admin/attendance" ? "bg-blue-500" : "hover:bg-gray-700"}`}>
-                            <FaChartLine className="mr-3" /> Attendance Reports
-                        </Link>
-                    </li>
-                    <li>
-                        <button onClick={handleLogout} className="flex items-center p-3 w-full text-left rounded-md hover:bg-red-600 mt-6">
-                            <FaSignOutAlt className="mr-3" /> Logout
-                        </button>
-                    </li>
-                </ul>
-            </nav>
-        </aside>
+        <div className={`min-h-screen bg-[#2d3748] flex flex-col justify-between p-6 shadow-lg transition-all ${isCollapsed ? "w-20" : "w-64"}`}>
+            {/* ✅ Toggle Sidebar Button */}
+            <button onClick={() => setIsCollapsed(!isCollapsed)} className="text-white mb-4">
+                {isCollapsed ? "➡️" : "⬅️"}
+            </button>
+
+            {/* ✅ Sidebar Links */}
+            <div className="flex flex-col space-y-6">
+                <div className="flex items-center space-x-3 text-lg hover:text-green-400 cursor-pointer" onClick={() => navigate("/admin-dashboard")}> 
+                    <FaHome size={24} /> {!isCollapsed && <span>Dashboard</span>}
+                </div>
+                <div className="flex items-center space-x-3 text-lg hover:text-blue-400 cursor-pointer" onClick={() => navigate("/admin/events")}> 
+                    <FaCalendarCheck size={24} /> {!isCollapsed && <span>Events</span>}
+                </div>
+                <div className="flex items-center space-x-3 text-lg hover:text-yellow-400 cursor-pointer" onClick={() => navigate("/admin/tasks")}> 
+                    <FaTasks size={24} /> {!isCollapsed && <span>Tasks</span>}
+                </div>
+                <div className="flex items-center space-x-3 text-lg hover:text-purple-400 cursor-pointer" onClick={() => navigate("/admin/volunteers")}> 
+                    <FaUsers size={24} /> {!isCollapsed && <span>Volunteers</span>}
+                </div>
+                <div className="flex items-center space-x-3 text-lg hover:text-orange-400 cursor-pointer" onClick={() => navigate("/admin/attendance")}> 
+                    <FaClipboardList size={24} /> {!isCollapsed && <span>Attendance</span>}
+                </div>
+                <div className="flex items-center space-x-3 text-lg hover:text-red-400 cursor-pointer" onClick={() => navigate("/admin/announcements")}> 
+                    <FaBullhorn size={24} /> {!isCollapsed && <span>Announcements</span>}
+                </div>
+            </div>
+
+            {/* ✅ Logout Button */}
+            <button 
+                onClick={() => {
+                    logout();
+                    navigate("/login");
+                }} 
+                className="flex items-center p-3 bg-red-500 hover:bg-red-700 rounded-md mt-4"
+            >
+                <FaSignOutAlt /> <span className="ml-2">Logout</span>
+            </button>
+        </div>
     );
 }
 

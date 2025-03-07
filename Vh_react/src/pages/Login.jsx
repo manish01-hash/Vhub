@@ -26,24 +26,32 @@ function Login() {
             const response = await axios.post("http://127.0.0.1:8000/api/auth/login/", {
                 email,
                 password,
-                role, // This should be sent correctly
             }, {
                 headers: { "Content-Type": "application/json" }
             });
     
-            console.log("🔍 Login Response:", response.data); // Debugging log
+            console.log("🔍 Login Response:", response.data);
     
             if (response.status === 200) {
+                const backendRole = response.data.role;
+    
+                // ✅ Prevent login if selected role does not match backend role
+                if (role !== backendRole) {
+                    alert(`❌ Role mismatch! Your actual role is '${backendRole}', but you selected '${role}'.`);
+                    setLoading(false);
+                    return;
+                }
+    
                 localStorage.setItem("accessToken", response.data.access);
                 localStorage.setItem("refreshToken", response.data.refresh);
-                localStorage.setItem("userRole", response.data.role); // Ensure role is stored correctly
+                localStorage.setItem("userRole", backendRole);
     
-                console.log("✅ User role stored:", response.data.role); // Debugging log
+                console.log("✅ User role stored:", backendRole);
     
                 setTimeout(() => {
-                    if (response.data.role === "Admin") {
+                    if (backendRole === "Admin") {
                         navigate("/admin-dashboard", { replace: true });
-                    } else if (response.data.role === "Event Organizer") {
+                    } else if (backendRole === "Event Organizer") {
                         navigate("/organizer-dashboard", { replace: true });
                     } else {
                         navigate("/home", { replace: true });
