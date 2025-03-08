@@ -11,7 +11,7 @@ function Home() {
     const { user, logout } = useAuth();
     const username = user ? user.username : "Guest";
     const navigate = useNavigate();
-    const [activePage, setActivePage] = useState("home");
+    const [activePage, setActivePage] = useState("events");
     const [isCollapsed, setIsCollapsed] = useState(false); // ✅ Sidebar toggle
 
     return (

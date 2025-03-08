@@ -5,7 +5,7 @@ from .views import (
     get_tasks, create_task, update_task, delete_task, get_task_by_id,
     record_attendance, get_attendance, register_for_event, assign_event_role, get_attendance_rate, serve_image,
     check_registration_status, LeaveEventView,get_qr_code,post_announcement,get_sample_task
-    ,assign_task, self_assign_task ,update_task_status,get_announcements,get_all_registrations
+    ,assign_task, self_assign_task ,update_task_status,get_announcements,get_all_registrations,contact_us
 )
 from django.conf import settings
 from django.conf.urls.static import static
@@ -59,6 +59,10 @@ urlpatterns = [
     path('attendance/record/', record_attendance, name='record_attendance'),
     path('attendance/<uuid:E_ID>/', get_attendance, name='get_attendance'),
     path('attendance/rate/', get_attendance_rate, name='get_attendance_rate'),
+    
+    
+    # Sending Email Urls
+    path('contact-us/', contact_us, name='contact_us'),  # Ensure this matches frontend API call
 ]
 
 # Serving Media & Static Files

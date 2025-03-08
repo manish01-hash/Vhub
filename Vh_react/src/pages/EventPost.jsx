@@ -20,7 +20,7 @@ function EventPost({ event, ename, description, requiredVolunteers, totVolunteer
             );
             if (response.status === 201) {
                 alert("✅ Successfully registered!");
-                navigate(`/events/${event.E_ID}/register`);
+                //navigate(`/events/${event.E_ID}/register`);
             } else {
                 alert("⚠️ Registration failed. Please try again.");
             }

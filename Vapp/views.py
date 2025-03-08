@@ -15,6 +15,8 @@ from django.http import FileResponse, Http404
 import os
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
+from django.core.mail import send_mail
+
 
 User = get_user_model()
 
@@ -508,3 +510,22 @@ def get_attendance_rate(request):
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+
+
+@api_view(['POST'])
+def contact_us(request):
+    name = request.data.get('name')
+    email = request.data.get('email')
+    message = request.data.get('message')
+
+    if not name or not email or not message:
+        return Response({'error': 'All fields are required'}, status=400)
+
+    send_mail(
+        f"New Contact Us Message from {name}",
+        message,
+        email,
+        [os.getenv('EMAIL_HOST_USER')],  # Sends to vcoders04@gmail.com
+    )
+
+    return Response({'success': 'Message sent successfully!'})

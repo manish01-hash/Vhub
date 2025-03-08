@@ -23,6 +23,7 @@ import EventSpecificVolunteers from "./pages/admin/EventSpecificVolunteers";
 import AddTaskModal from "./pages/admin/AddTaskModal";
 import ViewTasks from "./pages/admin/ViewTasks";
 import AboutUs from "./pages/admin/AboutUs";
+import ContactUs from "./pages/admin/ContactUs";
 
 // ✅ Get user role from localStorage
 const userRole = localStorage.getItem("userRole") || "Volunteer";
@@ -50,6 +51,7 @@ function App() {
           <Route path="/admin/add-task" element={<AddTaskModal />} />
           <Route path="/admin/view-tasks" element={<ViewTasks />} />
           <Route path="/admin/about-us" element={<AboutUs />} />
+          <Route path="/admin/contact-us" element={<ContactUs />} />
 
         </Route>
 
