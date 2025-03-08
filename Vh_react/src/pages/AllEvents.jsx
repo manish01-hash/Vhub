@@ -2,62 +2,87 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import EventPost from "./EventPost"; // Event Card Component
+import { FaSearch, FaFilter } from "react-icons/fa";
 
 function AllEvents() {
     const { user, logout } = useAuth(); 
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
+    const [allEvents, setAllEvents] = useState([]);  // Store all events
+    const [noEventsMessage, setNoEventsMessage] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
+    const [filter, setFilter] = useState("All");
 
     useEffect(() => {
         fetchEvents();
     }, []);
 
-    async function fetchEvents() {
-        try {
-            console.log("🟡 Fetching events...");
+    useEffect(() => {
+            console.log("🟡 Current Filter Value = ", filter);
+    
+            const filtered = allEvents.filter(event => filter==="All" || event.E_Status === filter);
+    
+            setEvents(filtered);
+    
+            console.log("✅ Events Fetched",events)
+        }, [filter]); // Depend on allEvents to avoid data loss
 
-            const token = localStorage.getItem("accessToken");
-            if (!token) {
-                console.error("🚨 No access token found. Redirecting to login.");
-                setErrorMessage("Unauthorized! Please log in again.");
-                return;
+        async function fetchEvents() {
+            try {
+                console.log("🟡 Fetching events...");
+                const response = await axios.get("http://127.0.0.1:8000/api/events/", {
+                    headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
+                });
+    
+                if (response.data.length === 0) {
+                    console.log("🔴 No events available");
+                    setNoEventsMessage("No upcoming volunteer events. Stay tuned for new opportunities!");
+                } else {
+                    console.log("✅ Events Fetched:", response.data);
+                    setEvents(response.data);    // Initialize displayed events
+                    setAllEvents(response.data); // Store all events
+                    setNoEventsMessage("");
+                }
+            } catch (error) {
+                console.error("❌ Error fetching events:", error.response?.status, error.response?.data);
+                setNoEventsMessage("No events are available at the moment.");
+            } finally {
+                setLoading(false);
             }
-
-            const response = await axios.get("http://127.0.0.1:8000/api/events/", {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            console.log("✅ API Response:", response.data);
-
-            if (Array.isArray(response.data) && response.data.length > 0) {
-                setEvents(response.data);
-                setErrorMessage(""); 
-            } else {
-                console.warn("🚨 No events available:", response.data);
-                setErrorMessage(response.data?.message || "No events available.");
-                setEvents([]);
-            }
-        } catch (error) {
-            console.error("❌ Error fetching events:", error.response?.status, error.response?.data);
-
-            if (error.response?.status === 401) {
-                setErrorMessage("Session expired. Please log in again.");
-                logout();
-            } else {
-                setErrorMessage("Failed to load events. Try again later.");
-            }
-
-            setEvents([]);
-        } finally {
-            setLoading(false);
         }
-    }
 
     return (
-        <div>
-            <h1 className="text-4xl font-bold mb-4">Welcome, {user?.name || "Guest"}!</h1>
-            <p className="text-gray-600">Explore upcoming events and volunteer opportunities.</p>
+        <div className=" h-full w-full p-3">
+            {/* <h1 className="text-4xl font-bold mb-4">Welcome, {user?.name || "Guest"}!</h1>
+            <p className="text-gray-600">Explore upcoming events and volunteer opportunities.</p> */}
+
+             <nav className="bg-[#2d3748] p-4 rounded-lg shadow-md flex items-center h-[10%] justify-between">
+                            {/* 🔍 Search Bar */}
+                            <div className="flex items-center bg-[#1a202c] h-full  px-4 py-2 rounded-lg w-[40%]">
+                                <FaSearch className="text-gray-400 mr-2" />
+                                <input 
+                                    type="text" 
+                                    placeholder="Search events..." 
+                                    className="bg-transparent text-white w-full focus:outline-none"
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+            
+                            {/* 🎯 Filter Dropdown */}
+                            <div className="flex items-center bg-[#1a202c] px-4 py-2 rounded-lg">
+                                <FaFilter className="text-gray-400 mr-2" />
+                                <select 
+                                    className="bg-transparent focus:outline-none"
+                                    onChange={(e) =>( setFilter(e.target.value))}
+                                >
+                                    <option value="All" className="text-white bg-[#1a202c]">All Events</option>
+                                    <option value="Upcoming" className="text-black">Upcoming</option>
+                                    <option value="Ongoing" className="text-black">Ongoing</option>
+                                    <option value="Completed" className="text-black">Completed</option>
+                                </select>
+                            </div>
+                        </nav>
 
             {loading ? (
                 <div className="text-center mt-10">

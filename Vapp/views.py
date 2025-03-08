@@ -369,12 +369,8 @@ def get_task_by_id(request, T_ID):
 # Create Task
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
-def create_task(request, event_id):
-    event = get_object_or_404(Event, E_ID=event_id)
-
-    # ✅ Ensure only Admins, Coordinators, or the Event Organizer can create tasks
-    if request.user.role != "Admin" and request.user not in event.E_Coordinators.all() and request.user != event.E_Created_By:
-        return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+def create_task(request, E_ID):  # ✅ Use E_ID instead of event_id
+    event = get_object_or_404(Event, E_ID=E_ID)  # Ensure event exists
 
     serializer = TaskSerializer(data=request.data)
     if serializer.is_valid():

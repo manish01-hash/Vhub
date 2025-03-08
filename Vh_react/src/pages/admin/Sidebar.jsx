@@ -1,7 +1,9 @@
 import React, { useState } from "react";
-import { FaHome, FaCalendarCheck, FaTasks, FaUsers, FaClipboardList, FaBullhorn, FaSignOutAlt } from "react-icons/fa";
+import { FaHome, FaCalendarCheck, FaTasks, FaUsers, FaClipboardList, FaBullhorn, FaSignOutAlt, FaEnvelope ,FaInfoCircle,FaAddressCard} from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { NavLink } from "react-router-dom";
+
 
 function Sidebar() {
     const { logout } = useAuth();
@@ -23,17 +25,20 @@ function Sidebar() {
                 <div className="flex items-center space-x-3 text-lg hover:text-blue-400 cursor-pointer" onClick={() => navigate("/admin/events")}> 
                     <FaCalendarCheck size={24} /> {!isCollapsed && <span>Events</span>}
                 </div>
-                <div className="flex items-center space-x-3 text-lg hover:text-yellow-400 cursor-pointer" onClick={() => navigate("/admin/tasks")}> 
-                    <FaTasks size={24} /> {!isCollapsed && <span>Tasks</span>}
-                </div>
+               
                 <div className="flex items-center space-x-3 text-lg hover:text-purple-400 cursor-pointer" onClick={() => navigate("/admin/volunteers")}> 
                     <FaUsers size={24} /> {!isCollapsed && <span>Volunteers</span>}
                 </div>
-                <div className="flex items-center space-x-3 text-lg hover:text-orange-400 cursor-pointer" onClick={() => navigate("/admin/attendance")}> 
+                <div className="flex items-center space-x-3 text-lg hover:text-orange-400 cursor-pointer" onClick={() => navigate("/admin-dashboard")}> 
                     <FaClipboardList size={24} /> {!isCollapsed && <span>Attendance</span>}
                 </div>
-                <div className="flex items-center space-x-3 text-lg hover:text-red-400 cursor-pointer" onClick={() => navigate("/admin/announcements")}> 
-                    <FaBullhorn size={24} /> {!isCollapsed && <span>Announcements</span>}
+                <div className="flex items-center space-x-3 text-lg hover:text-red-400 cursor-pointer" onClick={() => navigate("/admin-dashboard")}> 
+                    <FaAddressCard size={24} /> {!isCollapsed && <span>Contact us</span>}
+                </div>
+                <div className="flex items-center space-x-3 text-lg hover:text-yellow-400 cursor-pointer"> 
+                <NavLink to="/admin/about-us" className="sidebar-link flex items-center">
+                    <FaInfoCircle className="mr-2" /> About Us
+                </NavLink>
                 </div>
             </div>
 

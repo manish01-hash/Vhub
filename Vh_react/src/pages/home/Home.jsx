@@ -70,7 +70,7 @@ function Home() {
             </div>
 
             {/* ✅ Main Content (Changes Dynamically) */}
-            <div className="w-full flex flex-col">
+            <div className=" w-full flex flex-col">
                 {/* Dynamic Content - Switches based on activePage */}
                 <div className="flex-grow flex flex-col items-center justify-center p-6 text-center">
                     {activePage === "home" && (

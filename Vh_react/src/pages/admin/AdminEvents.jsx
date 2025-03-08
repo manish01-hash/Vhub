@@ -147,7 +147,7 @@ function AdminEvents() {
                             <tr className="border-b border-gray-600">
                                 <th className="p-2">Event Name</th>
                                 <th className="p-2" >Location</th>
-                                <th className="p-2">Volunteers</th>
+                                <th className="p-2">Details&nbsp;&nbsp;&nbsp;</th>
                                 <th className="p-2">Start Date</th>
                                 <th className="p-2">End Date</th>
                                 <th className="p-2">Status</th>

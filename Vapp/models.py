@@ -140,23 +140,27 @@ class Registration(models.Model):
 # Task Model
 class Task(models.Model):
     T_ID = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="tasks",blank=True, null=True)  # ✅ Ensure event is added
+    event = models.ForeignKey("Event", on_delete=models.CASCADE, related_name="tasks") 
     title = models.CharField(max_length=255)
     description = models.TextField()
-    assigned_to = models.ManyToManyField(User, related_name="tasks_assigned")  # ✅ Ensure assigned_to is present
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="tasks_created")
+    assigned_to = models.ManyToManyField("User", related_name="tasks_assigned", blank=True)  
+    created_by = models.ForeignKey("User", on_delete=models.CASCADE, related_name="tasks_created")
     deadline = models.DateTimeField(default=now)
-    priority = models.CharField(max_length=20, choices=[("Low", "Low"), ("Medium", "Medium"), ("High", "High")])
-    status = models.CharField(max_length=20, choices=[("Not Started", "Not Started"), ("In Progress", "In Progress"), ("Completed", "Completed")], default="Not Started")
+    priority = models.CharField(
+        max_length=20, choices=[("Low", "Low"), ("Medium", "Medium"), ("High", "High")]
+    )
+    status = models.CharField(
+        max_length=20, choices=[
+            ("Not Started", "Not Started"), 
+            ("In Progress", "In Progress"), 
+            ("Completed", "Completed")
+        ], 
+        default="Not Started"
+    )
 
     def __str__(self):
-        return self.title
-
-    def __str__(self):
-        return f"{self.title} - {self.status}"
-
-    def __str__(self):
-        return f"{self.title} - {self.event.E_Name}"
+        event_name = self.event.E_Name if self.event else "No Event"
+        return f"{self.title} ({event_name}) - {self.status}"
 
 
 # Attendance Model

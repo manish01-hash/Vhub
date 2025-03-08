@@ -20,6 +20,9 @@ import EventDetails from "./pages/EventDetails";
 import AdminCreateEvent from "./pages/admin/AdminCreateEvent";
 import AdminEditEvent from "./pages/admin/AdminEditEvent";
 import EventSpecificVolunteers from "./pages/admin/EventSpecificVolunteers";
+import AddTaskModal from "./pages/admin/AddTaskModal";
+import ViewTasks from "./pages/admin/ViewTasks";
+import AboutUs from "./pages/admin/AboutUs";
 
 // ✅ Get user role from localStorage
 const userRole = localStorage.getItem("userRole") || "Volunteer";
@@ -44,6 +47,10 @@ function App() {
           <Route path="/admin/volunteers" element={<AdminVolunteers />} />
           <Route path="/admin/attendance" element={<AdminAttendance />} />
           <Route path="/admin/event-specific-volunteers" element={<EventSpecificVolunteers />} />
+          <Route path="/admin/add-task" element={<AddTaskModal />} />
+          <Route path="/admin/view-tasks" element={<ViewTasks />} />
+          <Route path="/admin/about-us" element={<AboutUs />} />
+
         </Route>
 
         {/* Protected Routes for Volunteers */}
