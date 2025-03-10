@@ -11,6 +11,8 @@ from .serializers import (
     ,SampleTaskSerializer
 )
 from django.contrib.auth.hashers import make_password
+
+
 from django.http import FileResponse, Http404
 import os
 from rest_framework.views import APIView
@@ -75,6 +77,28 @@ def get_users(request):
     users = User.objects.all()
     serializer = UserSerializer(users, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_user_role(request, user_id):
+    """
+    Update a user's role (Admin-only access).
+    """
+    if request.user.role != "Admin":
+        return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+
+    user = get_object_or_404(User, id=user_id)
+    new_role = request.data.get("role")
+
+    valid_roles = ["Volunteer", "Event Organizer", "Admin","Coordinator","Super Volunteer"]
+    if new_role not in valid_roles:
+        return Response({"error": "Invalid role"}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.role = new_role
+    user.save()
+    
+    return Response({"message": f"User role updated to {new_role}"}, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -529,3 +553,5 @@ def contact_us(request):
     )
 
     return Response({'success': 'Message sent successfully!'})
+
+

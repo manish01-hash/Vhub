@@ -36,13 +36,13 @@ function Sidebar() {
 
                 <div className="flex items-center space-x-3 text-lg hover:text-yellow-400 cursor-pointer"> 
                 <NavLink to="/admin/contact-us" className="sidebar-link flex items-center">
-                    <FaInfoCircle className="mr-2" />Contact us
+                    <FaEnvelope className="mr-2" />{!isCollapsed && <span>Contact us</span>}
                 </NavLink>
                 </div>
 
                 <div className="flex items-center space-x-3 text-lg hover:text-yellow-400 cursor-pointer"> 
                 <NavLink to="/admin/about-us" className="sidebar-link flex items-center">
-                    <FaInfoCircle className="mr-2" /> About Us
+                    <FaInfoCircle className="mr-2" />{!isCollapsed && <span>About us</span>}
                 </NavLink>
                 </div>
             </div>
@@ -55,7 +55,7 @@ function Sidebar() {
                 }} 
                 className="flex items-center p-3 bg-red-500 hover:bg-red-700 rounded-md mt-4"
             >
-                <FaSignOutAlt /> <span className="ml-2">Logout</span>
+                <FaSignOutAlt className=""/> {!isCollapsed && <span>Logout</span>}
             </button>
         </div>
     );

@@ -12,6 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
             'college_name', 'faculty', 'year_of_study', 
             'profile_image', 'is_active', 'created_at'
         ]
+        extra_kwargs = {'role': {'required': False}}  # ✅ Allow optional role updates
 
 # ✅ Signup Serializer
 class SignupSerializer(serializers.ModelSerializer):

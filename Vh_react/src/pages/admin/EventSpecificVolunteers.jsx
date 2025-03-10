@@ -6,6 +6,7 @@ import Sidebar from "./Sidebar";
 import AddTaskModal from "./AddTaskModal"; // ✅ Import the modal
 import { useNavigate } from "react-router-dom";
 import ViewTasks from "./ViewTasks";
+import AssignRole from "./AssignRole";
 
 function EventSpecificVolunteers() {
     const [volunteers, setVolunteers] = useState([]);
@@ -15,7 +16,8 @@ function EventSpecificVolunteers() {
     const [tasks, setTasks] = useState([]);
     const [backupTasks, setBackupTasks] = useState([]);
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false); // ✅ Controls modal visibility
-    const [viewTasksBtn,setViewTasksBtn]= useState(false);
+    const [viewTasksBtn, setViewTasksBtn] = useState(false);
+    const[selectedRole,setSelectedRole]=useState('volunteer')
     
 
     useEffect(() => {
@@ -159,12 +161,7 @@ function EventSpecificVolunteers() {
                                     <td className="p-2">{registration.volunteer.phone || "N/A"}</td>
                                     <td className="p-2">{registration.volunteer.role}</td>
                                     <td className="p-2">
-                                        <button
-                                            onClick={() => handleAssignRole(registration.volunteer.id)}
-                                            className="text-blue-400 hover:text-blue-600 mr-3"
-                                        >
-                                            <FaUserShield /> Assign Role
-                                        </button>
+                                        <AssignRole userId={registration.volunteer.id} />
                                     </td>
                                 </tr>
                             ))

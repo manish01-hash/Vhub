@@ -35,6 +35,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     ("Volunteer", "Volunteer"),
     ("Event Organizer", "Event Organizer"),
     ("Admin", "Admin"),
+    ("Coordinator", "Coordinator"),
+    ("Super Volunteer", "Super Volunteer"),
 )
 
     id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)

@@ -4,7 +4,7 @@ from .views import (
     get_events, create_event, update_event, delete_event, get_event_by_id,
     get_tasks, create_task, update_task, delete_task, get_task_by_id,
     record_attendance, get_attendance, register_for_event, assign_event_role, get_attendance_rate, serve_image,
-    check_registration_status, LeaveEventView,get_qr_code,post_announcement,get_sample_task
+    check_registration_status, LeaveEventView,get_qr_code,post_announcement,get_sample_task,update_user_role
     ,assign_task, self_assign_task ,update_task_status,get_announcements,get_all_registrations,contact_us
 )
 from django.conf import settings
@@ -21,6 +21,7 @@ urlpatterns = [
     path('users/', get_users, name='get_users'),
     path('users/<uuid:user_id>/', get_user_by_id, name='get_user_by_id'),
     path('volunteers/', get_volunteers, name='get_volunteers'),
+    path('users/update-role/<uuid:user_id>/', update_user_role, name="update_user_role"),
 
     # Event Management URLs
     path('events/', get_events, name='get_events'),
