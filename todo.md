@@ -6,3 +6,13 @@
 # World chat section
 # remove deadline from Tasks table (django admin panal)
 # autoupdate feature after updating role instead of page reload
+
+
+#jmfd kerz rxwm cyhi
+
+
+#cigd thzu cimt qqsx
+
+
+
+#xelu bpum rhvl odmz

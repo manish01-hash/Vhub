@@ -8,7 +8,7 @@ import AllEvents from "./pages/AllEvents";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminEvents from "./pages/admin/AdminEvents";
 import CertificateDownload from "../src/pages/CertificateDownload";
-import QRCodeScanner from "../src/pages/QRCodeScanner";
+import QRCodeScanResult from "./pages/QRCodeScanResult";
 import Unauthorized from "./pages/Unauthorized";
 import Home from "./pages/home/Home";
 import SidebarLayout from "./components/SidebarLayout";
@@ -38,13 +38,14 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
+        <Route path="/qr/scan-result" element={<QRCodeScanResult />} />
 
         {/* Protected Routes for Admin */}
         <Route element={<ProtectedRoute allowedRoles={["Admin"]} />}> 
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/admin/events" element={<AdminEvents />} />
-          <Route path="/admin/events/create" element={<AdminCreateEvent />} />  {/* ✅ Added */}
-          <Route path="/admin/events/edit/:eventId" element={<AdminEditEvent />} />  {/* ✅ Added */}
+          <Route path="/admin/events/create" element={<AdminCreateEvent />} />
+          <Route path="/admin/events/edit/:eventId" element={<AdminEditEvent />} />
           <Route path="/admin/volunteers" element={<AdminVolunteers />} />
           <Route path="/admin/attendance" element={<AdminAttendance />} />
           <Route path="/admin/event-specific-volunteers" element={<EventSpecificVolunteers />} />
@@ -52,7 +53,6 @@ function App() {
           <Route path="/admin/view-tasks" element={<ViewTasks />} />
           <Route path="/admin/about-us" element={<AboutUs />} />
           <Route path="/admin/contact-us" element={<ContactUs />} />
-
         </Route>
 
         {/* Protected Routes for Volunteers */}
@@ -72,7 +72,7 @@ function App() {
 
         {/* Other Routes */}
         <Route path="/certificate" element={<CertificateDownload />} />
-        <Route path="/qr-scanner" element={<QRCodeScanner />} />
+        <Route path="/qr/scan-result" element={<QRCodeScanResult />} />
 
         {/* Catch All - Redirect to Home */}
         <Route path="*" element={<Navigate to="/" />} />

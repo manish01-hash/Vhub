@@ -6,8 +6,14 @@ import qrcode
 from io import BytesIO
 from django.core.files.base import ContentFile
 from django.utils.timezone import now
-
 from django.conf import settings
+import hashlib
+import json
+import base64
+from datetime import datetime, timedelta
+from django.utils.crypto import get_random_string
+from django.http import JsonResponse
+from django.shortcuts import render
 
 # Custom User Manager
 class UserManager(BaseUserManager):
@@ -64,6 +70,17 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.name} ({self.role})"
+from django.contrib.auth import get_user_model
+User = get_user_model()  # ✅ Correct Placement
+
+# ✅ OTP Verification Model (Moved Below User Model)
+class OTPVerification(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="otp_verification")
+    otp = models.CharField(max_length=6)  # ✅ Store 6-digit OTP
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"OTP for {self.user.email}"
 
 # Event Model
 class Event(models.Model):
@@ -79,7 +96,8 @@ class Event(models.Model):
     # ✅ Restore These Fields
     E_Photo = models.ImageField(upload_to="event_photos/", blank=True, null=True)
     E_Required_Volunteers = models.PositiveIntegerField(default=10)  # Volunteers Needed
-    E_Volunteers = models.ManyToManyField("User", through="Registration", related_name="volunteered_events", blank=True)  
+    E_Volunteers = models.ManyToManyField(settings.AUTH_USER_MODEL, through="Registration", related_name="volunteered_events", blank=True)
+
 
     E_Coordinators = models.ManyToManyField(User, related_name="coordinated_events", blank=True)
     E_Super_Volunteers = models.ManyToManyField(User, related_name="super_volunteer_events", blank=True)
@@ -118,6 +136,16 @@ class Registration(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="registrations")
     volunteer = models.ForeignKey(User, on_delete=models.CASCADE, related_name="registrations")
     qr_code = models.ImageField(upload_to="qr_codes/", blank=True, null=True)  # ✅ Unique QR Code
+    role = models.CharField(  # ✅ New field for event-specific roles
+        max_length=50,
+        choices=[
+            ("Volunteer", "Volunteer"),
+            ("Coordinator", "Coordinator"),
+            ("Super Volunteer", "Super Volunteer"),
+            ("Event Organizer", "Event Organizer")
+        ],
+        default="Volunteer"
+    )
 
     def save(self, *args, **kwargs):
         if not self.qr_code:  # ✅ Prevent regenerating QR codes
@@ -133,8 +161,141 @@ class Registration(models.Model):
         self.event.save()
 
     def __str__(self):
-        return f"{self.volunteer.name} - {self.event.E_Name} - {self.event.E_ID}"
+        return f"{self.volunteer.name} - {self.event.E_Name} - {self.event.E_ID} - {self.role}"
+    
+    
 
+
+
+# Model to store QR Code details
+class QRCode(models.Model):
+    volunteer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="qr_codes")
+    event = models.ForeignKey('Event', on_delete=models.CASCADE, related_name="qr_codes")
+    qr_data = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    used = models.BooleanField(default=False)
+    expires_at = models.DateTimeField()
+
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+# Attendance Model
+class Attendance(models.Model):
+    A_ID = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="attendances")
+    volunteer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="attendance_records")
+    scanned_at = models.DateTimeField(default=timezone.now)  # Timestamp when QR is scanned
+
+    class Meta:
+        unique_together = ("event", "volunteer")  # Ensure QR is scanned only once
+
+    def scan_qr(self):
+        self.scanned_at = timezone.now()
+        self.save()
+
+    def __str__(self):
+        return f"{self.volunteer.name} attended {self.event.E_Name}"
+
+# Function to generate secure QR code
+def generate_qr_code(volunteer, event):
+    expiration_time = datetime.now() + timedelta(minutes=15)  # QR expires in 15 min
+    base_url = "http://127.0.0.1:8000/qr/scan-result/"  # ✅ Change this to your domain in production
+    
+    raw_data = {
+        "volunteer_id": str(volunteer.id),
+        "event_id": str(event.E_ID),
+        "timestamp": expiration_time.strftime("%Y-%m-%d %H:%M:%S"),
+        "nonce": get_random_string(16)  # Prevent duplicate attacks
+    }
+    
+    encoded_data = base64.b64encode(json.dumps(raw_data).encode()).decode()
+    
+    # ✅ Create a URL that opens in a browser after scanning
+    qr_url = f"{base_url}?qr_data={encoded_data}"
+
+    # Generate QR Code Image
+    qr = qrcode.make(qr_url)
+    qr_image_path = f"media/qrcodes/{volunteer.id}_{event.E_ID}.png"
+    qr.save(qr_image_path)
+    
+    return qr_image_path
+
+
+
+# Function to scan and validate QR code
+def scan_qr_code(encoded_data, coordinator):
+    try:
+        decoded_data = base64.b64decode(encoded_data).decode()
+        qr_info = json.loads(decoded_data)
+        
+        volunteer_id = qr_info.get("volunteer_id")
+        event_id = qr_info.get("event_id")
+        
+        if not volunteer_id or not event_id:
+            return JsonResponse({"error": "Invalid QR Code Data."}, status=400)
+
+        qr_entry = QRCode.objects.filter(volunteer__id=volunteer_id, event__E_ID=event_id).first()
+
+        if not qr_entry:
+            return JsonResponse({"error": "Invalid QR Code."}, status=400)
+
+        if qr_entry.used:
+            return JsonResponse({"error": "This QR Code has already been used."}, status=400)
+
+        if qr_entry.is_expired():
+            return JsonResponse({"error": "QR Code has expired."}, status=400)
+
+        # Mark QR as used
+        qr_entry.used = True
+        qr_entry.save()
+
+        volunteer = qr_entry.volunteer
+        event = qr_entry.event
+
+        volunteer_details = {
+            "name": volunteer.name,
+            "faculty": volunteer.faculty,
+            "college": volunteer.college_name,
+            "event_name": event.E_Name,
+            "profile_picture": volunteer.profile_image.url if volunteer.profile_image else None
+        }
+
+        return JsonResponse({"success": True, "volunteer_details": volunteer_details})
+
+    except Exception as e:
+        return JsonResponse({"error": f"Invalid QR Code Format: {str(e)}"}, status=400)
+
+
+def qr_scan_result(request):
+    try:
+        qr_data = request.GET.get("qr_data")
+        if not qr_data:
+            return JsonResponse({"error": "No QR Data Provided"}, status=400)
+
+        # ✅ Decode QR Data
+        decoded_data = base64.b64decode(qr_data).decode()
+        qr_info = json.loads(decoded_data)
+
+        volunteer_id = qr_info.get("volunteer_id")
+        event_id = qr_info.get("event_id")
+
+        # ✅ Fetch Volunteer & Event Details
+        from .models import User, Event
+        volunteer = User.objects.get(id=volunteer_id)
+        event = Event.objects.get(E_ID=event_id)
+
+        context = {
+            "volunteer_name": volunteer.name,
+            "event_name": event.E_Name,
+            "faculty": volunteer.faculty,
+            "college_name": volunteer.college_name,
+            "profile_picture": volunteer.profile_image.url if volunteer.profile_image else None
+        }
+
+        return render(request, "qr_scan_result.html", context)  # ✅ Show UI instead of plain text
+
+    except Exception as e:
+        return JsonResponse({"error": f"Invalid QR Code: {str(e)}"}, status=400)
 
 
 
@@ -165,20 +326,5 @@ class Task(models.Model):
         return f"{self.title} ({event_name}) - {self.status}"
 
 
-# Attendance Model
-class Attendance(models.Model):
-    A_ID = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="attendances")
-    volunteer = models.ForeignKey(User, on_delete=models.CASCADE, related_name="attendance_records")
-    scanned_at = models.DateTimeField(default=timezone.now)  # Timestamp when QR is scanned
 
-    class Meta:
-        unique_together = ("event", "volunteer")  # Ensure QR is scanned only once
 
-    def scan_qr(self):
-        """ ✅ Mark attendance when QR is scanned """
-        self.scanned_at = timezone.now()
-        self.save()
-
-    def __str__(self):
-        return f"{self.volunteer.name} attended {self.event.E_Name}"

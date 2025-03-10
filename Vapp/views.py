@@ -1,30 +1,94 @@
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes,parser_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import User, Event, Task, Attendance,Registration,SampleTask,EventAnnouncement
+from .models import User, Event, Task, Attendance,Registration,SampleTask,EventAnnouncement,QRCode
 from .serializers import (
     UserSerializer, SignupSerializer, LoginSerializer,
     EventSerializer, TaskSerializer, AttendanceSerializer,RegistrationSerializer,EventAnnouncementSerializer
     ,SampleTaskSerializer
 )
 from django.contrib.auth.hashers import make_password
-
-
+import random
+from Vapp.models import OTPVerification
 from django.http import FileResponse, Http404
 import os
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from django.core.mail import send_mail
-
+from rest_framework.parsers import MultiPartParser, FormParser
+from django.http import JsonResponse
+import json
+import base64
+from django.views.decorators.csrf import csrf_exempt
+import qrcode
+from datetime import datetime, timedelta
+from django.utils.crypto import get_random_string
+from django.conf import settings  # ✅ Fix: Import settings
+from django.utils.timezone import now
 
 User = get_user_model()
 
 ### ------------------- AUTHENTICATION VIEWS ------------------- ###
 
-# Signup View
+# 🔹 Send OTP View
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def send_otp(request):
+    """
+    Generates and sends an OTP to the user's email.
+    """
+    email = request.data.get("email")
+    
+    try:
+        user = User.objects.get(email=email)
+        otp = random.randint(100000, 999999)  # ✅ Generate a 6-digit OTP
+
+        # ✅ Save OTP to the database
+        OTPVerification.objects.update_or_create(
+            user=user, defaults={"otp": otp}
+        )
+
+        # ✅ Send OTP via email
+        send_mail(
+            subject="Your OTP Code",
+            message=f"Your OTP code is: {otp}",
+            from_email="vcoders04@gmail.com",
+            recipient_list=[email],
+            fail_silently=False,
+        )
+
+        return Response({"message": "OTP sent successfully!"}, status=status.HTTP_200_OK)
+    
+    except User.DoesNotExist:
+        return Response({"error": "User with this email does not exist!"}, status=status.HTTP_404_NOT_FOUND)
+
+# 🔹 Verify OTP View
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verify_otp(request):
+    """
+    Verifies the OTP entered by the user.
+    """
+    email = request.data.get("email")
+    entered_otp = request.data.get("otp")
+
+    try:
+        user = User.objects.get(email=email)
+        otp_record = OTPVerification.objects.filter(user=user).first()
+
+        if otp_record and str(otp_record.otp) == entered_otp:
+            otp_record.delete()  # ✅ Remove OTP after successful verification
+            return Response({"message": "OTP verified successfully!"}, status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "Invalid OTP!"}, status=status.HTTP_400_BAD_REQUEST)
+
+    except User.DoesNotExist:
+        return Response({"error": "User not found!"}, status=status.HTTP_404_NOT_FOUND)
+
+# 🔹 Signup View (Unchanged)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def signup(request):
@@ -42,7 +106,65 @@ def signup(request):
     except Exception as e:
         print("❌ Signup Error:", str(e))
         return Response({"error": "Something went wrong on the server."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-# Login View
+
+# 🔹 Send OTP on Signup
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def send_signup_otp(request):
+    email = request.data.get("email")
+
+    if not email:
+        return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # ✅ Generate 6-digit OTP
+    otp_code = str(random.randint(100000, 999999))
+
+    # ✅ Create a temporary user entry OR update OTP if user exists
+    user, created = User.objects.get_or_create(email=email, defaults={"name": "TempUser"})
+    OTPVerification.objects.update_or_create(user=user, defaults={"otp": otp_code})
+
+    # ✅ Send OTP via email
+    try:
+        send_mail(
+            "Your OTP for Signup",
+            f"Your OTP is {otp_code}. It is valid for 10 minutes.",
+            "no-reply@vhub.com",
+            [email],
+            fail_silently=False,
+        )
+    except Exception as e:
+        return Response({"error": f"Failed to send OTP: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    return Response({"message": "OTP sent successfully!"}, status=status.HTTP_200_OK)
+# 🔹 Verify OTP and Complete Signup
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verify_signup_otp(request):
+    """
+    Verifies the OTP and completes the user registration.
+    """
+    email = request.data.get("email")
+    entered_otp = request.data.get("otp")
+    name = request.data.get("name")
+    password = request.data.get("password")
+    role = request.data.get("role", "Volunteer")  # Default role
+
+    try:
+        otp_record = OTPVerification.objects.filter(email=email).first()
+
+        if otp_record and str(otp_record.otp) == entered_otp:
+            otp_record.delete()  # ✅ Remove OTP after verification
+
+            # ✅ Create the user
+            user = User.objects.create_user(email=email, name=name, password=password, role=role)
+            return Response({"message": "Signup successful!"}, status=status.HTTP_201_CREATED)
+        else:
+            return Response({"error": "Invalid OTP!"}, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# 🔹 Login View (Unchanged)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_view(request):
@@ -60,13 +182,14 @@ def login_view(request):
     
     return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
-
-
-# Logout View
+# 🔹 Logout View (Unchanged)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def logout_view(request):
     return Response({"message": "Logged out successfully"}, status=status.HTTP_200_OK)
+
+
+
 
 ### ------------------- USER MANAGEMENT ------------------- ###
 
@@ -77,6 +200,37 @@ def get_users(request):
     users = User.objects.all()
     serializer = UserSerializer(users, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_user(request, user_id):
+    """
+    Allow users to update their profile (Name, Phone, College, etc.)
+    """
+    user = get_object_or_404(User, id=user_id)
+
+    # ✅ Ensure only the logged-in user can edit their profile
+    if request.user != user:
+        return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+
+    # ✅ Debugging: Log incoming data
+    print("🔍 Incoming Data:", request.data)
+
+    # ✅ Handle text updates
+    user.name = request.data.get("name", user.name)
+    user.phone = request.data.get("phone", user.phone)
+    user.college_name = request.data.get("college_name", user.college_name)
+    user.faculty = request.data.get("faculty", user.faculty)
+    user.year_of_study = request.data.get("year_of_study", user.year_of_study)
+
+    # ✅ Handle Profile Picture Upload
+    if "profile_image" in request.FILES:
+        user.profile_image = request.FILES["profile_image"]
+
+    user.save()
+
+    return Response({"message": "Profile updated successfully!", "user": UserSerializer(user, context={'request': request}).data}, status=status.HTTP_200_OK)
 
 
 @api_view(['PATCH'])
@@ -119,6 +273,11 @@ def get_user_by_id(request, user_id):
     except User.DoesNotExist:
         return Response({"error": "User not found!"}, status=status.HTTP_404_NOT_FOUND)
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_profile(request):
+    serializer = UserSerializer(request.user, context={"request": request})
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 
@@ -213,15 +372,7 @@ def get_event_by_id(request, E_ID):
     serializer = EventSerializer(event, context={"request": request})
     return Response(serializer.data, status=status.HTTP_200_OK)
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def get_qr_code(request, event_id):
-    registration = get_object_or_404(Registration, event__E_ID=event_id, volunteer=request.user)
-    
-    if not registration.qr_code:
-        return Response({"error": "QR Code not found. Try registering again."}, status=status.HTTP_404_NOT_FOUND)
 
-    return Response({"qr_code_url": request.build_absolute_uri(registration.qr_code.url)}, status=status.HTTP_200_OK)
 
 
 
@@ -237,33 +388,26 @@ def create_event(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# Update Event
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser])  # ✅ Allow file uploads
 def update_event(request, E_ID):
-    event = get_object_or_404(Event, E_ID=E_ID)
+    """
+    Updates an existing event.
+    Supports partial updates (PATCH) and file uploads.
+    """
+    try:
+        event = Event.objects.get(E_ID=E_ID)  # ✅ Fetch event by E_ID
+    except Event.DoesNotExist:
+        return Response({"error": "Event not found!"}, status=status.HTTP_404_NOT_FOUND)
 
-    if request.user != event.E_Created_By and request.user.role != "Admin":
-        return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+    serializer = EventSerializer(event, data=request.data, partial=True, context={"request": request})
 
-    data = request.data.copy()
-
-    # Handle Image Upload
-    if 'E_Photo' in request.FILES:
-        data['E_Photo'] = request.FILES['E_Photo']
-
-    # Remove empty UUIDs to avoid validation errors
-    for field in ['E_Coordinators', 'E_Super_Volunteers']:
-        if field in data and not data[field]:
-            del data[field]
-
-    serializer = EventSerializer(event, data=data, partial=True)
     if serializer.is_valid():
         serializer.save()
         return Response({"message": "Event updated successfully!"}, status=status.HTTP_200_OK)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 # Delete Event
 @api_view(['DELETE'])
@@ -306,6 +450,31 @@ def assign_event_role(request, E_ID):
     event.save()
     return Response({"message": f"{user.name} assigned as {role} successfully!"}, status=status.HTTP_200_OK)
 
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def update_event_role(request, event_id):
+    try:
+        user_id = request.data.get("user_id")
+        new_role = request.data.get("role")
+
+        if not user_id or not new_role:
+            return Response({"error": "User ID and role are required."}, status=400)
+
+        # ✅ Find the registration entry for this event
+        registration = Registration.objects.filter(event__E_ID=event_id, volunteer__id=user_id).first()
+
+        if not registration:
+            return Response({"error": "Registration not found for this event."}, status=404)
+
+        # ✅ Update the event-specific role
+        registration.role = new_role
+        registration.save()
+
+        return Response({"message": "Role updated successfully for this event."}, status=200)
+
+    except Exception as e:
+        return Response({"error": f"Internal Server Error: {str(e)}"}, status=500)
+
 
 # Serve Image (For Debugging)
 def serve_image(request, path):
@@ -343,7 +512,199 @@ def get_announcements(request, E_ID):  # Make sure to accept E_ID
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+from datetime import timedelta  # ✅ Add this import
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def generate_qr_code_view(request, E_ID):
+    try:
+        print(f"🟡 Debug: Generating QR for Event ID {E_ID}, User: {request.user}")
+
+        event = get_object_or_404(Event, E_ID=E_ID)
+        registration, created = Registration.objects.get_or_create(event=event, volunteer=request.user)
+
+        print(f"🟢 Debug: Registration Entry - Created: {created}, QR Exists: {registration.qr_code}")
+
+        # ✅ Set QR Code expiration time (e.g., 24 hours from now)
+        expiration_time = datetime.now() + timedelta(hours=24)
+
+        # ✅ Ensure QR Code is saved in the QRCode Table with an expiration time
+        qr_code_entry, qr_created = QRCode.objects.get_or_create(
+            volunteer=request.user,
+            event=event,
+            defaults={"used": False, "expires_at": expiration_time}  # ✅ Set default expiration
+        )
+
+        print(f"✅ Debug: QR Code Entry Found: {qr_code_entry}, Created: {qr_created}")
+
+        # ✅ Generate QR Code Data
+        raw_data = {
+            "volunteer_id": str(request.user.id),
+            "event_id": str(event.E_ID),
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "nonce": get_random_string(16)
+        }
+        encoded_data = base64.b64encode(json.dumps(raw_data).encode()).decode()
+
+        frontend_url = f"http://192.168.1.5:5173/qr/scan-result?qr_data={encoded_data}"
+        print(f"🔍 DEBUG: QR Code Redirect URL → {frontend_url}")
+
+        # ✅ Generate and Save New QR Code Image
+        qr = qrcode.make(frontend_url)
+        qr_directory = os.path.join(settings.MEDIA_ROOT, "qrcodes/")
+        os.makedirs(qr_directory, exist_ok=True)
+
+        qr_image_filename = f"qr_{request.user.id}_{event.E_ID}.png"
+        qr_image_path = os.path.join(qr_directory, qr_image_filename)
+        qr.save(qr_image_path)
+
+        # ✅ Ensure qr_code is saved
+        registration.qr_code = f"qrcodes/{qr_image_filename}"
+        registration.save()
+
+        qr_code_entry.image_path = registration.qr_code
+        qr_code_entry.expires_at = expiration_time  # ✅ Save expiration time
+        qr_code_entry.save()
+
+        qr_code_url = request.build_absolute_uri(settings.MEDIA_URL + str(registration.qr_code))
+        print(f"✅ Debug: QR Code Successfully Generated - URL: {qr_code_url}")
+
+        return JsonResponse({
+            "message": "🎉 QR Code generated successfully!",
+            "qr_code_url": qr_code_url
+        }, status=200)
+
+    except Exception as e:
+        print(f"❌ Debug: ERROR in generate_qr_code_view: {str(e)}")
+        return JsonResponse({"error": f"Internal Server Error: {str(e)}"}, status=500)
+
+
+
+
+
+
+
+@api_view(["GET"])  # ✅ Handles QR Code Scan Result
+@permission_classes([IsAuthenticated])
+def qr_scan_result_view(request):
+    """
+    ✅ Handles QR Code scan result:
+    - Extracts encoded QR data from the URL
+    - Decodes and verifies the data
+    - Returns volunteer and event details
+    """
+    try:
+        # ✅ Extract qr_data from query parameters
+        qr_data = request.GET.get("qr_data", "")
+        if not qr_data:
+            return JsonResponse({"error": "QR data is missing"}, status=400)
+
+        # ✅ Decode the base64 encoded QR data
+        decoded_data = base64.b64decode(qr_data).decode()
+        qr_info = json.loads(decoded_data)
+
+        # ✅ Extract volunteer_id and event_id
+        volunteer_id = qr_info.get("volunteer_id")
+        event_id = qr_info.get("event_id")
+        timestamp = qr_info.get("timestamp")
+
+        if not volunteer_id or not event_id:
+            return JsonResponse({"error": "Invalid QR Code data"}, status=400)
+
+        # ✅ Verify that QR code is not expired
+        qr_time = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+        if now() > qr_time:
+            return JsonResponse({"error": "QR Code has expired."}, status=400)
+
+        # ✅ Fetch volunteer and event details
+        volunteer = get_object_or_404(User, id=volunteer_id)
+        event = get_object_or_404(Event, E_ID=event_id)
+
+        # ✅ Check if this QR code exists in the database
+        qr_entry = QRCode.objects.filter(volunteer=volunteer, event=event).first()
+        if not qr_entry:
+            return JsonResponse({"error": "Invalid QR Code"}, status=400)
+
+        if qr_entry.used:
+            return JsonResponse({"error": "This QR Code has already been used."}, status=400)
+
+        # ✅ Mark QR Code as used (if applicable)
+        qr_entry.used = True
+        qr_entry.save()
+
+        # ✅ Prepare response data
+        volunteer_details = {
+            "name": volunteer.name,
+            "email": volunteer.email,
+            "phone": volunteer.phone,
+            "college": volunteer.college_name,
+            "faculty": volunteer.faculty,
+            "event_name": event.E_Name,
+            "event_location": event.E_Location,
+            "event_date": f"{event.E_Start_Date} - {event.E_End_Date}",
+            "profile_picture": request.build_absolute_uri(volunteer.profile_image.url) if volunteer.profile_image else None
+        }
+
+        return JsonResponse({"success": True, "volunteer_details": volunteer_details})
+
+    except Exception as e:
+        return JsonResponse({"error": f"Server error: {str(e)}"}, status=500)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def scan_qr_code(request):
+    try:
+        encoded_data = request.data.get("qr_data")
+        print(f"🔍 Debug: Received QR Data → {encoded_data}")  # ✅ Debugging line
+
+        if not encoded_data:
+            return JsonResponse({"error": "QR data is missing or invalid."}, status=400)
+
+        # ✅ Decode the QR data
+        try:
+            decoded_data = base64.b64decode(encoded_data).decode()
+            qr_info = json.loads(decoded_data)
+            print(f"✅ Debug: Decoded QR Data → {qr_info}")  # ✅ Debugging line
+        except (ValueError, json.JSONDecodeError) as e:
+            print(f"❌ QR Decoding Error: {str(e)}")
+            return JsonResponse({"error": "Invalid QR Code data format."}, status=400)
+
+        volunteer_id = qr_info.get("volunteer_id")
+        event_id = qr_info.get("event_id")
+
+        qr_entry = QRCode.objects.filter(volunteer__id=volunteer_id, event__E_ID=event_id).first()
+        if not qr_entry:
+            print("❌ Debug: QR Code does not exist in DB.")
+            return JsonResponse({"error": "Invalid QR Code."}, status=400)
+
+        if qr_entry.used:
+            return JsonResponse({"error": "This QR Code has already been used."}, status=400)
+
+        if qr_entry.is_expired():
+            return JsonResponse({"error": "QR Code has expired."}, status=400)
+
+        # ✅ Mark QR as used
+        qr_entry.used = True
+        qr_entry.save()
+
+        volunteer = get_object_or_404(User, id=volunteer_id)
+        event = qr_entry.event
+
+        volunteer_details = {
+            "name": volunteer.name,
+            "faculty": volunteer.faculty,
+            "college": volunteer.college_name,
+            "event_name": event.E_Name,
+            "profile_picture": request.build_absolute_uri(volunteer.profile_image.url) if volunteer.profile_image else None
+        }
+
+        print(f"✅ QR Code Verified for {volunteer.name} at {event.E_Name}")
+
+        return JsonResponse({"success": True, "volunteer_details": volunteer_details})
+
+    except Exception as e:
+        print(f"❌ Unexpected Error in scan_qr_code: {str(e)}")
+        return JsonResponse({"error": f"Internal Server Error: {str(e)}"}, status=500)
 
 
 

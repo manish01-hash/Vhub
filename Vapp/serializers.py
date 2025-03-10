@@ -5,6 +5,7 @@ from .models import User, Event, Task, Attendance, Registration,EventAnnouncemen
 
 # ✅ User Serializer
 class UserSerializer(serializers.ModelSerializer):
+    profile_image = serializers.ImageField()
     class Meta:
         model = User
         fields = [
@@ -12,6 +13,11 @@ class UserSerializer(serializers.ModelSerializer):
             'college_name', 'faculty', 'year_of_study', 
             'profile_image', 'is_active', 'created_at'
         ]
+    def get_profile_image(self, obj):
+        request = self.context.get('request')
+        if obj.profile_image:
+            return request.build_absolute_uri(obj.profile_image.url) if request else obj.profile_image.url
+        return None  # ✅ Handle missing image
         extra_kwargs = {'role': {'required': False}}  # ✅ Allow optional role updates
 
 # ✅ Signup Serializer
@@ -64,27 +70,27 @@ class SampleTaskSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-# ✅ Event Serializer (Includes Volunteers & Registration Count)
 class EventSerializer(serializers.ModelSerializer):
     E_Created_By = UserSerializer(read_only=True)  # Show event creator details
     E_Volunteers = UserSerializer(many=True, read_only=True)  # Show registered volunteers
     E_Registered_Count = serializers.IntegerField(read_only=True)  # Track number of registered volunteers
-    E_Photo = serializers.ImageField(required=False)  
+    E_Photo = serializers.SerializerMethodField()  # ✅ Use SerializerMethodField
     announcements = EventAnnouncementSerializer(many=True, read_only=True)
     sample_tasks = SampleTaskSerializer(many=True, read_only=True)
+
     class Meta:
         model = Event
         fields = '__all__'
         read_only_fields = ['E_ID']
+
     def get_E_Photo(self, obj):
         request = self.context.get('request')  # ✅ Get request context
-
         if obj.E_Photo:
             if request:  # ✅ Prevent AttributeError
                 return request.build_absolute_uri(obj.E_Photo.url)  # ✅ Full URL
             return obj.E_Photo.url  # ✅ Return relative URL if no request
-
         return None  # ✅ Handle case where no photo is uploaded
+
 
 
 

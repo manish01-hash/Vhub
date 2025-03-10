@@ -13,6 +13,7 @@ function AllEvents() {
     const [noEventsMessage, setNoEventsMessage] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [filter, setFilter] = useState("All");
+    const [newRegistration, setNewRegistration] = useState(false);
 
     useEffect(() => {
         fetchEvents();
@@ -51,6 +52,11 @@ function AllEvents() {
                 setLoading(false);
             }
         }
+    
+    useEffect(() => {
+        fetchEvents();
+        setNewRegistration(false);
+        },[newRegistration])
 
     return (
         <div className=" h-full w-full p-3">
@@ -98,8 +104,10 @@ function AllEvents() {
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
                             {events.map(event => (
-                                <div key={event.E_ID} className="bg-gray-300 rounded-lg shadow-lg p-5 transition-transform transform hover:scale-105">
+                                <div key={event.E_ID} className="bg-[#2a3b4f] rounded-lg shadow-lg p-5 transition-transform transform hover:scale-105">
                                     <EventPost 
+                                        newRegistration={newRegistration}
+                                        setNewRegistration={setNewRegistration}
                                         ename={event.E_Name} 
                                         event={event}  
                                         description={event.E_Description} 

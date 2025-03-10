@@ -4,8 +4,10 @@ from .views import (
     get_events, create_event, update_event, delete_event, get_event_by_id,
     get_tasks, create_task, update_task, delete_task, get_task_by_id,
     record_attendance, get_attendance, register_for_event, assign_event_role, get_attendance_rate, serve_image,
-    check_registration_status, LeaveEventView,get_qr_code,post_announcement,get_sample_task,update_user_role
-    ,assign_task, self_assign_task ,update_task_status,get_announcements,get_all_registrations,contact_us
+    check_registration_status, LeaveEventView, generate_qr_code_view, scan_qr_code,post_announcement,get_sample_task,update_user_role
+    ,assign_task, self_assign_task ,update_task_status,get_announcements,get_all_registrations,contact_us,send_otp,verify_otp,send_signup_otp,verify_signup_otp,get_profile,scan_qr_code,
+    qr_scan_result_view,update_user,update_event_role
+    
 )
 from django.conf import settings
 from django.conf.urls.static import static
@@ -16,13 +18,21 @@ urlpatterns = [
     path('auth/signup/', signup, name='signup'),
     path('auth/login/', login_view, name='login'),
     path('auth/logout/', logout_view, name='logout'),
+    path("auth/send-otp/", send_otp, name="send_otp"),
+    path("auth/verify-otp/", verify_otp, name="verify_otp"),
+    path("auth/send-signup-otp/", send_signup_otp, name="send_signup_otp"),
+    path("auth/verify-signup-otp/", verify_signup_otp, name="verify_signup_otp"),
 
     # User Management URLs
     path('users/', get_users, name='get_users'),
     path('users/<uuid:user_id>/', get_user_by_id, name='get_user_by_id'),
     path('volunteers/', get_volunteers, name='get_volunteers'),
     path('users/update-role/<uuid:user_id>/', update_user_role, name="update_user_role"),
+    path('users/profile/', get_profile, name="get_profile"),
+    path('users/<uuid:user_id>/update/', update_user, name='update_user'),
 
+
+    
     # Event Management URLs
     path('events/', get_events, name='get_events'),
     path('events/create/', create_event, name='create_event'),
@@ -34,12 +44,17 @@ urlpatterns = [
     path('events/<uuid:E_ID>/assign-role/', assign_event_role, name='assign_event_role'),
     path('events/<uuid:E_ID>/registration-status/', check_registration_status, name='event_registration_status'),
     path('events/<uuid:E_ID>/leave/', LeaveEventView.as_view(), name='leave_event'),
-    path("events/<uuid:E_ID>/", get_event_by_id, name="get_event_by_id"),
-    path("events/<uuid:E_ID>/qr/", get_qr_code, name="get_qr_code"),
+    path("events/<uuid:event_id>/update-role/", update_event_role, name="update_event_role"),
+
+    path("events/<uuid:E_ID>/generate-qr/", generate_qr_code_view, name="generate_qr_code"),
+    path("qr/scan/", scan_qr_code, name="scan_qr_code"),
+    path("qr/scan-result/", qr_scan_result_view, name="qr_scan_result"),  # ✅ New API
+    # Announcements
     path("events/<uuid:E_ID>/announcements/", get_announcements, name="get_announcements"),
 
-
+    # Sample Task
     path("events/<uuid:E_ID>/sample-task/", get_sample_task, name="get_sample_task"),
+
 
 
     # Serve Images

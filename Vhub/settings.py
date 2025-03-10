@@ -158,6 +158,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # React (Vite) frontend
     "http://127.0.0.1:5173",
+    
 ]
 
 
@@ -194,4 +195,7 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'vcoders04@gmail.com')  # ✅ Default value
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'Vcoders@123456789')  # ✅ Default value
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'xelu bpum rhvl odmz')  # ✅ Default value
+
+ALLOWED_HOSTS = ["0.0.0.0", "127.0.0.1", "localhost", "192.168.1.5"]
+

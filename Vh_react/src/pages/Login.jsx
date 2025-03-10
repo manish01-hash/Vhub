@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 
 function Login() {
@@ -9,6 +9,7 @@ function Login() {
     const [errorMessage, setErrorMessage] = useState("");
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
     
     const isMounted = useRef(false);
 
@@ -18,10 +19,10 @@ function Login() {
             setErrorMessage("All fields are required.");
             return;
         }
-    
+
         setLoading(true);
         setErrorMessage("");
-    
+
         try {
             const response = await axios.post("http://127.0.0.1:8000/api/auth/login/", {
                 email,
@@ -29,33 +30,30 @@ function Login() {
             }, {
                 headers: { "Content-Type": "application/json" }
             });
-    
+
             console.log("🔍 Login Response:", response.data);
-    
+
             if (response.status === 200) {
                 const backendRole = response.data.role;
-    
+
                 // ✅ Prevent login if selected role does not match backend role
                 if (role !== backendRole) {
                     alert(`❌ Role mismatch! Your actual role is '${backendRole}', but you selected '${role}'.`);
                     setLoading(false);
                     return;
                 }
-    
+
                 localStorage.setItem("accessToken", response.data.access);
                 localStorage.setItem("refreshToken", response.data.refresh);
                 localStorage.setItem("userRole", backendRole);
-    
+
                 console.log("✅ User role stored:", backendRole);
-    
+
+                // ✅ Check if redirected from QR Scan
+                const redirectPath = location.state?.from || "/home";
+
                 setTimeout(() => {
-                    if (backendRole === "Admin") {
-                        navigate("/admin-dashboard", { replace: true });
-                    } else if (backendRole === "Event Organizer") {
-                        navigate("/organizer-dashboard", { replace: true });
-                    } else {
-                        navigate("/home", { replace: true });
-                    }
+                    navigate(redirectPath, { replace: true });
                 }, 200);
             } else {
                 setErrorMessage("Invalid credentials! Please try again.");
@@ -66,21 +64,13 @@ function Login() {
             setLoading(false);
         }
     }
-    
+
     useEffect(() => {
         if (isMounted.current) return;
 
         const userRole = localStorage.getItem("userRole");
         if (userRole && window.location.pathname === "/") {
-            setTimeout(() => {
-                if (userRole === "Admin") {
-                    navigate("/admin-dashboard", { replace: true });
-                } else if (userRole === "Event Organizer") {
-                    navigate("/organizer-dashboard", { replace: true });
-                } else {
-                    navigate("/home", { replace: true });
-                }
-            }, 200);
+            navigate("/home", { replace: true });
         }
         isMounted.current = true;
     }, [navigate]);
@@ -126,6 +116,8 @@ function Login() {
                         <option value="Volunteer">Volunteer</option>
                         <option value="Event Organizer">Event Organizer</option>
                         <option value="Admin">Admin</option>
+                        <option value="Coordinator">Coordinator</option>
+                        <option value="Super Volunteer">Super Volunteer</option>
                     </select>
 
                     {errorMessage && <p className="text-red-500 text-center py-2">{errorMessage}</p>}

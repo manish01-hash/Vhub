@@ -1,77 +1,68 @@
 import React, { useState } from "react";
-import { FaClipboardList, FaEnvelope, FaHome, FaInfoCircle, FaSignInAlt, FaUser, FaUsers, FaCalendarCheck, FaTasks, FaSignOutAlt } from "react-icons/fa";
+import { FaBars, FaCalendarCheck, FaClipboardList, FaEnvelope, FaHome, FaInfoCircle, FaSignInAlt, FaSignOutAlt, FaTasks, FaUser, FaUsers } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import Profile from "../Profile";
-import "./home.css";
-import { useAuth } from "../../context/AuthContext";
-import SidebarIcon from "../../components/icons/SidebarIcon";
 import AllEvents from "../AllEvents";
+import { useAuth } from "../../context/AuthContext";
+import AboutUs from "../admin/AboutUs";
+import "./home.css";
+import ContactUs from "../admin/ContactUs";
 
 function Home() {
     const { user, logout } = useAuth();
     const username = user ? user.username : "Guest";
-    const navigate = useNavigate();
-    const [activePage, setActivePage] = useState("events");
-    const [isCollapsed, setIsCollapsed] = useState(false); // ✅ Sidebar toggle
+    const navigate = useNavigate(); 
+    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [activePage, setActivePage] = useState("home");
 
     return (
         <div className="w-full min-h-screen flex bg-[#1a202c] text-white">
-            {/* ✅ Sidebar (Consistent for all pages) */}
-            <div 
-                className={`min-h-screen bg-[#2d3748] flex flex-col justify-around p-6 shadow-lg transition-all ${isCollapsed ? "w-20" : "w-64"}`}
-            >
-                {/* Expand/Collapse Sidebar */}
-                <SidebarIcon isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-                <div className="flex flex-col space-y-4">
-                    <div className="h-[700px] flex flex-col justify-around">
-                        <div className="flex items-center space-x-3 text-xl cursor-pointer" onClick={() => setActivePage("home")}>
-                            <FaHome size={24} />
-                            {!isCollapsed && <span>Home</span>}
-                        </div>
-                        <div className="flex items-center space-x-3 text-lg hover:text-green-400 transition cursor-pointer" onClick={() => setActivePage("events")}>
-                            <FaCalendarCheck size={24} />
-                            {!isCollapsed && <span>My Events</span>}
-                        </div>
-                        <div className="flex items-center space-x-3 text-lg hover:text-blue-400 transition cursor-pointer" onClick={() => setActivePage("tasks")}>
-                            <FaTasks size={24} />
-                            {!isCollapsed && <span>Tasks</span>}
-                        </div>
-                        <div className="flex items-center space-x-3 text-lg hover:text-green-400 transition cursor-pointer" onClick={() => setActivePage("community")}>
-                            <FaUsers size={24} />
-                            {!isCollapsed && <span>Community</span>}
-                        </div>
-                        
-                        <div className="flex items-center space-x-3 text-lg hover:text-yellow-400 transition cursor-pointer" onClick={() => setActivePage("about us")}>
-                            <FaInfoCircle size={24} />
-                            {!isCollapsed && <span>About us</span>}
-                        </div>
-                        <div className="flex items-center space-x-3 text-lg hover:text-yellow-400 transition cursor-pointer" onClick={() => setActivePage("contact")}>
-                            <FaEnvelope size={24} />
-                            {!isCollapsed && <span>Contact</span>}
-                        </div>
-                        <div className="flex items-center space-x-3 text-lg hover:text-yellow-400 transition cursor-pointer" onClick={() => setActivePage("profile")}>
-                            <FaUser size={24} />
-                            {!isCollapsed && <span>My Profile</span>}
-                        </div>
-                    </div>
-                </div>
+            {/* Sidebar */}
+            <div className={`min-h-screen bg-[#1a202c] flex flex-col p-4 shadow-lg transition-all ${isCollapsed ? "w-20" : "w-64"}`}>
+                {/* Sidebar Toggle Button */}
+                <button 
+                    className="mb-6 p-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition flex items-center justify-center"
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                >
+                    <FaBars size={20} />
+                </button>
 
-                {/* ✅ Fixed Logout Button */}
+                {/* Sidebar Links */}
+                {[
+                    { name: "home", label: "Home", icon: <FaHome size={24} /> },
+                    { name: "events", label: "My Events", icon: <FaCalendarCheck size={24} /> },
+                    { name: "community", label: "Community", icon: <FaUsers size={24} /> },
+                    { name: "about", label: "About Us", icon: <FaInfoCircle size={24} /> },
+                    { name: "contact", label: "Contact", icon: <FaEnvelope size={24} /> },
+                    { name: "profile", label: "My Profile", icon: <FaUser size={24} /> }
+                ].map(({ name, label, icon }) => (
+                    <div 
+                        key={name}
+                        className={`flex items-center space-x-3 text-lg cursor-pointer p-3 rounded-md transition ${
+                            activePage === name ? "bg-green-500 text-white shadow-lg" : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                        }`}
+                        onClick={() => setActivePage(name)}
+                    >
+                        {icon}
+                        {!isCollapsed && <span>{label}</span>}
+                    </div>
+                ))}
+
+                {/* Logout Button */}
                 <button 
                     onClick={() => {
-                        console.log("🔴 Logout Clicked"); // Debugging Log
+                        console.log("🔴 Logout Clicked");
                         logout();
                         navigate('/login');
                     }} 
-                    className="flex items-center p-3 bg-red-500 hover:bg-red-700 rounded-md mt-4"
+                    className="mt-auto flex items-center justify-center p-3 bg-red-500 hover:bg-red-700 rounded-md text-white transition"
                 >
-                    <FaSignOutAlt /> <span className="ml-2">Logout</span>
+                    <FaSignOutAlt size={20} /> {!isCollapsed && <span className="ml-2">Logout</span>}
                 </button>
             </div>
 
-            {/* ✅ Main Content (Changes Dynamically) */}
-            <div className=" w-full flex flex-col">
-                {/* Dynamic Content - Switches based on activePage */}
+            {/* Main Content */}
+            <div className="w-full flex flex-col">
                 <div className="flex-grow flex flex-col items-center justify-center p-6 text-center">
                     {activePage === "home" && (
                         <>
@@ -82,10 +73,10 @@ function Home() {
                     )}
                     {activePage === "profile" && <Profile />}
                     {activePage === "events" && <AllEvents />}
-                    {activePage === "tasks" && <h2 className="text-3xl font-bold">Manage Your Tasks</h2>}
+                    
                     {activePage === "community" && <h2 className="text-3xl font-bold">Community Engagement</h2>}
-                    {activePage === "about us" && <h2 className="text-3xl font-bold">About Us</h2>}
-                    {activePage === "contact" && <h2 className="text-3xl font-bold">Contact</h2>}
+                    {activePage === "about" && <AboutUs/>}
+                    {activePage === "contact" && <ContactUs/>}
                 </div>
             </div>
         </div>

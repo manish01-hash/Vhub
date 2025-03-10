@@ -3,8 +3,7 @@ import { FaUserShield, FaPlusCircle, FaSearch } from "react-icons/fa";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import Sidebar from "./Sidebar";
-import AddTaskModal from "./AddTaskModal"; // ✅ Import the modal
-import { useNavigate } from "react-router-dom";
+import AddTaskModal from "./AddTaskModal";
 import ViewTasks from "./ViewTasks";
 import AssignRole from "./AssignRole";
 
@@ -15,10 +14,8 @@ function EventSpecificVolunteers() {
     const { eventId, updateEventId } = useAuth();
     const [tasks, setTasks] = useState([]);
     const [backupTasks, setBackupTasks] = useState([]);
-    const [isTaskModalOpen, setIsTaskModalOpen] = useState(false); // ✅ Controls modal visibility
+    const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
     const [viewTasksBtn, setViewTasksBtn] = useState(false);
-    const[selectedRole,setSelectedRole]=useState('volunteer')
-    
 
     useEffect(() => {
         let storedEventId = localStorage.getItem("eventId");
@@ -27,61 +24,44 @@ function EventSpecificVolunteers() {
         }
     }, [eventId, updateEventId]);
 
+    // ✅ Fetch volunteers
+    const fetchVolunteers = async () => {
+        try {
+            const token = localStorage.getItem("accessToken");
+            const response = await axios.get("http://127.0.0.1:8000/api/registrations/", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            // ✅ Get event-specific volunteers
+            const filteredVolunteers = response.data.filter((registration) => (
+                registration.event.E_ID === eventId
+            ));
+
+            setVolunteers(filteredVolunteers);
+            setBackupVolunteers(filteredVolunteers);
+        } catch (error) {
+            console.error("❌ Error fetching volunteers:", error);
+        }
+    };
+
     useEffect(() => {
-        const fetchVolunteers = async () => {
-            try {
-                const token = localStorage.getItem("accessToken");
-                const response = await axios.get("http://127.0.0.1:8000/api/registrations/", {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-
-                // ✅ Filter volunteers by eventId
-                const filteredVolunteers = response.data.filter((registration) => (
-                    registration.event.E_ID === eventId
-                ));
-
-                setVolunteers(filteredVolunteers);
-                setBackupVolunteers(filteredVolunteers);
-            } catch (error) {
-                console.error("❌ Error fetching volunteers:", error);
-            }
-        };
-        
         if (eventId) {
             fetchVolunteers();
         }
     }, [eventId]);
 
+    // ✅ Search function
     useEffect(() => {
-        if (!viewTasksBtn) {
-            if (searchQuery.length === 0) {
-                setVolunteers(backupVolunteers);
-            } else {
-                const searchedVolunteers = backupVolunteers.filter((registration) =>
-                    registration.volunteer.name.toLowerCase().includes(searchQuery.toLowerCase())
-                );
-                setVolunteers(searchedVolunteers);
-            }
-        }
-        else if (viewTasksBtn) {
-            if (searchQuery.length === 0) {
-                setVolunteers(backupVolunteers);
-            } else {
-                const searchedVolunteers = backupVolunteers.filter((registration) =>
-                    registration.volunteer.name.toLowerCase().includes(searchQuery.toLowerCase())
-                );
-                setVolunteers(searchedVolunteers);
-            }
-        }
-    }, [searchQuery, backupVolunteers,backupTasks]);
+        const searchedVolunteers = searchQuery
+            ? backupVolunteers.filter((registration) =>
+                registration.volunteer.name.toLowerCase().includes(searchQuery.toLowerCase())
+            )
+            : backupVolunteers;
 
+        setVolunteers(searchedVolunteers);
+    }, [searchQuery, backupVolunteers]);
 
-
-    function handleAssignRole(id) {
-        console.log("Assigning role to volunteer with ID:", id);
-    }
-
-
+    // ✅ Fetch tasks for the event
     const fetchTasks = async () => {
         try {
             const token = localStorage.getItem("accessToken");
@@ -90,7 +70,6 @@ function EventSpecificVolunteers() {
             });
             setTasks(response.data);
             setBackupTasks(response.data);
-            console.log(tasks)
         } catch (error) {
             console.error("❌ Error fetching tasks:", error);
         }
@@ -103,16 +82,18 @@ function EventSpecificVolunteers() {
 
             {/* ✅ Main Content */}
             <div className="flex-1 p-6">
-                <h1 className="text-4xl font-bold mb-6">Event Details</h1>
+                <h1 className="text-4xl font-extrabold mb-6 text-center tracking-wide text-gray-200">
+                    Event Details
+                </h1>
 
                 {/* ✅ Search & Task Buttons */}
                 <div className="flex items-center justify-between h-[10%] p-3 rounded-lg w-full mb-6">
                     {/* 🔍 Search Bar */}
-                    <div className="flex items-center bg-gray-800 p-3 h-full rounded-lg w-[40%]">
+                    <div className="flex items-center bg-gray-800 p-3 h-full rounded-lg w-[40%] shadow-md transition focus-within:ring-2 focus-within:ring-green-400">
                         <FaSearch className="text-gray-300 mr-2" />
-                        <input 
-                            type="text" 
-                            placeholder={viewTasksBtn?"Search tasks...":"Search volunteers..."} 
+                        <input
+                            type="text"
+                            placeholder={viewTasksBtn ? "Search tasks..." : "Search volunteers..."}
                             className="bg-transparent focus:outline-none text-white w-full"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -122,72 +103,77 @@ function EventSpecificVolunteers() {
                     {/* 🛠 Task Buttons */}
                     <div className="flex space-x-4 h-full w-[50%]">
                         {/* ✅ Open Modal Instead of Navigating */}
-                        <button 
-                            onClick={() => setIsTaskModalOpen(true)} 
-                            className="flex items-center bg-green-500 hover:bg-green-700 p-3 px-5 rounded-lg text-lg font-bold transition duration-300 h-full w-[40%]"
+                        <button
+                            onClick={() => setIsTaskModalOpen(true)}
+                            className="flex items-center bg-green-500 hover:bg-green-700 p-3 px-5 rounded-lg text-lg font-bold transition duration-300 h-full w-[40%] transform hover:scale-105 shadow-md"
                         >
                             <FaPlusCircle className="mr-3" /> Add Task
                         </button>
 
-                        {/* 🔵 View Tasks Button (Still Navigates) */}
-                        <button 
-                            onClick={()=>setViewTasksBtn(!viewTasksBtn)} 
-                            className="flex items-center bg-blue-500 hover:bg-blue-700 p-3 px-5 rounded-lg text-lg font-bold transition duration-300 w-[40%] h-full"
+                        {/* 🔵 Toggle Between View Tasks & Volunteers */}
+                        <button
+                            onClick={() => setViewTasksBtn(!viewTasksBtn)}
+                            className={`flex items-center p-3 px-5 rounded-lg text-lg font-bold transition duration-300 w-[40%] h-full transform hover:scale-105 shadow-md 
+                            ${viewTasksBtn ? "bg-gray-600 hover:bg-gray-800" : "bg-blue-500 hover:bg-blue-700"}`}
                         >
-                            {viewTasksBtn ? "View Volunteers":"View Tasks"}
+                            {viewTasksBtn ? "View Volunteers" : "View Tasks"}
                         </button>
                     </div>
                 </div>
 
                 {/* ✅ Volunteers Table */}
-                {!viewTasksBtn &&
-                <div className="bg-[#2d3748] p-6 rounded-lg shadow-md">
-                <table className="w-full text-left">
-                    <thead>
-                        <tr className="border-b border-gray-600">
-                            <th className="p-2">Name</th>
-                            <th className="p-2">Email</th>
-                            <th className="p-2">Phone</th>
-                            <th className="p-2">Role</th>
-                            <th className="p-2">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {Array.isArray(volunteers) && volunteers.length > 0 ? (
-                            volunteers.map((registration) => (
-                                <tr key={registration.R_ID} className="border-b border-gray-700">
-                                    <td className="p-2">{registration.volunteer.name}</td>
-                                    <td className="p-2">{registration.volunteer.email}</td>
-                                    <td className="p-2">{registration.volunteer.phone || "N/A"}</td>
-                                    <td className="p-2">{registration.volunteer.role}</td>
-                                    <td className="p-2">
-                                        <AssignRole userId={registration.volunteer.id} />
-                                    </td>
+                {!viewTasksBtn && (
+                    <div className="bg-[#2d3748] bg-opacity-90 backdrop-blur-md p-6 rounded-xl shadow-lg">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-gray-600 text-lg text-gray-300">
+                                    <th className="p-3">Name</th>
+                                    <th className="p-3">Email</th>
+                                    <th className="p-3">Phone</th>
+                                    <th className="p-3">Role</th>
+                                    <th className="p-3">Actions</th>
                                 </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan="5" className="p-4 text-center">No volunteers available</td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-                    </div>}
-                
-                {
-                    viewTasksBtn &&
-                    
-                    <ViewTasks tasks1={tasks} searchQuery={searchQuery} />
-                    
-                }
+                            </thead>
+                            <tbody>
+                                {Array.isArray(volunteers) && volunteers.length > 0 ? (
+                                    volunteers.map((registration) => (
+                                        <tr key={registration.R_ID} className="border-b border-gray-700 text-gray-200 hover:bg-gray-700 transition">
+                                            <td className="p-3">{registration.volunteer.name}</td>
+                                            <td className="p-3">{registration.volunteer.email}</td>
+                                            <td className="p-3">{registration.volunteer.phone || "N/A"}</td>
+
+                                            {/* ✅ FIXED: Use `registration.role`, NOT `registration.volunteer.role` */}
+                                            <td className="p-3">{registration.role}</td>
+                                            <td className="p-3">
+                                                <AssignRole
+                                                    userId={registration.volunteer.id}
+                                                    eventId={eventId}
+                                                    currentRole={registration.role || "Loading..."}  // ✅ Ensure initial role is set
+                                                    setVolunteers={setVolunteers}
+                                                />
+                                            </td>
+
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="5" className="p-4 text-center text-gray-400">No volunteers available</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
+                {/* ✅ View Tasks Section */}
+                {viewTasksBtn && <ViewTasks tasks1={tasks} searchQuery={searchQuery} />}
 
                 {/* ✅ Add Task Modal */}
-                <AddTaskModal 
-                isOpen={isTaskModalOpen} 
-                onClose={() => setIsTaskModalOpen(false)}
-                fetchTasks={fetchTasks}  // ✅ Ensure fetchTasks is passed correctly
-            />
-
+                <AddTaskModal
+                    isOpen={isTaskModalOpen}
+                    onClose={() => setIsTaskModalOpen(false)}
+                    fetchTasks={fetchTasks}
+                />
             </div>
         </div>
     );

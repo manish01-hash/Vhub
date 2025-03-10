@@ -44,26 +44,56 @@ function AdminEditEvent() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setErrorMessage("");
-
+    
+        const token = localStorage.getItem("accessToken");
+        if (!token) {
+            setErrorMessage("❌ Unauthorized! No token found.");
+            return;
+        }
+    
         const formData = new FormData();
+    
+        // ✅ Append only fields that have values
         Object.keys(eventData).forEach((key) => {
-            formData.append(key, eventData[key]);
+            let value = eventData[key];
+    
+            // ✅ Filter out empty UUIDs (fix for E_Coordinators & E_Super_Volunteers)
+            if (["E_Coordinators", "E_Super_Volunteers"].includes(key) && Array.isArray(value)) {
+                value = value.filter((id) => id !== "" && id !== null);
+            }
+    
+            if (value) {
+                if (key === "E_Photo" && value instanceof File) {
+                    formData.append("E_Photo", value); // ✅ Correct way to send a file
+                } else if (Array.isArray(value)) {
+                    value.forEach((item) => formData.append(`${key}[]`, item)); // ✅ Send arrays properly
+                } else {
+                    formData.append(key, value);
+                }
+            }
         });
-
+    
         try {
-            const token = localStorage.getItem("accessToken");
-            await axios.put(`http://127.0.0.1:8000/api/events/${eventId}/update/`, formData, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "multipart/form-data",
-                },
-            });
-            
+            const response = await axios.put(
+                `http://127.0.0.1:8000/api/events/${eventId}/update/`,  // ✅ Correct API URL
+                formData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "multipart/form-data",
+                    },
+                }
+            );
+    
+            console.log("✅ Event Updated:", response.data);
             navigate("/admin/events");
         } catch (error) {
-            setErrorMessage("❌ Error updating event. Please try again.");
+            console.error("❌ Error updating event:", error.response?.data || error);
+            setErrorMessage(`❌ Failed to update event: ${error.response?.data?.E_Photo || "Unknown error"}`);
         }
     };
+    
+    
 
     if (!eventData) return <p className="text-white text-center">Loading event details...</p>;
 
