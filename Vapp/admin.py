@@ -9,12 +9,12 @@ User = get_user_model()  # ✅ Get custom user model
 # ✅ Custom User Admin
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ("email", "name", "phone", "role", "college_name", "faculty", "year_of_study", "is_active", "is_staff")
+    list_display = ("email", "name", "phone", "role", "college_name", "faculty", "year_of_study", "is_active", "is_staff", "profile_image",)
     search_fields = ("email", "name", "phone", "college_name", "faculty")
     ordering = ("email",)
 
     fieldsets = (
-        ("Basic Info", {"fields": ("email", "password", "name", "phone", "role", "college_name", "faculty", "year_of_study", "profile_image")}),
+        ("Basic Info", {"fields": ("email", "password", "name", "profile_image", "phone", "role", "college_name", "faculty", "year_of_study")}),
         ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser")}),
         ("Important Dates", {"fields": ("last_login", "created_at")}),
     )
@@ -22,7 +22,7 @@ class CustomUserAdmin(UserAdmin):
     add_fieldsets = (
         (None, {
             "classes": ("wide",),
-            "fields": ("email", "name", "phone", "password1", "password2", "role", "college_name", "faculty", "year_of_study", "profile_image", "is_staff"),
+            "fields": ("email", "name", "phone", "password1", "password2", "role", "college_name", "profile_image", "faculty", "year_of_study", "is_staff"),
         }),
     )
 

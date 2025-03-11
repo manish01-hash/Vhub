@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { FaBars, FaCalendarCheck, FaClipboardList, FaEnvelope, FaHome, FaInfoCircle, FaSignInAlt, FaSignOutAlt, FaTasks, FaUser, FaUsers } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import Profile from "../Profile";
-import AllEvents from "../AllEvents";
+import Profile from "../volunteer/Profile";
+import AllEvents from "../volunteer/AllEvents";
+import MyEvents from "../volunteer/MyEvents";
 import { useAuth } from "../../context/AuthContext";
 import AboutUs from "../admin/AboutUs";
-import "./home.css";
 import ContactUs from "../admin/ContactUs";
+import "./home.css";
 
 function Home() {
     const { user, logout } = useAuth();
@@ -30,7 +31,8 @@ function Home() {
                 {/* Sidebar Links */}
                 {[
                     { name: "home", label: "Home", icon: <FaHome size={24} /> },
-                    { name: "events", label: "My Events", icon: <FaCalendarCheck size={24} /> },
+                    { name: "all-events", label: "All Events", icon: <FaCalendarCheck size={24} /> },
+                    { name: "my-events", label: "My Events", icon: <FaClipboardList size={24} /> },
                     { name: "community", label: "Community", icon: <FaUsers size={24} /> },
                     { name: "about", label: "About Us", icon: <FaInfoCircle size={24} /> },
                     { name: "contact", label: "Contact", icon: <FaEnvelope size={24} /> },
@@ -72,8 +74,8 @@ function Home() {
                         </>
                     )}
                     {activePage === "profile" && <Profile />}
-                    {activePage === "events" && <AllEvents />}
-                    
+                    {activePage === "all-events" && <AllEvents />}
+                    {activePage === "my-events" && <MyEvents />}
                     {activePage === "community" && <h2 className="text-3xl font-bold">Community Engagement</h2>}
                     {activePage === "about" && <AboutUs/>}
                     {activePage === "contact" && <ContactUs/>}

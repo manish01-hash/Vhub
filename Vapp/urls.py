@@ -6,7 +6,7 @@ from .views import (
     record_attendance, get_attendance, register_for_event, assign_event_role, get_attendance_rate, serve_image,
     check_registration_status, LeaveEventView, generate_qr_code_view, scan_qr_code,post_announcement,get_sample_task,update_user_role
     ,assign_task, self_assign_task ,update_task_status,get_announcements,get_all_registrations,contact_us,send_otp,verify_otp,send_signup_otp,verify_signup_otp,get_profile,scan_qr_code,
-    qr_scan_result_view,update_user,update_event_role
+    qr_scan_result_view,update_user,update_event_role,get_my_events
     
 )
 from django.conf import settings
@@ -35,6 +35,7 @@ urlpatterns = [
     
     # Event Management URLs
     path('events/', get_events, name='get_events'),
+    path('my-events/', get_my_events, name='my-events'),
     path('events/create/', create_event, name='create_event'),
     path("events/<uuid:E_ID>/update/", update_event, name="update-event"),
     path('events/<uuid:E_ID>/', get_event_by_id, name='get_event_by_id'),

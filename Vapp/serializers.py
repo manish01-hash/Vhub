@@ -14,11 +14,11 @@ class UserSerializer(serializers.ModelSerializer):
             'profile_image', 'is_active', 'created_at'
         ]
     def get_profile_image(self, obj):
-        request = self.context.get('request')
+        request = self.context.get("request")
         if obj.profile_image:
             return request.build_absolute_uri(obj.profile_image.url) if request else obj.profile_image.url
-        return None  # ✅ Handle missing image
-        extra_kwargs = {'role': {'required': False}}  # ✅ Allow optional role updates
+        return None
+
 
 # ✅ Signup Serializer
 class SignupSerializer(serializers.ModelSerializer):

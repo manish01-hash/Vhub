@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { FaClipboardList, FaSignOutAlt, FaUsers, FaUser, FaCalendarCheck, FaHome, FaTasks } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
-import Profile from "../pages/Profile"; // Profile Page Component
-import VolunteerDashboard from "../pages/AllEvents"; // Events Page Component
+import Profile from "../pages/volunteer/Profile"; // Profile Page Component
+import VolunteerDashboard from "../pages/volunteer/AllEvents"; // Events Page Component
 //import TasksPage from "../pages/TasksPage"; // Tasks Page Component
 //import CommunityPage from "../pages/CommunityPage"; // Community Page Component
 

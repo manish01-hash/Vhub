@@ -87,42 +87,43 @@ export const AuthProvider = ({ children }) => {
     const [eventId, setEventId] = useState(localStorage.getItem("eventId") || null);
     const navigate = useNavigate();
 
-    // ✅ Fetch User Profile (Added New Code)
-    const fetchProfile = async () => {
-        const accessToken = localStorage.getItem("accessToken");
-        if (!accessToken) {
-            console.error("🚨 No token found! User not authenticated.");
-            setUser(null);
-            setLoading(false);
-            return;
-        }
-
-        try {
-            const res = await axios.get("http://127.0.0.1:8000/api/users/profile/", { // ✅ Using your existing URL
-                headers: { Authorization: `Bearer ${accessToken}` },
-            });
-
-            console.log("✅ Profile fetched successfully:", res.data);
-            setUser(res.data);
-            localStorage.setItem("user", JSON.stringify(res.data)); // ✅ Store updated user
-        } catch (error) {
-            console.error("❌ Profile API Error:", error.response?.data || error);
-            logout(); // ✅ Logout if token is invalid
-        }
+// ✅ Fetch User Profile (Added New Code)
+const fetchProfile = async () => {
+    const accessToken = localStorage.getItem("accessToken");
+    if (!accessToken) {
+        console.error("🚨 No token found! User not authenticated.");
+        setUser(null);
         setLoading(false);
-    };
+        return;
+    }
 
-    // ✅ Load user from localStorage on app start & fetch profile
-    useEffect(() => {
-        const accessToken = localStorage.getItem("accessToken");
-        const storedUser = localStorage.getItem("user");
+    try {
+        const res = await axios.get("http://127.0.0.1:8000/api/users/profile/", { // ✅ Using your existing URL
+            headers: { Authorization: `Bearer ${accessToken}` },
+        });
 
-        if (accessToken && storedUser) {
-            setUser(JSON.parse(storedUser));
-        }
+        console.log("✅ Profile fetched successfully:", res.data);
+        setUser(res.data);
+        localStorage.setItem("user", JSON.stringify(res.data)); // ✅ Store updated user
+    } catch (error) {
+        console.error("❌ Profile API Error:", error.response?.data || error);
+        logout(); // ✅ Logout if token is invalid
+    }
+    setLoading(false);
+};
 
-        fetchProfile(); // ✅ Fetch user profile when app starts
-    }, []);
+// ✅ Load user from localStorage on app start & fetch profile
+useEffect(() => {
+    const accessToken = localStorage.getItem("accessToken");
+    const storedUser = localStorage.getItem("user");
+
+    if (accessToken && storedUser) {
+        setUser(JSON.parse(storedUser));
+    }
+
+    fetchProfile(); // ✅ Fetch user profile when app starts
+}, []);
+
 
     // ✅ Keep eventId updated when localStorage changes (No changes)
     useEffect(() => {

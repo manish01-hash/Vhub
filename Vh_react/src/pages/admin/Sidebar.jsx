@@ -1,9 +1,8 @@
 import React, { useState } from "react";
-import { FaHome, FaCalendarCheck, FaTasks, FaUsers, FaClipboardList, FaBullhorn, FaSignOutAlt, FaEnvelope ,FaInfoCircle,FaAddressCard} from "react-icons/fa";
+import { FaHome, FaCalendarCheck, FaTasks, FaUsers, FaClipboardList, FaBullhorn, FaSignOutAlt, FaEnvelope ,FaInfoCircle,FaAddressCard, FaAngleDoubleLeft, FaAngleDoubleRight } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { NavLink } from "react-router-dom";
-
 
 function Sidebar() {
     const { logout } = useAuth();
@@ -11,10 +10,12 @@ function Sidebar() {
     const [isCollapsed, setIsCollapsed] = useState(false); // ✅ Sidebar toggle
 
     return (
-        <div className={`min-h-screen bg-[#2d3748] flex flex-col justify-between p-6 shadow-lg transition-all ${isCollapsed ? "w-20" : "w-64"}`}>
+        <div className={`min-h-screen bg-[#1a202c] text-white flex flex-col justify-between p-6 shadow-lg transition-all ${isCollapsed ? "w-20" : "w-64"}`}>
             {/* ✅ Toggle Sidebar Button */}
-            <button onClick={() => setIsCollapsed(!isCollapsed)} className="text-white mb-4">
-                {isCollapsed ? "➡️" : "⬅️"}
+            <button 
+                onClick={() => setIsCollapsed(!isCollapsed)} 
+                className="text-white bg-gray-700 hover:bg-gray-600 p-2 rounded-md mb-4 flex items-center justify-center transition-all">
+                {isCollapsed ? <FaAngleDoubleRight size={20} /> : <FaAngleDoubleLeft size={20} />}
             </button>
 
             {/* ✅ Sidebar Links */}
@@ -33,7 +34,6 @@ function Sidebar() {
                     <FaClipboardList size={24} /> {!isCollapsed && <span>Attendance</span>}
                 </div>
                
-
                 <div className="flex items-center space-x-3 text-lg hover:text-yellow-400 cursor-pointer"> 
                 <NavLink to="/admin/contact-us" className="sidebar-link flex items-center">
                     <FaEnvelope className="mr-2" />{!isCollapsed && <span>Contact us</span>}

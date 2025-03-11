@@ -2,21 +2,21 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "../src/context/AuthContext";
 import ProtectedRoute from "../src/components/ProtectedRoute";
-import Login from "../src/pages/Login";
-import Signup from "../src/pages/Signup";
-import AllEvents from "./pages/AllEvents";
+import Login from "./pages/authentication/Login";
+import Signup from "./pages/authentication/Signup";
+import AllEvents from "./pages/volunteer/AllEvents";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminEvents from "./pages/admin/AdminEvents";
-import CertificateDownload from "../src/pages/CertificateDownload";
-import QRCodeScanResult from "./pages/QRCodeScanResult";
-import Unauthorized from "./pages/Unauthorized";
+import CertificateDownload from "../src/pages/volunteer/CertificateDownload";
+import QRCodeScanResult from "./pages/volunteer/QRCodeScanResult";
+import Unauthorized from "./pages/authentication/Unauthorized";
 import Home from "./pages/home/Home";
 import SidebarLayout from "./components/SidebarLayout";
-import EventPost from "./pages/EventPost";
+import EventPost from "./pages/volunteer/EventPost";
 import AdminVolunteers from "./pages/admin/AdminVolunteers";
 import AdminAttendance from "./pages/admin/AdminAttendance";
-import EventRegistration from "./pages/EventRegistration";
-import EventDetails from "./pages/EventDetails";
+import EventRegistration from "./pages/volunteer/EventRegistration";
+import EventDetails from "./pages/volunteer/EventDetails";
 import AdminCreateEvent from "./pages/admin/AdminCreateEvent";
 import AdminEditEvent from "./pages/admin/AdminEditEvent";
 import EventSpecificVolunteers from "./pages/admin/EventSpecificVolunteers";
@@ -24,6 +24,7 @@ import AddTaskModal from "./pages/admin/AddTaskModal";
 import ViewTasks from "./pages/admin/ViewTasks";
 import AboutUs from "./pages/admin/AboutUs";
 import ContactUs from "./pages/admin/ContactUs";
+import MyEvents from "./pages/volunteer/MyEvents";
 
 // ✅ Get user role from localStorage
 const userRole = localStorage.getItem("userRole") || "Volunteer";
@@ -58,6 +59,7 @@ function App() {
         {/* Protected Routes for Volunteers */}
         <Route element={<ProtectedRoute allowedRoles={["Volunteer"]} />}> 
           <Route path="/volunteer-dashboard" element={<AllEvents />} />
+          <Route path="/my-events" element={<MyEvents />} />
         </Route>
 
         {/* Protected Routes for Event Organizers */}

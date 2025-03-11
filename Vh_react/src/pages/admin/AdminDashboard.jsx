@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { FaUsers, FaCalendarCheck, FaPlusCircle, FaBullhorn } from "react-icons/fa";
+import { FaUsers, FaCalendarCheck, FaTasks, FaPlusCircle, FaBullhorn } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "./Sidebar";
@@ -7,6 +7,7 @@ import Sidebar from "./Sidebar";
 function AdminDashboard() {
     const navigate = useNavigate();
     const [totalEvents, setTotalEvents] = useState(0);
+    const [pendingTasks, setPendingTasks] = useState(0);
     const [activeVolunteers, setActiveVolunteers] = useState(0);
     const [error, setError] = useState("");
 
@@ -37,50 +38,48 @@ function AdminDashboard() {
 
             {/* ✅ Main Dashboard Content */}
             <div className="flex-1 p-6">
-                <h1 className="text-4xl font-extrabold mb-6 text-center tracking-wide text-gray-200">
-                    Admin Dashboard
-                </h1>
+                <h1 className="text-4xl font-bold mb-6">Admin Dashboard</h1>
 
-                {error && <p className="text-red-500 text-center">{error}</p>}
+                {error && <p className="text-red-500">{error}</p>}
 
                 {/* ✅ Overview Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="bg-[#2d3748] bg-opacity-80 backdrop-blur-md p-6 rounded-xl shadow-lg flex items-center transition transform hover:scale-105 hover:bg-opacity-100 duration-300">
-                        <FaCalendarCheck size={40} className="text-green-400 mr-4" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-[#2d3748] p-6 rounded-lg shadow-md flex items-center">
+                        <FaCalendarCheck size={30} className="text-green-400 mr-4" />
                         <div>
-                            <h2 className="text-3xl font-bold">{totalEvents}</h2>
-                            <p className="text-gray-300 text-lg">Total Events</p>
+                            <h2 className="text-2xl font-bold">{totalEvents}</h2>
+                            <p className="text-gray-300">Total Events</p>
                         </div>
                     </div>
                 
-                    <div className="bg-[#2d3748] bg-opacity-80 backdrop-blur-md p-6 rounded-xl shadow-lg flex items-center transition transform hover:scale-105 hover:bg-opacity-100 duration-300">
-                        <FaUsers size={40} className="text-blue-400 mr-4" />
+                    <div className="bg-[#2d3748] p-6 rounded-lg shadow-md flex items-center">
+                        <FaUsers size={30} className="text-blue-400 mr-4" />
                         <div>
-                            <h2 className="text-3xl font-bold">{activeVolunteers}</h2>
-                            <p className="text-gray-300 text-lg">Active Volunteers</p>
+                            <h2 className="text-2xl font-bold">{activeVolunteers}</h2>
+                            <p className="text-gray-300">Active Volunteers</p>
                         </div>
                     </div>
                 </div>
 
                 {/* ✅ Quick Actions */}
-                <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
                     <button 
                         onClick={() => navigate("/admin/events/create")} 
-                        className="flex items-center justify-center bg-green-500 hover:bg-green-700 p-4 rounded-xl text-lg font-bold transition duration-300 transform hover:scale-105 shadow-md"
+                        className="flex items-center bg-green-500 hover:bg-green-700 p-4 rounded-lg text-lg font-bold"
                     >
-                        <FaPlusCircle className="mr-3 text-xl" /> Create Event
+                        <FaPlusCircle className="mr-3" /> Create Event
                     </button>
                     <button 
                         onClick={() => navigate("/admin/volunteers")} 
-                        className="flex items-center justify-center bg-blue-500 hover:bg-blue-700 p-4 rounded-xl text-lg font-bold transition duration-300 transform hover:scale-105 shadow-md"
+                        className="flex items-center bg-blue-500 hover:bg-blue-700 p-4 rounded-lg text-lg font-bold"
                     >
-                        <FaUsers className="mr-3 text-xl" /> Manage Volunteers
+                        <FaUsers className="mr-3" /> Manage Volunteers
                     </button>
                     <button 
                         onClick={() => navigate("/admin/events")} 
-                        className="flex items-center justify-center bg-yellow-500 hover:bg-yellow-700 p-4 rounded-xl text-lg font-bold transition duration-300 transform hover:scale-105 shadow-md"
+                        className="flex items-center bg-yellow-500 hover:bg-yellow-700 p-4 rounded-lg text-lg font-bold"
                     >
-                        <FaBullhorn className="mr-3 text-xl" /> Manage Events
+                        <FaBullhorn className="mr-3" /> Manage Events
                     </button>
                 </div>
             </div>

@@ -28,6 +28,7 @@ from datetime import datetime, timedelta
 from django.utils.crypto import get_random_string
 from django.conf import settings  # ✅ Fix: Import settings
 from django.utils.timezone import now
+from django.db.models import Q
 
 User = get_user_model()
 
@@ -202,37 +203,29 @@ def get_users(request):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-@api_view(['PATCH'])
+@api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
 def update_user(request, user_id):
-    """
-    Allow users to update their profile (Name, Phone, College, etc.)
-    """
     user = get_object_or_404(User, id=user_id)
 
-    # ✅ Ensure only the logged-in user can edit their profile
     if request.user != user:
         return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
 
-    # ✅ Debugging: Log incoming data
-    print("🔍 Incoming Data:", request.data)
-
-    # ✅ Handle text updates
     user.name = request.data.get("name", user.name)
     user.phone = request.data.get("phone", user.phone)
     user.college_name = request.data.get("college_name", user.college_name)
     user.faculty = request.data.get("faculty", user.faculty)
     user.year_of_study = request.data.get("year_of_study", user.year_of_study)
 
-    # ✅ Handle Profile Picture Upload
     if "profile_image" in request.FILES:
         user.profile_image = request.FILES["profile_image"]
 
     user.save()
 
-    return Response({"message": "Profile updated successfully!", "user": UserSerializer(user, context={'request': request}).data}, status=status.HTTP_200_OK)
-
-
+    return Response(
+        {"message": "Profile updated successfully!", "user": UserSerializer(user, context={"request": request}).data},
+        status=status.HTTP_200_OK
+    )
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
 def update_user_role(request, user_id):
@@ -297,7 +290,23 @@ def get_events(request):
     serializer = EventSerializer(events, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
+#get my events
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_my_events(request):
+    """Fetch events where the logged-in user is a creator, volunteer, coordinator, or super volunteer."""
+    user = request.user  
 
+    # Get events where the user is involved
+    my_events = Event.objects.filter(
+        Q(E_Created_By=user) | 
+        Q(E_Volunteers=user) | 
+        Q(E_Coordinators=user) | 
+        Q(E_Super_Volunteers=user)
+    ).distinct()
+
+    serializer = EventSerializer(my_events, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 # Register for an Event
 @api_view(["POST"])

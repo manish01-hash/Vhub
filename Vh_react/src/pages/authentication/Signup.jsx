@@ -1,42 +1,93 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import Swal from "sweetalert2";
 
 function Signup() {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
     const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [role, setRole] = useState("Volunteer");
     const [college, setCollege] = useState("");
     const [faculty, setFaculty] = useState("");
     const [year, setYear] = useState("");
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+    const [emailError, setEmailError] = useState("");
+    const [passwordError, setPasswordError] = useState("");
+    const [confirmPasswordError, setConfirmPasswordError] = useState("");
     const navigate = useNavigate();
+
+    function validateEmail(email) {
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        return emailRegex.test(email);
+    }
+
+    function validatePassword(password) {
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        return passwordRegex.test(password);
+    }
 
     function handleSignupChange(e) {
         const { name, value } = e.target;
+
         switch (name) {
-            case "name": setName(value); break;
-            case "email": setEmail(value); break;
-            case "phone": setPhone(value); break;
-            case "password": setPassword(value); break;
-            case "college": setCollege(value); break;
-            case "faculty": setFaculty(value); break;
-            case "year": setYear(value); break;
-            case "role": setRole(value); break;
-            default: break;
+            case "name":
+                setName(value);
+                break;
+            case "email":
+                setEmail(value);
+                setEmailError(validateEmail(value) ? "" : "Invalid email format");
+                break;
+            case "phone":
+                setPhone(value);
+                break;
+            case "password":
+                setPassword(value);
+                setPasswordError(validatePassword(value)
+                    ? ""
+                    : "Password must have 8+ characters, 1 uppercase, 1 lowercase, 1 number & 1 special character."
+                );
+                setConfirmPasswordError(confirmPassword && value !== confirmPassword ? "Passwords do not match" : "");
+                break;
+            case "confirmPassword":
+                setConfirmPassword(value);
+                setConfirmPasswordError(value !== password ? "Passwords do not match" : "");
+                break;
+            case "college":
+                setCollege(value);
+                break;
+            case "faculty":
+                setFaculty(value);
+                break;
+            case "year":
+                setYear(value);
+                break;
+            case "role":
+                setRole(value);
+                break;
+            default:
+                break;
         }
     }
 
     async function handleSignup() {
-        if (!name || !email || !phone || !password) {
+        if (!name || !email || !phone || !password || !confirmPassword) {
             setErrorMessage("All fields are required.");
             return;
         }
-        if (password.length < 6) {
-            setErrorMessage("Password must be at least 6 characters long.");
+        if (!validateEmail(email)) {
+            setErrorMessage("Invalid email format.");
+            return;
+        }
+        if (!validatePassword(password)) {
+            setErrorMessage("Password must have at least 1 uppercase, 1 lowercase, 1 number, 1 special character, and be at least 8 characters long.");
+            return;
+        }
+        if (password !== confirmPassword) {
+            setErrorMessage("Passwords do not match.");
             return;
         }
     
@@ -44,7 +95,7 @@ function Signup() {
         setErrorMessage("");
     
         try {
-            const response = await axios.post("http://127.0.0.1:8000/api/auth/signup/", {
+            await axios.post("http://127.0.0.1:8000/api/auth/signup/", {
                 name,
                 email,
                 phone,
@@ -57,8 +108,16 @@ function Signup() {
                 headers: { "Content-Type": "application/json" }
             });
     
-            alert("Signup successful! Redirecting to login...");
-            navigate("/login");
+            Swal.fire({
+                icon: "success",
+                title: "Signup Successful!",
+                text: "Redirecting to login...",
+                showConfirmButton: false,
+                timer: 2000 
+            });
+    
+            setTimeout(() => navigate("/login"), 2000);
+    
         } catch (error) {
             console.log("❌ Signup Error:", error.response?.data);
             
@@ -82,22 +141,24 @@ function Signup() {
                     onChange={handleSignupChange} />
 
                 <input type="email" name="email" placeholder="Email" value={email}
-                    autoComplete="email"  // ✅ Fix autofill issue
                     className="w-full h-12 px-3 rounded-md bg-gray-700 text-lg focus:outline-none mt-3"
                     onChange={handleSignupChange} />
-
+                {emailError && <p className="text-red-500 text-center py-2">{emailError}</p>}
 
                 <input type="text" name="phone" placeholder="Phone Number" value={phone}
                     className="w-full h-12 px-3 rounded-md bg-gray-700 text-lg focus:outline-none mt-3"
                     onChange={handleSignupChange} />
 
                 <input type="password" name="password" placeholder="Password" value={password}
-                    autoComplete="new-password"  // ✅ Fix password autofill
                     className="w-full h-12 px-3 rounded-md bg-gray-700 text-lg focus:outline-none mt-3"
                     onChange={handleSignupChange} />
+                {passwordError && <p className="text-red-500 text-center py-2">{passwordError}</p>}
 
+                <input type="password" name="confirmPassword" placeholder="Confirm Password" value={confirmPassword}
+                    className="w-full h-12 px-3 rounded-md bg-gray-700 text-lg focus:outline-none mt-3"
+                    onChange={handleSignupChange} />
+                {confirmPasswordError && <p className="text-red-500 text-center py-2">{confirmPasswordError}</p>}
 
-                {/* ✅ Updated Role Selection */}
                 <select name="role" value={role} onChange={handleSignupChange}
                     className="w-full h-12 px-3 rounded-md bg-gray-700 text-lg focus:outline-none mt-3">
                     <option value="Volunteer">Volunteer</option>
@@ -113,15 +174,6 @@ function Signup() {
                     className="w-full h-12 px-3 rounded-md bg-gray-700 text-lg focus:outline-none mt-3"
                     onChange={handleSignupChange} />
 
-                <select name="year" value={year} onChange={handleSignupChange}
-                    className="w-full h-12 px-3 rounded-md bg-gray-700 text-lg focus:outline-none mt-3">
-                    <option value="">Select Year</option>
-                    <option value="1">1st Year</option>
-                    <option value="2">2nd Year</option>
-                    <option value="3">3rd Year</option>
-                    <option value="4">4th Year</option>
-                </select>
-
                 {errorMessage && <p className="text-red-500 text-center py-2">{errorMessage}</p>}
 
                 <button className="bg-[#22c55e] font-bold text-lg px-5 py-2 rounded-md mt-4 w-full"
@@ -129,11 +181,6 @@ function Signup() {
                     onClick={handleSignup}>
                     {loading ? "Creating Account..." : "Signup"}
                 </button>
-
-                <div className="mt-4">
-                    <span className="text-white">Already have an account? </span>
-                    <a href="/login" className="text-[#60a5fa]">Login</a>
-                </div>
             </div>
         </div>
     );

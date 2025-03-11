@@ -6,7 +6,6 @@ import Sidebar from "./Sidebar";
 const AboutUs = () => {
     return (
         <div className="flex min-h-screen bg-[#1a202c] text-white">
-            
             <div className="flex-1 p-8 flex flex-col items-center">
                 <div className="max-w-4xl text-center">
                     <img src={teamLogo} alt="Vcoders Logo" className="w-40 mx-auto mb-6 rounded-lg" />

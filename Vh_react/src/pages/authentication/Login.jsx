@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import Swal from "sweetalert2";
 
 function Login() {
     const [email, setEmail] = useState("");
@@ -31,14 +32,15 @@ function Login() {
                 headers: { "Content-Type": "application/json" }
             });
 
-            console.log("🔍 Login Response:", response.data);
-
             if (response.status === 200) {
                 const backendRole = response.data.role;
 
-                // ✅ Prevent login if selected role does not match backend role
                 if (role !== backendRole) {
-                    alert(`❌ Role mismatch! Your actual role is '${backendRole}', but you selected '${role}'.`);
+                    Swal.fire({
+                        icon: "error",
+                        title: "Role Mismatch",
+                        text: `Your actual role is '${backendRole}', but you selected '${role}'.`,
+                    });
                     setLoading(false);
                     return;
                 }
@@ -47,14 +49,17 @@ function Login() {
                 localStorage.setItem("refreshToken", response.data.refresh);
                 localStorage.setItem("userRole", backendRole);
 
-                console.log("✅ User role stored:", backendRole);
+                const redirectPath = role === "Admin" ? "/admin-dashboard" : "/home";
 
-                // ✅ Check if redirected from QR Scan
-                const redirectPath = location.state?.from || "/home";
-
-                setTimeout(() => {
+                Swal.fire({
+                    icon: "success",
+                    title: "Login Successful!",
+                    text: "Redirecting to your dashboard...",
+                    timer: 1500,
+                    showConfirmButton: false,
+                }).then(() => {
                     navigate(redirectPath, { replace: true });
-                }, 200);
+                });
             } else {
                 setErrorMessage("Invalid credentials! Please try again.");
             }
@@ -77,40 +82,40 @@ function Login() {
 
     return (
         <div className="w-full h-screen flex flex-col justify-center items-center bg-[#1a202c]">
-            <h1 className="text-5xl font-bold text-white mb-5">Login</h1>
-            <div className="w-[30%] flex flex-col items-center justify-around text-white bg-[#2d3748] p-6 rounded-lg shadow-md">
+            <h1 className="text-6xl font-extrabold text-white mb-6 animate-pulse">Login</h1>
+            <div className="w-[30%] flex flex-col items-center justify-around text-white bg-[#2d3748] p-8 rounded-2xl shadow-2xl border border-gray-600">
                 <form className="w-full flex flex-col" onSubmit={handleLogin}>
-                    <label htmlFor="email">Email:</label>
+                    <label htmlFor="email" className="text-lg mb-1">Email:</label>
                     <input 
                         type="email" 
                         id="email" 
                         name="email"
-                        placeholder="Email" 
+                        placeholder="Enter your email" 
                         value={email}
-                        className="w-full h-12 px-3 rounded-md bg-gray-700 text-lg focus:outline-none"
+                        className="w-full h-12 px-4 rounded-md bg-gray-800 text-lg focus:outline-none border border-gray-600"
                         onChange={(e) => setEmail(e.target.value.trim())} 
                         required 
                     />
 
-                    <label htmlFor="password">Password:</label>
+                    <label htmlFor="password" className="text-lg mt-3 mb-1">Password:</label>
                     <input 
                         type="password" 
                         id="password" 
                         name="password"
-                        placeholder="Password" 
+                        placeholder="Enter your password" 
                         value={password}
-                        className="w-full h-12 px-3 rounded-md bg-gray-700 text-lg focus:outline-none mt-3"
+                        className="w-full h-12 px-4 rounded-md bg-gray-800 text-lg focus:outline-none border border-gray-600"
                         onChange={(e) => setPassword(e.target.value.trim())} 
                         required 
                     />
 
-                    <label htmlFor="role">Select Role:</label>
+                    <label htmlFor="role" className="text-lg mt-3 mb-1">Select Role:</label>
                     <select 
                         id="role" 
                         name="role"
                         value={role} 
                         onChange={(e) => setRole(e.target.value)}
-                        className="w-full h-12 px-3 rounded-md bg-gray-700 text-lg focus:outline-none mt-2"
+                        className="w-full h-12 px-4 rounded-md bg-gray-800 text-lg focus:outline-none border border-gray-600"
                         required
                     >
                         <option value="Volunteer">Volunteer</option>
@@ -120,11 +125,11 @@ function Login() {
                         <option value="Super Volunteer">Super Volunteer</option>
                     </select>
 
-                    {errorMessage && <p className="text-red-500 text-center py-2">{errorMessage}</p>}
+                    {errorMessage && <p className="text-red-400 text-center py-2">{errorMessage}</p>}
 
                     <button 
                         type="submit"
-                        className="bg-[#22c55e] font-bold text-lg px-5 py-2 rounded-md mt-4 w-full"
+                        className="bg-[#22c55e] font-bold text-lg px-6 py-2 rounded-md mt-4 w-full hover:bg-green-600 transition-all duration-300"
                         disabled={loading}
                     >
                         {loading ? "Logging in..." : "Login"}
@@ -133,7 +138,7 @@ function Login() {
 
                 <div className="mt-4">
                     <span className="text-white">Don't have an account? </span>
-                    <a href="/signup" className="text-[#60a5fa]">Create account</a>
+                    <a href="/signup" className="text-[#60a5fa] font-semibold hover:underline">Create account</a>
                 </div>
             </div>
         </div>
