@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import User, Event, Task, Attendance,Registration,SampleTask,EventAnnouncement,QRCode
+from .models import User, Event, Task, Attendance,Registration,SampleTask,EventAnnouncement,QRCode,EventCertificate
 from .serializers import (
     UserSerializer, SignupSerializer, LoginSerializer,
     EventSerializer, TaskSerializer, AttendanceSerializer,RegistrationSerializer,EventAnnouncementSerializer
@@ -29,6 +29,24 @@ from django.utils.crypto import get_random_string
 from django.conf import settings  # ✅ Fix: Import settings
 from django.utils.timezone import now
 from django.db.models import Q
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+import pdfkit
+from reportlab.pdfgen import canvas
+from django.http import FileResponse
+from PIL import Image, ImageDraw, ImageFont
+from PIL import ImageFont
+title_font = ImageFont.load_default()
+
+from django.core.exceptions import ObjectDoesNotExist
+
+
+font_path_bold = "/usr/share/fonts/truetype/msttcorefonts/Arial_Bold.ttf"  # Use Arial Bold
+font_path_regular = "/usr/share/fonts/truetype/msttcorefonts/Arial.ttf"  # Use Arial Regular
+
+name_font = ImageFont.truetype(font_path_bold, 50)
+details_font = ImageFont.truetype(font_path_regular, 30)
+
 
 User = get_user_model()
 
@@ -344,10 +362,10 @@ def get_all_registrations(request):
 #Check Registration Status
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def check_registration_status(request, event_id):
+def check_registration_status(request, E_ID):
     """Check if the user is registered for an event."""
     user = request.user
-    event = get_object_or_404(Event, E_ID=event_id)  # ✅ Use the correct Event primary key field
+    event = get_object_or_404(Event, E_ID=E_ID)  # ✅ Use the correct Event primary key field
 
     # ✅ Check if the user is registered in the Registration model
     is_registered = Registration.objects.filter(event=event, volunteer=user).exists()
@@ -356,10 +374,10 @@ def check_registration_status(request, event_id):
 
 # Leave Event
 class LeaveEventView(APIView):
-    def post(self, request, event_id):
+    def post(self, request, E_ID):
         try:
             # Get the event
-            event = get_object_or_404(Event, E_ID=event_id)
+            event = get_object_or_404(Event, E_ID=E_ID)
             user = request.user  # Get the logged-in user
             
             # Check if the user is registered for the event
@@ -440,49 +458,79 @@ def delete_event(request, E_ID):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def assign_event_role(request, E_ID):
+    """Assigns a user as Coordinator, Super Volunteer, or resets to default Volunteer."""
     event = get_object_or_404(Event, E_ID=E_ID)
 
+    # ✅ Only Admins & Event Creators can assign roles
     if request.user != event.E_Created_By and request.user.role != "Admin":
         return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
 
     user_id = request.data.get("user_id")
     role = request.data.get("role")
+
+    if not user_id or not role:
+        return Response({"error": "User ID and role are required."}, status=status.HTTP_400_BAD_REQUEST)
+
     user = get_object_or_404(User, id=user_id)
 
+    # ✅ Assign or Remove Role
     if role == "Coordinator":
         event.E_Coordinators.add(user)
+        message = f"{user.name} assigned as Coordinator successfully!"
     elif role == "Super Volunteer":
         event.E_Super_Volunteers.add(user)
+        message = f"{user.name} assigned as Super Volunteer successfully!"
+    elif role == "Volunteer":
+        # ✅ Remove user from both Coordinator & Super Volunteer roles
+        event.E_Coordinators.remove(user)
+        event.E_Super_Volunteers.remove(user)
+        message = f"{user.name} is now a regular Volunteer."
     else:
         return Response({"error": "Invalid event role"}, status=status.HTTP_400_BAD_REQUEST)
 
     event.save()
-    return Response({"message": f"{user.name} assigned as {role} successfully!"}, status=status.HTTP_200_OK)
+    return Response({"message": message}, status=status.HTTP_200_OK)
+
 
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
-def update_event_role(request, event_id):
+def update_event_role(request, E_ID):
+    """Updates a volunteer's event-specific role or resets them to Volunteer."""
     try:
         user_id = request.data.get("user_id")
         new_role = request.data.get("role")
 
         if not user_id or not new_role:
-            return Response({"error": "User ID and role are required."}, status=400)
+            return Response({"error": "User ID and role are required."}, status=status.HTTP_400_BAD_REQUEST)
 
         # ✅ Find the registration entry for this event
-        registration = Registration.objects.filter(event__E_ID=event_id, volunteer__id=user_id).first()
+        registration = Registration.objects.filter(event__E_ID=E_ID, volunteer__id=user_id).first()
 
         if not registration:
-            return Response({"error": "Registration not found for this event."}, status=404)
+            return Response({"error": "User is not registered for this event."}, status=status.HTTP_404_NOT_FOUND)
 
-        # ✅ Update the event-specific role
-        registration.role = new_role
-        registration.save()
+        # ✅ Only Admins & Event Organizers can update roles
+        event = registration.event
+        if request.user != event.E_Created_By and request.user.role != "Admin":
+            return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
 
-        return Response({"message": "Role updated successfully for this event."}, status=200)
+        # ✅ Update or Reset Role
+        if new_role in ["Coordinator", "Super Volunteer"]:
+            registration.role = new_role
+        elif new_role == "Volunteer":
+            registration.role = "Volunteer"
+            event.E_Coordinators.remove(registration.volunteer)
+            event.E_Super_Volunteers.remove(registration.volunteer)
+        else:
+            return Response({"error": "Invalid role"}, status=status.HTTP_400_BAD_REQUEST)
+
+        registration.save()  # ✅ Save the role change
+        event.save()  # ✅ Ensure event updates
+
+        return Response({"message": f"Role updated successfully to {new_role}"}, status=status.HTTP_200_OK)
 
     except Exception as e:
-        return Response({"error": f"Internal Server Error: {str(e)}"}, status=500)
+        return Response({"error": f"Internal Server Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # Serve Image (For Debugging)
@@ -495,8 +543,8 @@ def serve_image(request, path):
     
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
-def post_announcement(request, event_id):
-    event = get_object_or_404(Event, E_ID=event_id)
+def post_announcement(request, E_ID):
+    event = get_object_or_404(Event, E_ID=E_ID)
 
     if request.user not in event.E_Coordinators.all() and request.user.role != "Admin":
         return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
@@ -521,7 +569,7 @@ def get_announcements(request, E_ID):  # Make sure to accept E_ID
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-from datetime import timedelta  # ✅ Add this import
+
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -549,7 +597,7 @@ def generate_qr_code_view(request, E_ID):
         # ✅ Generate QR Code Data
         raw_data = {
             "volunteer_id": str(request.user.id),
-            "event_id": str(event.E_ID),
+            "E_ID": str(event.E_ID),
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "nonce": get_random_string(16)
         }
@@ -612,12 +660,12 @@ def qr_scan_result_view(request):
         decoded_data = base64.b64decode(qr_data).decode()
         qr_info = json.loads(decoded_data)
 
-        # ✅ Extract volunteer_id and event_id
+        # ✅ Extract volunteer_id and E_ID
         volunteer_id = qr_info.get("volunteer_id")
-        event_id = qr_info.get("event_id")
+        E_ID = qr_info.get("E_ID")
         timestamp = qr_info.get("timestamp")
 
-        if not volunteer_id or not event_id:
+        if not volunteer_id or not E_ID:
             return JsonResponse({"error": "Invalid QR Code data"}, status=400)
 
         # ✅ Verify that QR code is not expired
@@ -627,7 +675,7 @@ def qr_scan_result_view(request):
 
         # ✅ Fetch volunteer and event details
         volunteer = get_object_or_404(User, id=volunteer_id)
-        event = get_object_or_404(Event, E_ID=event_id)
+        event = get_object_or_404(Event, E_ID=E_ID)
 
         # ✅ Check if this QR code exists in the database
         qr_entry = QRCode.objects.filter(volunteer=volunteer, event=event).first()
@@ -679,9 +727,9 @@ def scan_qr_code(request):
             return JsonResponse({"error": "Invalid QR Code data format."}, status=400)
 
         volunteer_id = qr_info.get("volunteer_id")
-        event_id = qr_info.get("event_id")
+        E_ID = qr_info.get("E_ID")
 
-        qr_entry = QRCode.objects.filter(volunteer__id=volunteer_id, event__E_ID=event_id).first()
+        qr_entry = QRCode.objects.filter(volunteer__id=volunteer_id, event__E_ID=E_ID).first()
         if not qr_entry:
             print("❌ Debug: QR Code does not exist in DB.")
             return JsonResponse({"error": "Invalid QR Code."}, status=400)
@@ -721,8 +769,8 @@ def scan_qr_code(request):
 ### ------------------- TASK MANAGEMENT ------------------- ###
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def get_sample_task(request, event_id):
-    event = get_object_or_404(Event, E_ID=event_id)
+def get_sample_task(request, E_ID):
+    event = get_object_or_404(Event, E_ID=E_ID)
     sample_task = SampleTask.objects.filter(event=event).first()
 
     if not sample_task:
@@ -765,7 +813,7 @@ def get_task_by_id(request, T_ID):
 # Create Task
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
-def create_task(request, E_ID):  # ✅ Use E_ID instead of event_id
+def create_task(request, E_ID):  # ✅ Use E_ID instead of E_ID
     event = get_object_or_404(Event, E_ID=E_ID)  # Ensure event exists
 
     serializer = TaskSerializer(data=request.data)
@@ -857,11 +905,11 @@ def delete_task(request, T_ID):
 @permission_classes([IsAuthenticated])
 def record_attendance(request):
     data = request.data
-    if 'event_id' not in data:
+    if 'E_ID' not in data:
         return Response({"error": "Event ID is required"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        event = Event.objects.get(E_ID=data['event_id'])
+        event = Event.objects.get(E_ID=data['E_ID'])
         user = request.user  # Authenticated user who is scanning QR
 
         # Check if user has already attended
@@ -925,3 +973,138 @@ def contact_us(request):
     return Response({'success': 'Message sent successfully!'})
 
 
+### ------------------- Certificate Generation ------------------- ###
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def check_certificate(request, E_ID):
+    try:
+        print(f"🔍 Checking certificate for event ID: {E_ID}")
+
+        user = request.user
+        event = get_object_or_404(Event, E_ID=E_ID)
+        print(f"✅ Found Event: {event.E_Name} (ID: {event.E_ID})")
+
+        # ✅ Ensure the event has ended before allowing access
+        if event.E_Status != "Completed":
+            print("❌ Event is not completed. Certificate cannot be accessed.")
+            return Response({"error": "Certificates are only available after the event is completed."}, status=403)
+
+        # ✅ Ensure user is registered for the event
+        is_registered = Registration.objects.filter(event=event, volunteer=user).exists()
+        if not is_registered:
+            print("❌ User is not registered for this event.")
+            return Response({"error": "You must be registered for this event to access the certificate."}, status=403)
+
+        # ✅ Check if a certificate entry exists
+        certificate = EventCertificate.objects.filter(event=event, user=user).first()
+        if not certificate:
+            print("❌ Certificate entry not found in the database.")
+            return Response({"error": "Certificate not found."}, status=404)
+
+        # ✅ Validate that the certificate file exists
+        if not certificate.file or not certificate.file.path or not os.path.exists(certificate.file.path):
+            print(f"❌ Certificate file missing at: {certificate.file.path if certificate.file else 'Unknown Path'}")
+            return Response({"error": "Certificate file is missing."}, status=404)
+
+        # ✅ Return the certificate URL
+        certificate_url = request.build_absolute_uri(certificate.file.url)
+        print(f"✅ Certificate found at: {certificate_url}")
+
+        return Response({"certificate_url": certificate_url}, status=200)
+
+    except Exception as e:
+        print(f"❌ Unexpected Error in `check_certificate`: {e}")
+        return Response({"error": "Internal Server Error"}, status=500)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def download_certificate(request, E_ID):
+    try:
+        user = request.user
+        event = get_object_or_404(Event, E_ID=E_ID)
+        print(f"📥 Download request for certificate of event ID: {E_ID} by {user.email}")
+
+        # ✅ Ensure the event has ended
+        if event.E_Status != "Completed":
+            print("❌ Event is not completed. Cannot download certificate.")
+            return Response({"error": "Certificate is only available after the event ends."}, status=403)
+
+        # ✅ Ensure user is registered for the event
+        is_registered = Registration.objects.filter(event=event, volunteer=user).exists()
+        if not is_registered:
+            print("❌ User is not registered for this event.")
+            return Response({"error": "You must be registered for this event to download the certificate."}, status=403)
+
+        # ✅ Fetch the certificate (Do NOT create a new one here!)
+        certificate = EventCertificate.objects.filter(event=event, user=user).first()
+
+        # ✅ Ensure the certificate exists
+        if not certificate or not getattr(certificate.file, "path", None) or not os.path.exists(certificate.file.path):
+            print(f"❌ Certificate file does not exist at path: {certificate.file.path if certificate else 'Unknown Path'}")
+            return Response({"error": "Certificate file is missing."}, status=404)
+
+        # ✅ Return the correct certificate URL
+        certificate_url = request.build_absolute_uri(certificate.file.url)
+        print(f"✅ Certificate available for download: {certificate_url}")
+
+        return Response({"certificate_url": certificate_url}, status=200)
+
+    except Exception as e:
+        print(f"❌ Unexpected Error in `download_certificate`: {e}")
+        return Response({"error": "Internal Server Error"}, status=500)
+
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def generate_certificate(request, E_ID):
+    try:
+        user = request.user
+        event = get_object_or_404(Event, E_ID=E_ID)
+        print(f"📡 Generating certificate for event: {event.E_Name} (ID: {E_ID}) for user: {user.email}")
+
+        # ✅ Ensure event is completed
+        if event.E_Status != "Completed":
+            print("❌ Event is not completed. Cannot generate certificate.")
+            return Response({"error": "Certificates are only available after the event ends."}, status=403)
+
+        # ✅ Check if user is registered
+        is_registered = Registration.objects.filter(event=event, volunteer=user).exists()
+        if not is_registered:
+            print("❌ User is not registered for this event.")
+            return Response({"error": "You must be registered for this event."}, status=403)
+
+        # ✅ Check if certificate already exists
+        existing_certificate = EventCertificate.objects.filter(event=event, user=user).first()
+        if existing_certificate and existing_certificate.file:
+            print(f"🎉 Certificate already exists at {existing_certificate.file.url}")
+            return Response({"certificate_url": request.build_absolute_uri(existing_certificate.file.url)}, status=200)
+
+        # ✅ Ensure the media directory exists
+        certificate_dir = os.path.join(settings.MEDIA_ROOT, "certificates")
+        os.makedirs(certificate_dir, exist_ok=True)
+
+        # ✅ Define certificate file path
+        certificate_path = os.path.join(certificate_dir, f"{event.E_ID}_{user.id}.pdf")
+
+        # ✅ Generate Dummy PDF
+        from reportlab.pdfgen import canvas
+        pdf = canvas.Canvas(certificate_path)
+        pdf.drawString(100, 750, f"Certificate of Participation")
+        pdf.drawString(100, 700, f"Awarded to {user.name} for participating in {event.E_Name}.")
+        pdf.save()
+
+        # ✅ Save in database
+        new_certificate = EventCertificate.objects.create(
+            event=event,
+            user=user,
+            file=f"certificates/{event.E_ID}_{user.id}.pdf"
+        )
+
+        print(f"✅ Certificate generated at {certificate_path}")
+        return Response({"certificate_url": request.build_absolute_uri(new_certificate.file.url)}, status=201)
+
+    except Exception as e:
+        print(f"❌ Error in generate_certificate: {e}")
+        return Response({"error": "Internal Server Error"}, status=500)

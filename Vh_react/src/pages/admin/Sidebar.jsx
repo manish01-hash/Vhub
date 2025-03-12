@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FaHome, FaCalendarCheck, FaTasks, FaUsers, FaClipboardList, FaBullhorn, FaSignOutAlt, FaEnvelope ,FaInfoCircle,FaAddressCard, FaAngleDoubleLeft, FaAngleDoubleRight } from "react-icons/fa";
+import { FaHome, FaCalendarCheck, FaTasks, FaUsers, FaBell, FaBullhorn, FaSignOutAlt, FaEnvelope ,FaInfoCircle,FaAddressCard, FaAngleDoubleLeft, FaAngleDoubleRight } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { NavLink } from "react-router-dom";
@@ -31,7 +31,7 @@ function Sidebar() {
                     <FaUsers size={24} /> {!isCollapsed && <span>Volunteers</span>}
                 </div>
                 <div className="flex items-center space-x-3 text-lg hover:text-orange-400 cursor-pointer" onClick={() => navigate("/admin-dashboard")}> 
-                    <FaClipboardList size={24} /> {!isCollapsed && <span>Attendance</span>}
+                    <FaBell size={24} /> {!isCollapsed && <span>Notification</span>}
                 </div>
                
                 <div className="flex items-center space-x-3 text-lg hover:text-yellow-400 cursor-pointer"> 

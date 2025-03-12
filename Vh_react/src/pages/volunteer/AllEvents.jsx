@@ -7,6 +7,7 @@ import { FaSearch, FaFilter } from "react-icons/fa";
 function AllEvents() {
     const { user, logout } = useAuth(); 
     const [events, setEvents] = useState([]);
+    const [backupEvents,setBackupEvents] = useState("")
     const [loading, setLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
     const [allEvents, setAllEvents] = useState([]);  // Store all events
@@ -43,6 +44,7 @@ function AllEvents() {
                     console.log("✅ Events Fetched:", response.data);
                     setEvents(response.data);    // Initialize displayed events
                     setAllEvents(response.data); // Store all events
+                    setBackupEvents(response.data)
                     setNoEventsMessage("");
                 }
             } catch (error) {
@@ -57,6 +59,18 @@ function AllEvents() {
         fetchEvents();
         setNewRegistration(false);
         },[newRegistration])
+
+    useEffect(()=>{
+        setAllEvents(backupEvents);
+        console.log("Events = ",allEvents)
+        console.log("Searched Item = ",searchTerm)
+
+        let searchedEvents = allEvents.filter((event=>(
+            event.E_Name.trim().toLowerCase().includes(searchTerm.trim().toLowerCase())
+        )))
+
+        setEvents(searchedEvents)
+    },[searchTerm,setSearchTerm])
 
     return (
         <div className=" h-full w-full p-3">

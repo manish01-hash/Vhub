@@ -197,5 +197,9 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'vcoders04@gmail.com')  # ✅ Default value
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'xelu bpum rhvl odmz')  # ✅ Default value
 
-ALLOWED_HOSTS = ["0.0.0.0", "127.0.0.1", "localhost", "192.168.1.5"]
+ALLOWED_HOSTS = ["0.0.0.0", "127.0.0.1", "localhost", "192.168.1.5","172.20.10.6"]
 
+
+PDFKIT_CONFIG = {
+    "wkhtmltopdf": "/usr/bin/wkhtmltopdf"  # Adjust path if needed
+}

@@ -9,7 +9,9 @@ function AdminCreateEvent() {
         E_Name: "",
         E_Description: "",
         E_Start_Date: "",
+        E_Start_Time: "",  // ✅ Added Start Time
         E_End_Date: "",
+        E_End_Time: "",  // ✅ Added End Time
         E_Location: "",
         E_Photo: null,
         E_Required_Volunteers: 10,  // Default value
@@ -74,8 +76,14 @@ function AdminCreateEvent() {
                     <label className="block mb-2">Start Date:</label>
                     <input type="date" name="E_Start_Date" value={eventData.E_Start_Date} onChange={handleChange} required className="w-full p-2 mb-4 bg-gray-700 rounded" />
 
+                    <label className="block mb-2">Start Time:</label>
+                    <input type="time" name="E_Start_Time" value={eventData.E_Start_Time} onChange={handleChange} required className="w-full p-2 mb-4 bg-gray-700 rounded" />  {/* ✅ Start Time Input */}
+
                     <label className="block mb-2">End Date:</label>
                     <input type="date" name="E_End_Date" value={eventData.E_End_Date} onChange={handleChange} required className="w-full p-2 mb-4 bg-gray-700 rounded" />
+
+                    <label className="block mb-2">End Time:</label>
+                    <input type="time" name="E_End_Time" value={eventData.E_End_Time} onChange={handleChange} required className="w-full p-2 mb-4 bg-gray-700 rounded" />  {/* ✅ End Time Input */}
 
                     <label className="block mb-2">Status:</label>
                     <select name="E_Status" value={eventData.E_Status} onChange={handleChange} className="w-full p-2 mb-4 bg-gray-700 rounded">

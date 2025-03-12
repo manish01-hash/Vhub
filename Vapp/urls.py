@@ -6,7 +6,7 @@ from .views import (
     record_attendance, get_attendance, register_for_event, assign_event_role, get_attendance_rate, serve_image,
     check_registration_status, LeaveEventView, generate_qr_code_view, scan_qr_code,post_announcement,get_sample_task,update_user_role
     ,assign_task, self_assign_task ,update_task_status,get_announcements,get_all_registrations,contact_us,send_otp,verify_otp,send_signup_otp,verify_signup_otp,get_profile,scan_qr_code,
-    qr_scan_result_view,update_user,update_event_role,get_my_events
+    qr_scan_result_view,update_user,update_event_role,get_my_events,check_certificate, download_certificate,generate_certificate
     
 )
 from django.conf import settings
@@ -45,13 +45,17 @@ urlpatterns = [
     path('events/<uuid:E_ID>/assign-role/', assign_event_role, name='assign_event_role'),
     path('events/<uuid:E_ID>/registration-status/', check_registration_status, name='event_registration_status'),
     path('events/<uuid:E_ID>/leave/', LeaveEventView.as_view(), name='leave_event'),
-    path("events/<uuid:event_id>/update-role/", update_event_role, name="update_event_role"),
+    path("events/<uuid:E_ID>/update-role/", update_event_role, name="update_event_role"),
 
     path("events/<uuid:E_ID>/generate-qr/", generate_qr_code_view, name="generate_qr_code"),
     path("qr/scan/", scan_qr_code, name="scan_qr_code"),
     path("qr/scan-result/", qr_scan_result_view, name="qr_scan_result"),  # ✅ New API
     # Announcements
     path("events/<uuid:E_ID>/announcements/", get_announcements, name="get_announcements"),
+
+    path("events/<uuid:E_ID>/check-certificate/", check_certificate, name="check_certificate"),
+    path("events/<uuid:E_ID>/download-certificate/", download_certificate, name="download_certificate"),
+    path("events/<uuid:E_ID>/generate-certificate/", generate_certificate, name="generate_certificate"),
 
     # Sample Task
     path("events/<uuid:E_ID>/sample-task/", get_sample_task, name="get_sample_task"),

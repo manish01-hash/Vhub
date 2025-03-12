@@ -1,36 +1,33 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import axios from "axios";
 
-const AssignRole = ({ userId }) => {
-    const [role, setRole] = useState("Select Role");
-    const [loading, setLoading] = useState(false); // ✅ Disable dropdown while updating
+const AssignRole = ({ userId, eventId, currentRole, onRoleUpdate }) => {
+    const [role, setRole] = useState(currentRole);
+    const [loading, setLoading] = useState(false);
 
     const handleRoleChange = async (newRole) => {
-        if (!newRole || newRole === role) return; // ✅ Prevent unnecessary API calls
+        if (!newRole || newRole === role) return; // ✅ Prevent duplicate requests
 
         try {
             setLoading(true);
-            setRole(newRole)
             const token = localStorage.getItem("accessToken");
 
-            // ✅ Correct API path (must match `urls.py`)
-            const apiUrl = `http://127.0.0.1:8000/api/users/update-role/${userId}/`;
+            const apiUrl = `http://127.0.0.1:8000/api/events/${eventId}/update-role/`; // ✅ Corrected endpoint
 
             const response = await axios.patch(
-                apiUrl, 
-                { role: newRole }, 
-                { 
-                    headers: { 
-                        Authorization: `Bearer ${token}`, // ✅ Fix 401 error
-                        "Content-Type": "application/json"
-                    } 
+                apiUrl,
+                { user_id: userId, role: newRole }, // ✅ Ensure correct payload
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
                 }
             );
 
             if (response.status === 200) {
-                setRole(newRole); // ✅ Update UI after success
-                window.location.reload();
-
+                setRole(newRole); // ✅ Update role instantly in UI
+                onRoleUpdate(userId, newRole); // ✅ Notify parent component to update UI
             }
         } catch (error) {
             console.error("❌ Error updating role:", error.response?.data || error.message);
@@ -39,20 +36,19 @@ const AssignRole = ({ userId }) => {
         }
     };
 
-    return (
-        <select
-            value={role}
-            onChange={(e) => handleRoleChange(e.target.value)}
-            className="bg-gray-700 p-2 rounded text-white"
-            disabled={loading} // ✅ Prevent spam clicking
-        >
-            <option value="Select Role">Select Role</option>
-            <option value="Volunteer">Volunteer</option>
-            <option value="Coordinator">Coordinator</option>
-            <option value="Super Volunteer">Super Volunteer</option>
-            <option value="Event Organizer">Event Organizer</option>
-        </select>
-    );
+
+return (
+    <select
+        value={role}
+        onChange={(e) => handleRoleChange(e.target.value)}
+        className="bg-gray-700 p-2 rounded text-white"
+        disabled={loading}
+    >
+        <option value="Volunteer">Volunteer</option>
+        <option value="Coordinator">Coordinator</option>
+        <option value="Super Volunteer">Super Volunteer</option>
+    </select>
+);
 };
 
 export default AssignRole;

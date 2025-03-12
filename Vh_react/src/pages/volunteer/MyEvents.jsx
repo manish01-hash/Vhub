@@ -11,15 +11,25 @@ function MyEvents() {
     const [errorMessage, setErrorMessage] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [filter, setFilter] = useState("All");
+    const [backupEvents,setBackupEvents] = useState([])
+    const[allEvents,setAllEvents] = useState([])
 
     useEffect(() => {
         fetchMyEvents();
     }, []);
 
-    useEffect(() => {
-        const filtered = myEvents.filter(event => filter === "All" || event.E_Status === filter);
-        setMyEvents(filtered);
-    }, [filter]);
+   useEffect(() => {
+               console.log("🟡 Current Filter Value = ", filter);
+               setAllEvents(backupEvents)
+       
+               const filtered = allEvents.filter(event => filter==="All" || event.E_Status === filter);
+       
+               setMyEvents(filtered);
+               setAllEvents(backupEvents)
+       
+               console.log("✅ Events Fetched",myEvents)
+           }, [filter]); // Depend on allEvents to avoid data loss
+   
 
     async function fetchMyEvents() {
         try {
@@ -33,6 +43,8 @@ function MyEvents() {
                 setMyEvents([]);
             } else {
                 setMyEvents(response.data);
+                setBackupEvents(response.data)
+                setAllEvents(response.data)
                 setErrorMessage("");
             }
         } catch (error) {
@@ -77,7 +89,7 @@ function MyEvents() {
             ) : (
                 <>
                     {errorMessage ? (
-                        <div className="text-center mt-10 text-red-500">
+                        <div className="text-center mt-10 font-bold text-blue-400">
                             <p className="text-xl">{errorMessage}</p>
                         </div>
                     ) : (

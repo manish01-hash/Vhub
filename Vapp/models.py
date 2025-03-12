@@ -14,6 +14,8 @@ from datetime import datetime, timedelta
 from django.utils.crypto import get_random_string
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.utils import timezone
+from django.utils.timezone import make_aware, get_current_timezone
 
 # Custom User Manager
 class UserManager(BaseUserManager):
@@ -89,15 +91,16 @@ class Event(models.Model):
     E_Description = models.TextField()
     E_Start_Date = models.DateTimeField()
     E_End_Date = models.DateTimeField()
+    E_Start_Time = models.TimeField(null=True, blank=True)  # ✅ Start Time
+    E_End_Time = models.TimeField(null=True, blank=True)    # ✅ End Time
     E_Location = models.TextField()
     E_Created_By = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_events", null=True, blank=True)
     E_Registered_Count = models.PositiveIntegerField(default=0)
 
-    # ✅ Restore These Fields
+    # ✅ Restored Fields
     E_Photo = models.ImageField(upload_to="event_photos/", blank=True, null=True)
-    E_Required_Volunteers = models.PositiveIntegerField(default=10)  # Volunteers Needed
+    E_Required_Volunteers = models.PositiveIntegerField(default=10)  
     E_Volunteers = models.ManyToManyField(settings.AUTH_USER_MODEL, through="Registration", related_name="volunteered_events", blank=True)
-
 
     E_Coordinators = models.ManyToManyField(User, related_name="coordinated_events", blank=True)
     E_Super_Volunteers = models.ManyToManyField(User, related_name="super_volunteer_events", blank=True)
@@ -107,9 +110,24 @@ class Event(models.Model):
         choices=[("Upcoming", "Upcoming"), ("Ongoing", "Ongoing"), ("Completed", "Completed")],
         default="Upcoming"
     )
-    
+    def has_event_ended(self):
+        """Check if the event has ended."""
+        if self.E_End_Date and self.E_End_Time:
+            event_end = timezone.make_aware(timezone.datetime.combine(self.E_End_Date, self.E_End_Time))
+            return timezone.now() >= event_end
+        return False
+
     def __str__(self):
         return self.E_Name
+    
+
+class EventCertificate(models.Model):
+    id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
+    event = models.ForeignKey("Event", on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    file = models.FileField(upload_to="certificates/", default="certificates/default_certificate.pdf")
+
+
 class EventAnnouncement(models.Model):
     A_ID = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="announcements")
