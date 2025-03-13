@@ -770,7 +770,7 @@ def get_sample_task(request, E_ID):
 def get_tasks(request, E_ID):
     event = get_object_or_404(Event, E_ID=E_ID)  # Ensure event exists
     
-    if request.user.role != "Admin" and request.user not in event.E_Coordinators.all() and request.user != event.E_Created_By:
+    if request.user.role != "Admin" and request.user.role != "Volunteer" and request.user not in event.E_Coordinators.all() and request.user != event.E_Created_By:
         return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
 
     tasks = Task.objects.filter(event=event)

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import { FaTasks } from "react-icons/fa";
 
 function EventDetails() {
     const { eventId } = useParams();
@@ -11,6 +12,10 @@ function EventDetails() {
     const [qrVisible, setQrVisible] = useState(false);
     const [certificateAvailable, setCertificateAvailable] = useState(false);
     const [certificateUrl, setCertificateUrl] = useState("");
+    const [tasks, setTasks] = useState([]);
+    const [tasksVisible, setTasksVisible] = useState(false);
+    const[backupTasks,setBackupTasks] = useState([])
+
 
     useEffect(() => {
         fetchEventDetails();
@@ -130,6 +135,29 @@ function EventDetails() {
     window.open(fullUrl, "_blank");
 };
 
+const fetchTasks = async () => {
+    try {
+        const token = localStorage.getItem("accessToken");
+        const response = await axios.get(`http://127.0.0.1:8000/api/events/${eventId}/tasks/`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+
+        setTasks(response.data);
+        setBackupTasks(response.data);
+        setTasksVisible(true)
+
+        console.log("✅ Fetching tasks...");
+    } catch (error) {
+        console.error("❌ Error fetching tasks:", error);
+    }
+};
+
+// ✅ Log `tasks` AFTER it updates
+useEffect(() => {
+    console.log("Updated Tasks:", tasks);
+}, [tasks]);
+
+
     const hasEventEnded = event?.E_End_Date && new Date(event.E_End_Date).getTime() <= Date.now();
 
     if (loading) return <p className="text-center text-white">Loading event details...</p>;
@@ -166,8 +194,14 @@ function EventDetails() {
                             className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg shadow-lg transition-all"
                         >
                             Generate QR Code
-                        </button>
+                            </button>
+                        
                     )}
+
+                    <button onClick={fetchTasks} className="mt-4 bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg shadow-lg flex items-center space-x-2 transition-all">
+                        <FaTasks /> <span>View Tasks</span>
+                    </button>
+                    
                 </div>
 
                 {qrVisible && (
@@ -197,6 +231,18 @@ function EventDetails() {
                         >
                             Download Certificate
                         </button>
+                    </div>
+                )}
+
+            {tasksVisible && (
+                    <div className="absolute top-0 right-0 w-64 h-full bg-gray-800 p-4 shadow-lg transform translate-x-0 transition-transform">
+                        <h3 className="text-xl font-bold text-white mb-4">Event Tasks</h3>
+                        <ul className="text-gray-300">
+                            {tasks.length > 0 ? tasks.map(task => (
+                                <li key={task.id} className="py-2 border-b text-center text-xl  border-gray-600">{task.title.charAt(0).toUpperCase() + task.title.slice(1).toLowerCase()}</li>
+                            )) : <p>No tasks available.</p>}
+                        </ul>
+                        <button onClick={() => setTasksVisible(false)} className="mt-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg w-full">Close</button>
                     </div>
                 )}
             </div>

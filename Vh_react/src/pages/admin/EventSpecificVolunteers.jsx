@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { FaUserShield, FaPlusCircle, FaSearch } from "react-icons/fa";
+import { FaUserShield, FaPlusCircle, FaSearch,FaBullhorn  } from "react-icons/fa";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import Sidebar from "./Sidebar";
 import AddTaskModal from "./AddTaskModal"; // ✅ Import the modal
+import { useNavigate } from "react-router-dom";
 import ViewTasks from "./ViewTasks";
 import AssignRole from "./AssignRole";
 
@@ -16,6 +17,9 @@ function EventSpecificVolunteers() {
     const [backupTasks, setBackupTasks] = useState([]);
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false); // ✅ Controls modal visibility
     const [viewTasksBtn, setViewTasksBtn] = useState(false);
+    const[selectedRole,setSelectedRole]=useState('volunteer')
+    const [announcement, setAnnouncement] = useState("");
+    
 
     useEffect(() => {
         let storedEventId = localStorage.getItem("eventId");
@@ -50,26 +54,34 @@ function EventSpecificVolunteers() {
     }, [eventId]);
 
     useEffect(() => {
-        if (searchQuery.length === 0) {
-            setVolunteers(backupVolunteers);
-        } else {
-            const searchedVolunteers = backupVolunteers.filter((registration) =>
-                registration.volunteer.name.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-            setVolunteers(searchedVolunteers);
+        if (!viewTasksBtn) {
+            if (searchQuery.length === 0) {
+                setVolunteers(backupVolunteers);
+            } else {
+                const searchedVolunteers = backupVolunteers.filter((registration) =>
+                    registration.volunteer.name.toLowerCase().includes(searchQuery.toLowerCase())
+                );
+                setVolunteers(searchedVolunteers);
+            }
         }
-    }, [searchQuery, backupVolunteers]);
+        else if (viewTasksBtn) {
+            if (searchQuery.length === 0) {
+                setVolunteers(backupVolunteers);
+            } else {
+                const searchedVolunteers = backupVolunteers.filter((registration) =>
+                    registration.volunteer.name.toLowerCase().includes(searchQuery.toLowerCase())
+                );
+                setVolunteers(searchedVolunteers);
+            }
+        }
+    }, [searchQuery, backupVolunteers,backupTasks]);
 
-    // ✅ Update role in state instantly without reload
-    const handleRoleUpdate = (userId, newRole) => {
-        setVolunteers((prevVolunteers) =>
-            prevVolunteers.map((registration) =>
-                registration.volunteer.id === userId
-                    ? { ...registration, volunteer: { ...registration.volunteer, role: newRole } }
-                    : registration
-            )
-        );
-    };
+
+
+    function handleAssignRole(id) {
+        console.log("Assigning role to volunteer with ID:", id);
+    }
+
 
     const fetchTasks = async () => {
         try {
@@ -79,8 +91,40 @@ function EventSpecificVolunteers() {
             });
             setTasks(response.data);
             setBackupTasks(response.data);
+            console.log(tasks)
         } catch (error) {
             console.error("❌ Error fetching tasks:", error);
+        }
+    };
+
+
+    const sendAnnouncement = async () => {
+        if (!announcement.trim()) {
+            alert("⚠️ Please enter an announcement message.");
+            return;
+        }
+
+        if (!eventId) {
+            alert("⚠️ Invalid event ID. Please refresh the page.");
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem("accessToken");
+            await axios.post(
+                `http://127.0.0.1:8000/api/events/${eventId}/announcement/`,
+                { message: announcement },
+                { 
+                    headers: { 
+                        Authorization: `Bearer ${token}`, 
+                        "Content-Type": "application/json" 
+                    } 
+                }
+            );
+            alert("✅ Announcement sent successfully!");
+            setAnnouncement("");
+        } catch (error) {
+            console.error("❌ Error sending announcement:", error);
         }
     };
 
@@ -89,8 +133,26 @@ function EventSpecificVolunteers() {
             {/* ✅ Sidebar Navigation */}
             <Sidebar />
 
+
+
             {/* ✅ Main Content */}
             <div className="flex-1 p-6">
+            <div className="bg-[#2d3748] p-6 rounded-lg shadow-md mb-6">
+                    <h2 className="text-2xl font-bold mb-4">Send Announcement</h2>
+                    <textarea
+                        className="w-full p-3 bg-gray-800 rounded-lg text-white focus:outline-none"
+                        rows="3"
+                        placeholder="Type your announcement here..."
+                        value={announcement}
+                        onChange={(e) => setAnnouncement(e.target.value)}
+                    />
+                    <button
+                        onClick={sendAnnouncement}
+                        className="flex items-center bg-yellow-500 hover:bg-yellow-700 p-3 rounded-lg text-lg font-bold mt-3"
+                    >
+                        <FaBullhorn className="mr-3" /> Send Announcement
+                    </button>
+                </div>
                 <h1 className="text-4xl font-bold mb-6">Event Details</h1>
 
                 {/* ✅ Search & Task Buttons */}
@@ -100,7 +162,7 @@ function EventSpecificVolunteers() {
                         <FaSearch className="text-gray-300 mr-2" />
                         <input 
                             type="text" 
-                            placeholder={viewTasksBtn ? "Search tasks..." : "Search volunteers..."} 
+                            placeholder={viewTasksBtn?"Search tasks...":"Search volunteers..."} 
                             className="bg-transparent focus:outline-none text-white w-full"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -117,65 +179,65 @@ function EventSpecificVolunteers() {
                             <FaPlusCircle className="mr-3" /> Add Task
                         </button>
 
-                        {/* 🔵 View Tasks Button */}
+                        {/* 🔵 View Tasks Button (Still Navigates) */}
                         <button 
-                            onClick={() => setViewTasksBtn(!viewTasksBtn)} 
+                            onClick={()=>setViewTasksBtn(!viewTasksBtn)} 
                             className="flex items-center bg-blue-500 hover:bg-blue-700 p-3 px-5 rounded-lg text-lg font-bold transition duration-300 w-[40%] h-full"
                         >
-                            {viewTasksBtn ? "View Volunteers" : "View Tasks"}
+                            {viewTasksBtn ? "View Volunteers":"View Tasks"}
                         </button>
                     </div>
                 </div>
 
                 {/* ✅ Volunteers Table */}
-                {!viewTasksBtn && (
-                    <div className="bg-[#2d3748] p-6 rounded-lg shadow-md">
-                        <table className="w-full text-left">
-                            <thead>
-                                <tr className="border-b border-gray-600">
-                                    <th className="p-2">Name</th>
-                                    <th className="p-2">Email</th>
-                                    <th className="p-2">Phone</th>
-                                    <th className="p-2">Role</th>
-                                    <th className="p-2">Actions</th>
+                {!viewTasksBtn &&
+                <div className="bg-[#2d3748] p-6 rounded-lg shadow-md">
+                <table className="w-full text-left">
+                    <thead>
+                        <tr className="border-b border-gray-600">
+                            <th className="p-2">Name</th>
+                            <th className="p-2">Email</th>
+                            <th className="p-2">Phone</th>
+                            <th className="p-2">Role</th>
+                            <th className="p-2">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {Array.isArray(volunteers) && volunteers.length > 0 ? (
+                            volunteers.map((registration) => (
+                                <tr key={registration.R_ID} className="border-b border-gray-700">
+                                    <td className="p-2">{registration.volunteer.name}</td>
+                                    <td className="p-2">{registration.volunteer.email}</td>
+                                    <td className="p-2">{registration.volunteer.phone || "N/A"}</td>
+                                    <td className="p-2">{registration.volunteer.role}</td>
+                                    <td className="p-2">
+                                        <AssignRole userId={registration.volunteer.id} />
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                {Array.isArray(volunteers) && volunteers.length > 0 ? (
-                                    volunteers.map((registration) => (
-                                        <tr key={registration.R_ID} className="border-b border-gray-700">
-                                            <td className="p-2">{registration.volunteer.name}</td>
-                                            <td className="p-2">{registration.volunteer.email}</td>
-                                            <td className="p-2">{registration.volunteer.phone || "N/A"}</td>
-                                            <td className="p-2">{registration.volunteer.role}</td>
-                                            <td className="p-2">
-                                                <AssignRole 
-                                                    userId={registration.volunteer.id} 
-                                                    eventId={eventId} 
-                                                    currentRole={registration.volunteer.role} 
-                                                    onRoleUpdate={handleRoleUpdate} 
-                                                />
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan="5" className="p-4 text-center">No volunteers available</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan="5" className="p-4 text-center">No volunteers available</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+                    </div>}
                 
-                {viewTasksBtn && <ViewTasks tasks1={tasks} searchQuery={searchQuery} />}
+                {
+                    viewTasksBtn &&
+                    
+                    <ViewTasks tasks1={tasks} searchQuery={searchQuery} />
+                    
+                }
 
                 {/* ✅ Add Task Modal */}
                 <AddTaskModal 
-                    isOpen={isTaskModalOpen} 
-                    onClose={() => setIsTaskModalOpen(false)}
-                    fetchTasks={fetchTasks}
-                />
+                isOpen={isTaskModalOpen} 
+                onClose={() => setIsTaskModalOpen(false)}
+                fetchTasks={fetchTasks}  // ✅ Ensure fetchTasks is passed correctly
+            />
+
             </div>
         </div>
     );

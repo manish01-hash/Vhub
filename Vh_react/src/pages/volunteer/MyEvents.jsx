@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
 import EventPost from "./EventPost";
-import { FaSearch, FaFilter } from "react-icons/fa";
+import { FaSearch, FaFilter, FaBell, FaCheckCircle } from "react-icons/fa";
 
 function MyEvents() {
     const { user } = useAuth(); 
@@ -11,47 +11,63 @@ function MyEvents() {
     const [errorMessage, setErrorMessage] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [filter, setFilter] = useState("All");
-    const [backupEvents,setBackupEvents] = useState([])
-    const[allEvents,setAllEvents] = useState([])
-
+    const [backupEvents, setBackupEvents] = useState([]);
+    const [allEvents, setAllEvents] = useState([]);
+    const [notifications, setNotifications] = useState([]);
+    const [showNotifications, setShowNotifications] = useState(false);
+    
     useEffect(() => {
         fetchMyEvents();
+        fetchNotifications();
     }, []);
 
-   useEffect(() => {
-               console.log("🟡 Current Filter Value = ", filter);
-               setAllEvents(backupEvents)
-       
-               const filtered = allEvents.filter(event => filter==="All" || event.E_Status === filter);
-       
-               setMyEvents(filtered);
-               setAllEvents(backupEvents)
-       
-               console.log("✅ Events Fetched",myEvents)
-           }, [filter]); // Depend on allEvents to avoid data loss
-   
-
+    useEffect(() => {
+        setAllEvents(backupEvents);
+        const filtered = allEvents.filter(event => filter === "All" || event.E_Status === filter);
+        setMyEvents(filtered);
+        setAllEvents(backupEvents);
+    }, [filter]); 
+    
     async function fetchMyEvents() {
         try {
-            console.log("🟡 Fetching my events...");
             const response = await axios.get("http://127.0.0.1:8000/api/my-events/", {
                 headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
             });
-
             if (response.data.length === 0) {
                 setErrorMessage("You are not involved in any events yet.");
                 setMyEvents([]);
             } else {
                 setMyEvents(response.data);
-                setBackupEvents(response.data)
-                setAllEvents(response.data)
+                setBackupEvents(response.data);
+                setAllEvents(response.data);
                 setErrorMessage("");
             }
         } catch (error) {
-            console.error("❌ Error fetching my events:", error.response?.status, error.response?.data);
             setErrorMessage("Failed to load your events.");
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function fetchNotifications() {
+        try {
+            const response = await axios.get("http://127.0.0.1:8000/api/notifications/", {
+                headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
+            });
+            setNotifications(response.data);
+        } catch (error) {
+            console.error("❌ Error fetching notifications:", error);
+        }
+    }
+
+    async function markAllAsRead() {
+        try {
+            await axios.patch("http://127.0.0.1:8000/api/notifications/mark-all-read/", {}, {
+                headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
+            });
+            setNotifications([]);
+        } catch (error) {
+            console.error("❌ Error marking notifications as read:", error);
         }
     }
 
@@ -73,11 +89,40 @@ function MyEvents() {
                         className="bg-transparent focus:outline-none"
                         onChange={(e) => setFilter(e.target.value)}
                     >
-                        <option value="All" className="text-white bg-[#1a202c]">All My Events</option>
-                        <option value="Upcoming" className="text-black">Upcoming</option>
-                        <option value="Ongoing" className="text-black">Ongoing</option>
-                        <option value="Completed" className="text-black">Completed</option>
+                        <option value="All">All My Events</option>
+                        <option value="Upcoming">Upcoming</option>
+                        <option value="Ongoing">Ongoing</option>
+                        <option value="Completed">Completed</option>
                     </select>
+                </div>
+                <div className="relative">
+                    <FaBell 
+                        className="text-white text-2xl cursor-pointer hover:text-yellow-400" 
+                        onClick={() => setShowNotifications(!showNotifications)}
+                    />
+                    {notifications.length > 0 && (
+                        <span className="absolute -top-1 -right-2 bg-red-500 text-white text-xs rounded-full px-2">{notifications.length}</span>
+                    )}
+                    {showNotifications && (
+                        <div className="absolute z-10 top-10 right-0 bg-gray-900 p-4 rounded-lg shadow-lg w-72 text-white border border-gray-700">
+                            <div className="flex justify-between items-center mb-2 border-b pb-2">
+                                <h3 className="font-bold text-lg">Notifications</h3>
+                                <button onClick={markAllAsRead} className="text-blue-400 text-sm hover:underline">Mark all as read</button>
+                            </div>
+                            <div className="max-h-64 overflow-y-auto">
+                                {notifications.length > 0 ? (
+                                    notifications.map((notification, index) => (
+                                        <div key={index} className="flex items-center border-b border-gray-700 p-2 last:border-0 hover:bg-gray-800 rounded-md transition duration-200">
+                                            <FaCheckCircle className="text-green-400 mr-3" />
+                                            <p className="text-sm">{notification.message}</p>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-gray-400 text-center">No new notifications</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </nav>
 
@@ -94,20 +139,11 @@ function MyEvents() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-                            {myEvents
-                                .filter(event => filter === "All" || event.E_Status === filter)
-                                .filter(event => event.E_Name.toLowerCase().includes(searchTerm.toLowerCase()))
-                                .map(event => (
-                                    <div key={event.E_ID} className="bg-[#2a3b4f] rounded-lg shadow-lg p-5 transition-transform transform hover:scale-105">
-                                        <EventPost 
-                                            ename={event.E_Name} 
-                                            event={event}  
-                                            description={event.E_Description} 
-                                            requiredVolunteers={event.E_Required_Volunteers} 
-                                            totVolunteers={event.E_Volunteers?.length || 0} 
-                                        />
-                                    </div>
-                                ))}
+                            {myEvents.filter(event => filter === "All" || event.E_Status === filter).filter(event => event.E_Name.toLowerCase().includes(searchTerm.toLowerCase())).map(event => (
+                                <div key={event.E_ID} className="bg-[#2a3b4f] rounded-lg shadow-lg p-5 transition-transform transform hover:scale-105">
+                                    <EventPost ename={event.E_Name} event={event} description={event.E_Description} requiredVolunteers={event.E_Required_Volunteers} totVolunteers={event.E_Volunteers?.length || 0} />
+                                </div>
+                            ))}
                         </div>
                     )}
                 </>
