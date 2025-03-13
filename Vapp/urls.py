@@ -6,7 +6,7 @@ from .views import (
     record_attendance, get_attendance, register_for_event, assign_event_role, get_attendance_rate, serve_image,
     check_registration_status, LeaveEventView, generate_qr_code_view, scan_qr_code,post_announcement,get_sample_task,update_user_role
     ,assign_task, self_assign_task ,update_task_status,get_announcements,get_all_registrations,contact_us,send_otp,verify_otp,send_signup_otp,verify_signup_otp,get_profile,scan_qr_code,
-    qr_scan_result_view,update_user,update_event_role,get_my_events,check_certificate, download_certificate,generate_certificate
+    qr_scan_result_view,update_user,update_event_role,get_my_events,check_certificate, download_certificate,generate_certificate,get_notifications,mark_notifications_as_read
     
 )
 from django.conf import settings
@@ -52,6 +52,9 @@ urlpatterns = [
     path("qr/scan-result/", qr_scan_result_view, name="qr_scan_result"),  # ✅ New API
     # Announcements
     path("events/<uuid:E_ID>/announcements/", get_announcements, name="get_announcements"),
+    path("events/<uuid:event_id>/announcement/", post_announcement, name="post_announcement"),
+    path("notifications/", get_notifications, name="get_notifications"),
+    path("notifications/mark-as-read/", mark_notifications_as_read, name="mark_notifications_as_read"),
 
     path("events/<uuid:E_ID>/check-certificate/", check_certificate, name="check_certificate"),
     path("events/<uuid:E_ID>/download-certificate/", download_certificate, name="download_certificate"),

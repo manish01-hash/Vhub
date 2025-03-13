@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-from .models import User, Event, Task, Attendance, Registration,EventAnnouncement,SampleTask
+from .models import User, Event, Task, Attendance, Registration,EventAnnouncement,SampleTask,Notification
 
 
 # ✅ User Serializer
@@ -91,6 +91,18 @@ class EventSerializer(serializers.ModelSerializer):
             return obj.E_Photo.url  # ✅ Return relative URL if no request
         return None  # ✅ Handle case where no photo is uploaded
 
+class EventAnnouncementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventAnnouncement
+        fields = "__all__"
+        read_only_fields = ["A_ID", "event", "posted_by", "created_at"]
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = "__all__"
+        read_only_fields = ["N_ID", "recipient", "event", "created_at"]
 
 
 

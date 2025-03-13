@@ -130,14 +130,24 @@ class EventCertificate(models.Model):
 
 class EventAnnouncement(models.Model):
     A_ID = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="announcements")
-    posted_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="event_announcements")
     message = models.TextField()
-    posted_at = models.DateTimeField(default=timezone.now)
+    posted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(default=now)
 
     def __str__(self):
-        return f"Announcement for {self.event.E_Name} by {self.posted_by.name}"
+        return f"Announcement for {self.event.E_Name}"
 
+class Notification(models.Model):
+    N_ID = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications")
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="event_notifications")
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Notification for {self.recipient} - {self.event.E_Name}"
 class SampleTask(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="sample_tasks")
     task_name = models.CharField(max_length=255)

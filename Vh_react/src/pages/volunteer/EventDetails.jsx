@@ -77,11 +77,12 @@ function EventDetails() {
     
                 if (error.response.status === 404) {
                     console.warn("🔴 No certificate found. Generating now...");
-                    await generateCertificate(); // Auto-generate if missing
+                    await generateCertificate(); // Auto-generate only if not found
                 } else if (error.response.status === 403) {
-                    console.warn("🔴 User is not allowed to access this certificate.");
+                    console.warn("🔴 User is not allowed to generate the certificate.");
+                    alert("You are not eligible to generate a certificate.");
                     setCertificateAvailable(false);
-                }
+                }                
             }
         }
     };

@@ -37,8 +37,17 @@ from django.http import FileResponse
 from PIL import Image, ImageDraw, ImageFont
 from PIL import ImageFont
 title_font = ImageFont.load_default()
-
 from django.core.exceptions import ObjectDoesNotExist
+from reportlab.lib.pagesizes import landscape, letter
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase import pdfmetrics
+from io import BytesIO
+from PyPDF2 import PdfReader, PdfWriter
+from django.http import HttpRequest
+import textwrap 
+from .models import Event, EventAnnouncement, Notification
+from .serializers import EventAnnouncementSerializer, NotificationSerializer
+
 
 
 font_path_bold = "/usr/share/fonts/truetype/msttcorefonts/Arial_Bold.ttf"  # Use Arial Bold
@@ -541,32 +550,7 @@ def serve_image(request, path):
     else:
         raise Http404("Image not found")
     
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def post_announcement(request, E_ID):
-    event = get_object_or_404(Event, E_ID=E_ID)
 
-    if request.user not in event.E_Coordinators.all() and request.user.role != "Admin":
-        return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
-
-    serializer = EventAnnouncementSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save(event=event, posted_by=request.user)
-        return Response({"message": "Announcement posted successfully!"}, status=status.HTTP_201_CREATED)
-
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def get_announcements(request, E_ID):  # Make sure to accept E_ID
-    event = get_object_or_404(Event, E_ID=E_ID)
-    
-    announcements = EventAnnouncement.objects.filter(event=event)
-    if not announcements.exists():
-        return Response({"message": "No announcements found"}, status=status.HTTP_200_OK)
-
-    serializer = EventAnnouncementSerializer(announcements, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 
@@ -1055,56 +1039,233 @@ def download_certificate(request, E_ID):
         return Response({"error": "Internal Server Error"}, status=500)
 
 
-
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def convert_image_to_pdf(image_path, pdf_path):
+    """Converts an image to a PDF template for certificate generation."""
+    if not os.path.exists(pdf_path):  # Convert only if template doesn't exist
+        image = Image.open(image_path)
+        pdf_canvas = canvas.Canvas(pdf_path, pagesize=landscape(letter))
+        pdf_canvas.drawImage(image_path, 0, 0, width=landscape(letter)[0], height=landscape(letter)[1])
+        pdf_canvas.save()
+        print(f"✅ PDF template created: {pdf_path}")
+    else:
+        print(f"ℹ️ Using existing template: {pdf_path}")
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def generate_certificate(request, E_ID):
     try:
+        # Debug: Check request type
+        print(f"Request object type: {type(request)}")
+
+        # Get the authenticated user
         user = request.user
+
+        # Fetch the event or return 404 if not found
         event = get_object_or_404(Event, E_ID=E_ID)
         print(f"📡 Generating certificate for event: {event.E_Name} (ID: {E_ID}) for user: {user.email}")
 
-        # ✅ Ensure event is completed
+        # Ensure the event is completed
         if event.E_Status != "Completed":
-            print("❌ Event is not completed. Cannot generate certificate.")
             return Response({"error": "Certificates are only available after the event ends."}, status=403)
 
-        # ✅ Check if user is registered
-        is_registered = Registration.objects.filter(event=event, volunteer=user).exists()
-        if not is_registered:
-            print("❌ User is not registered for this event.")
+        # Check if the user is registered for the event
+        if not Registration.objects.filter(event=event, volunteer=user).exists():
             return Response({"error": "You must be registered for this event."}, status=403)
 
-        # ✅ Check if certificate already exists
-        existing_certificate = EventCertificate.objects.filter(event=event, user=user).first()
-        if existing_certificate and existing_certificate.file:
-            print(f"🎉 Certificate already exists at {existing_certificate.file.url}")
-            return Response({"certificate_url": request.build_absolute_uri(existing_certificate.file.url)}, status=200)
-
-        # ✅ Ensure the media directory exists
+        # Ensure the certificate directory exists
         certificate_dir = os.path.join(settings.MEDIA_ROOT, "certificates")
         os.makedirs(certificate_dir, exist_ok=True)
 
-        # ✅ Define certificate file path
-        certificate_path = os.path.join(certificate_dir, f"{event.E_ID}_{user.id}.pdf")
+        # Define the certificate filename and paths
+        certificate_filename = f"{event.E_ID}_{user.id}.pdf"
+        certificate_path = os.path.join(certificate_dir, certificate_filename)
 
-        # ✅ Generate Dummy PDF
-        from reportlab.pdfgen import canvas
-        pdf = canvas.Canvas(certificate_path)
-        pdf.drawString(100, 750, f"Certificate of Participation")
-        pdf.drawString(100, 700, f"Awarded to {user.name} for participating in {event.E_Name}.")
-        pdf.save()
+        # Load the PDF template
+        pdf_template_path = os.path.join(settings.MEDIA_ROOT, "certificates", "Template1.pdf")
 
-        # ✅ Save in database
-        new_certificate = EventCertificate.objects.create(
-            event=event,
-            user=user,
-            file=f"certificates/{event.E_ID}_{user.id}.pdf"
+        # Generate the certificate with dynamic name, event, and issued date
+        generate_certificate_from_pdf(
+            template_pdf=pdf_template_path,
+            output_pdf=certificate_path,
+            volunteer_name=user.name,
+            event_name=event.E_Name,
+            issued_date=event.E_End_Date.strftime("%d/%m/%Y")  # Use the event end date as the issued date
         )
 
-        print(f"✅ Certificate generated at {certificate_path}")
-        return Response({"certificate_url": request.build_absolute_uri(new_certificate.file.url)}, status=201)
+        # Save the certificate record in the database
+        certificate_record, created = EventCertificate.objects.get_or_create(
+            event=event,
+            user=user,
+            defaults={"file": f"certificates/{certificate_filename}"}
+        )
+
+        # Build the absolute URL for the certificate
+        print(f"MEDIA_URL: {settings.MEDIA_URL}")  # Debug: Check MEDIA_URL
+        print(f"Certificate filename: {certificate_filename}")  # Debug: Check filename
+        certificate_url = request.build_absolute_uri(f"{settings.MEDIA_URL}certificates/{certificate_filename}")
+
+        # Return the certificate URL in the response
+        return Response({"certificate_url": certificate_url}, status=201)
 
     except Exception as e:
+        # Log the error and return a 500 response
         print(f"❌ Error in generate_certificate: {e}")
         return Response({"error": "Internal Server Error"}, status=500)
+
+
+
+def generate_certificate_from_pdf(template_pdf: str, output_pdf: str, volunteer_name: str, event_name: str, issued_date: str):
+    """Generates a certificate with the volunteer's name, event name, and issued date."""
+    try:
+        # Debug: Check input arguments
+        print(f"Template PDF: {template_pdf}")
+        print(f"Output PDF: {output_pdf}")
+        print(f"Volunteer Name: {volunteer_name}")
+        print(f"Event Name: {event_name}")
+        print(f"Issued Date: {issued_date}")
+
+        # Read the PDF template
+        pdf_reader = PdfReader(template_pdf)
+        pdf_writer = PdfWriter()
+
+        # Get the first page of the template
+        page = pdf_reader.pages[0]
+
+        # Create a buffer for the text overlay
+        packet = BytesIO()
+        can = canvas.Canvas(packet, pagesize=letter)
+
+        # Register a custom font (ensure the font file exists)
+        font_path = os.path.join(settings.MEDIA_ROOT, "font", "PinyonScript-Regular.ttf")
+        pdfmetrics.registerFont(TTFont("PinyonScript", font_path))
+
+        # Set font and text positions for the volunteer's name (centered)
+        can.setFont("PinyonScript", 60)
+        can.setFillColorRGB(0, 0, 0)  # Black color
+        text_width = can.stringWidth(volunteer_name, "PinyonScript", 60)
+        can.drawString(280, 320, volunteer_name)  
+
+        # Add the new appreciation message
+        appreciation_text = (
+            f"In gratitude for their valuable contributions and dedication as a volunteer at {event_name} on {issued_date}. "
+            "We hope to see them again at future events and appreciate their continued support."
+        )
+        can.setFont("Helvetica", 16)
+        can.setFillColorRGB(0, 0, 0)  # Black color
+
+        # Wrap the appreciation text
+        appreciation_x = 130  # Start from the left margin (adjust as needed)
+        appreciation_y = 275  # Adjust this value to position the text vertically
+        max_appreciation_width = 450  # Maximum width for the appreciation text
+        appreciation_line_height = 18  # Spacing between lines
+
+        # Use textwrap to split the text into lines
+        wrapper = textwrap.TextWrapper(width=70)  # Adjust width as needed
+        wrapper.break_long_words = False  # Prevent breaking long words
+        wrapper.break_on_hyphens = False  # Prevent breaking on hyphens
+        wrapped_lines = wrapper.wrap(appreciation_text)
+
+        # Draw each line
+        for i, line in enumerate(wrapped_lines):
+            # Check if the line contains the event name
+            if event_name in line:
+                # Split the line into parts before and after the event name
+                parts = line.split(event_name)
+                # Draw the part before the event name
+                can.setFont("Helvetica", 16)
+                can.drawString(appreciation_x, appreciation_y - (i * appreciation_line_height), parts[0])
+                # Calculate the x-coordinate for the event name
+                event_name_x = appreciation_x + can.stringWidth(parts[0], "Helvetica", 16)
+                # Draw the event name in bold
+                can.setFont("Helvetica-Bold", 16)
+                can.drawString(event_name_x, appreciation_y - (i * appreciation_line_height), event_name)
+                # Calculate the x-coordinate for the part after the event name
+                remaining_text_x = event_name_x + can.stringWidth(event_name, "Helvetica-Bold", 16)
+                # Draw the part after the event name
+                can.setFont("Helvetica", 16)
+                can.drawString(remaining_text_x, appreciation_y - (i * appreciation_line_height), parts[1])
+            else:
+                # Draw the line as normal
+                can.setFont("Helvetica", 16)
+                can.drawString(appreciation_x, appreciation_y - (i * appreciation_line_height), line)
+
+        # Set font and text positions for the issued date
+        can.setFont("Helvetica", 18)
+        can.setFillColorRGB(0, 0, 0)  # Black color
+        can.drawString(85, 90, f"Issued Date: {issued_date}")  # Below the event name
+
+        # Save the text overlay
+        can.save()
+        packet.seek(0)
+
+        # Merge the overlay with the template
+        overlay_reader = PdfReader(packet)
+        overlay_page = overlay_reader.pages[0]
+        page.merge_page(overlay_page)
+        pdf_writer.add_page(page)
+
+        # Write the final PDF
+        with open(output_pdf, "wb") as output_file:
+            pdf_writer.write(output_file)
+
+        print(f"✅ Certificate generated: {output_pdf}")
+
+    except Exception as e:
+        # Log the error and re-raise
+        print(f"❌ Error in generate_certificate_from_pdf: {e}")
+        raise
+
+
+def convert_image_to_pdf(image_path: str, pdf_path: str):
+    """Converts an image to a PDF file."""
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+
+    # Create a PDF file
+    c = canvas.Canvas(pdf_path, pagesize=letter)
+    c.drawImage(image_path, 0, 0, width=letter[0], height=letter[1])
+    c.save()
+    print(f"✅ Converted image to PDF: {pdf_path}")
+
+
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def post_announcement(request, event_id):
+    event = get_object_or_404(Event, E_ID=event_id)
+
+    if request.user.role != "Admin":
+        return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+
+    serializer = EventAnnouncementSerializer(data=request.data)
+    if serializer.is_valid():
+        announcement = serializer.save(event=event, posted_by=request.user)
+
+        # ✅ Create notifications for all registered volunteers
+        volunteers = event.E_Volunteers.all()
+        notifications = [
+            Notification(event=event, recipient=volunteer, message=announcement.message)
+            for volunteer in volunteers
+        ]
+        Notification.objects.bulk_create(notifications)
+
+        return Response({"message": "Announcement posted & notifications sent!"}, status=status.HTTP_201_CREATED)
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_notifications(request):
+    """Fetch unread notifications for the logged-in volunteer."""
+    notifications = Notification.objects.filter(recipient=request.user, is_read=False).order_by("-created_at")
+    serializer = NotificationSerializer(notifications, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def mark_notifications_as_read(request):
+    """Mark all notifications as read for the logged-in user."""
+    Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+    return Response({"message": "Notifications marked as read!"}, status=status.HTTP_200_OK)

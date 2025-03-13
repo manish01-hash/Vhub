@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.html import format_html
-from .models import Event, Task, Registration
+from .models import Event, Task, Registration,Notification
 from django.contrib.auth import get_user_model
 
 User = get_user_model()  # ✅ Get custom user model
@@ -99,3 +99,11 @@ class RegistrationAdmin(admin.ModelAdmin):
 
     display_qr_code.allow_tags = True
     display_qr_code.short_description = "QR Code"
+
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ("recipient", "event", "message", "created_at", "is_read")  
+    list_filter = ("is_read", "created_at")  
+    search_fields = ("recipient__name", "event__E_Name", "message")  
