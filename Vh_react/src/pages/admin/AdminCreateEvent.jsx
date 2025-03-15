@@ -9,12 +9,12 @@ function AdminCreateEvent() {
         E_Name: "",
         E_Description: "",
         E_Start_Date: "",
-        E_Start_Time: "",  // ✅ Added Start Time
+        E_Start_Time: "",
         E_End_Date: "",
-        E_End_Time: "",  // ✅ Added End Time
+        E_End_Time: "",
         E_Location: "",
         E_Photo: null,
-        E_Required_Volunteers: 10,  // Default value
+        E_Required_Volunteers: 10,
         E_Status: "Upcoming",
     });
 
@@ -32,6 +32,46 @@ function AdminCreateEvent() {
         e.preventDefault();
         setErrorMessage("");
 
+        // Validation Checks
+        const currentDate = new Date().toISOString().split("T")[0]; // Get current date in YYYY-MM-DD format
+
+        // 1. Start Date must be >= current date
+        if (eventData.E_Start_Date < currentDate) {
+            setErrorMessage("❌ Start Date cannot be in the past.");
+            return;
+        }
+
+        // 2. End Date must be >= Start Date
+        if (eventData.E_End_Date < eventData.E_Start_Date) {
+            setErrorMessage("❌ End Date cannot be before Start Date.");
+            return;
+        }
+
+        // 3. If Start Date and End Date are the same, End Time must be > Start Time
+        if (eventData.E_Start_Date === eventData.E_End_Date && eventData.E_End_Time <= eventData.E_Start_Time) {
+            setErrorMessage("❌ End Time must be after Start Time for the same day.");
+            return;
+        }
+
+        // 4. Required Volunteers must be a positive integer
+        if (eventData.E_Required_Volunteers <= 0) {
+            setErrorMessage("❌ Required Volunteers must be a positive number.");
+            return;
+        }
+
+        // 5. Event Name and Description must not be empty
+        if (!eventData.E_Name.trim() || !eventData.E_Description.trim()) {
+            setErrorMessage("❌ Event Name and Description are required.");
+            return;
+        }
+
+        // 6. Event Photo must be uploaded and of valid type
+        if (!eventData.E_Photo || !eventData.E_Photo.type.startsWith("image/")) {
+            setErrorMessage("❌ Please upload a valid image file.");
+            return;
+        }
+
+        // If all validations pass, proceed with form submission
         const formData = new FormData();
         Object.keys(eventData).forEach((key) => {
             formData.append(key, eventData[key]);
@@ -65,7 +105,7 @@ function AdminCreateEvent() {
                     <textarea name="E_Description" value={eventData.E_Description} onChange={handleChange} required className="w-full p-2 mb-4 bg-gray-700 rounded"></textarea>
 
                     <label className="block mb-2">Event Photo:</label>
-                    <input type="file" accept="image/*" onChange={handleFileChange} className="w-full p-2 mb-4 bg-gray-700 rounded" />
+                    <input type="file" accept="image/*" onChange={handleFileChange} required className="w-full p-2 mb-4 bg-gray-700 rounded" />
 
                     <label className="block mb-2">Event Location:</label>
                     <input type="text" name="E_Location" value={eventData.E_Location} onChange={handleChange} required className="w-full p-2 mb-4 bg-gray-700 rounded" />
@@ -77,13 +117,13 @@ function AdminCreateEvent() {
                     <input type="date" name="E_Start_Date" value={eventData.E_Start_Date} onChange={handleChange} required className="w-full p-2 mb-4 bg-gray-700 rounded" />
 
                     <label className="block mb-2">Start Time:</label>
-                    <input type="time" name="E_Start_Time" value={eventData.E_Start_Time} onChange={handleChange} required className="w-full p-2 mb-4 bg-gray-700 rounded" />  {/* ✅ Start Time Input */}
+                    <input type="time" name="E_Start_Time" value={eventData.E_Start_Time} onChange={handleChange} required className="w-full p-2 mb-4 bg-gray-700 rounded" />
 
                     <label className="block mb-2">End Date:</label>
                     <input type="date" name="E_End_Date" value={eventData.E_End_Date} onChange={handleChange} required className="w-full p-2 mb-4 bg-gray-700 rounded" />
 
                     <label className="block mb-2">End Time:</label>
-                    <input type="time" name="E_End_Time" value={eventData.E_End_Time} onChange={handleChange} required className="w-full p-2 mb-4 bg-gray-700 rounded" />  {/* ✅ End Time Input */}
+                    <input type="time" name="E_End_Time" value={eventData.E_End_Time} onChange={handleChange} required className="w-full p-2 mb-4 bg-gray-700 rounded" />
 
                     <label className="block mb-2">Status:</label>
                     <select name="E_Status" value={eventData.E_Status} onChange={handleChange} className="w-full p-2 mb-4 bg-gray-700 rounded">
@@ -92,7 +132,7 @@ function AdminCreateEvent() {
                         <option value="Completed">Completed</option>
                     </select>
 
-                    {errorMessage && <p className="text-red-500">{errorMessage}</p>}
+                    {errorMessage && <p className="text-red-500 mb-4">{errorMessage}</p>}
 
                     <button type="submit" className="w-full bg-green-500 hover:bg-green-700 p-3 rounded-lg font-bold">Create Event</button>
                 </form>
