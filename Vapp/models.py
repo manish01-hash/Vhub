@@ -52,6 +52,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     name = models.CharField(max_length=255)
     phone = models.CharField(max_length=15, blank=True, null=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    gender = models.CharField(max_length=10, blank=True, null=True)
 
     # College Information
     college_name = models.CharField(max_length=255, blank=True, null=True)

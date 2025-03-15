@@ -10,6 +10,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'email', 'name', 'phone', 'role',
+            'gender',
             'college_name', 'faculty', 'year_of_study', 
             'profile_image', 'is_active', 'created_at'
         ]
@@ -34,6 +35,7 @@ class SignupSerializer(serializers.ModelSerializer):
             name=validated_data['name'],
             phone=validated_data.get('phone', ''),  # ✅ Default to empty string if not provided
             role=validated_data.get('role', 'Volunteer'),  # ✅ Default role as "Volunteer"
+            gender=validated_data.get('gender', ''),
             college_name=validated_data.get('college_name', ''),  # ✅ Default to empty
             faculty=validated_data.get('faculty', ''),
             year_of_study=validated_data.get('year_of_study', None),  # ✅ Allow null

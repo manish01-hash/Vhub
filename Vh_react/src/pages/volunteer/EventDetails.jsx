@@ -85,7 +85,7 @@ function EventDetails() {
                     await generateCertificate(); // Auto-generate only if not found
                 } else if (error.response.status === 403) {
                     console.warn("🔴 User is not allowed to generate the certificate.");
-                    alert("You are not eligible to generate a certificate.");
+                    // alert("You are not eligible to generate a certificate.");
                     setCertificateAvailable(false);
                 }                
             }

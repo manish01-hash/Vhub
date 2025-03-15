@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
@@ -6,6 +6,10 @@ import Swal from "sweetalert2";
 function EventPost({ event, ename, description, requiredVolunteers, totVolunteers, fetchEvents, newRegistration, setNewRegistration }) {
     const navigate = useNavigate();
     const [isJoined, setIsJoined] = useState(false);
+
+    useEffect(() => {
+       console.log("Event Name :", event.E_Name , "Total Volunteers :", totVolunteers, "Required Volunteers : ", requiredVolunteers);
+    }, []);
 
     const handleJoin = async () => {
         const token = localStorage.getItem("accessToken");
@@ -100,10 +104,11 @@ function EventPost({ event, ename, description, requiredVolunteers, totVolunteer
                     </button>
                 ) : (
                     <button 
-                        onClick={handleJoin}
-                        className="w-full bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white px-5 py-2 rounded-xl transition-all shadow-md transform hover:scale-105"
+                            onClick={handleJoin}
+                            disabled={event.E_Status !== "Upcoming" || totVolunteers === requiredVolunteers}
+                            className={`w-full bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white px-5 py-2 rounded-xl transition-all shadow-md transform hover:scale-105 ${event.E_Status==='Completed' || totVolunteers===requiredVolunteers ? 'bg-red-500 cursor-not-allowed' : 'bg-green-500'}`}
                     >
-                        Apply
+                    {event.E_Status === "Upcoming" && "Join Event" || event.E_Status==="Ongoing" && "Ongoing" || event.E_Status === "Completed" && "Event Completed" || totVolunteers === requiredVolunteers && "Event Full" || "Event Closed"}
                     </button>
                 )}
                 <Link 

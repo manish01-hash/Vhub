@@ -126,7 +126,7 @@ function Profile() {
                     <div className="flex items-center space-x-3 text-gray-300">
                         <FaEnvelope className="text-yellow-400" />
                         {editMode ? (
-                            <input type="email" name="email" value={updatedUser.email} onChange={handleChange} className="bg-gray-700 text-white px-3 py-1 rounded-md w-full" />
+                            <input type="email" placeholder="Email" name="email" value={updatedUser.email} onChange={handleChange} className="bg-gray-700 text-white px-3 py-1 rounded-md w-full" />
                         ) : (
                             <p>Email: {updatedUser.email}</p>
                         )}
@@ -134,7 +134,7 @@ function Profile() {
                     <div className="flex items-center space-x-3 text-gray-300">
                         <FaPhone className="text-blue-400" />
                         {editMode ? (
-                            <input type="text" name="phone" value={updatedUser.phone} onChange={handleChange} className="bg-gray-700 text-white px-3 py-1 rounded-md w-full" />
+                            <input type="text" placeholder="Phone" name="phone" value={updatedUser.phone} onChange={handleChange} className="bg-gray-700 text-white px-3 py-1 rounded-md w-full" />
                         ) : (
                             <p>Phone: {updatedUser.phone || "Not Provided"}</p>
                         )}
@@ -143,16 +143,16 @@ function Profile() {
                     <div className="flex items-center space-x-3 text-gray-300">
                         <FaUniversity className="text-green-400" />
                         {editMode ? (
-                            <input type="text" name="faculty" value={updatedUser.college_name} onChange={handleChange1} className="bg-gray-700 text-white px-3 py-1 rounded-md w-full" />
+                            <input type="text" placeholder="College" name="faculty" value={updatedUser.college_name} onChange={handleChange1} className="bg-gray-700 text-white px-3 py-1 rounded-md w-full" />
                         ) : (
-                            <p>Faculty: {updatedUser.college_name}</p>
+                            <p>College: {updatedUser.college_name}</p>
                         )}
                         
                     </div>
                     <div className="flex items-center space-x-3 text-gray-300">
                         <FaBriefcase className="text-purple-400" />
                         {editMode ? (
-                            <input type="text" name="faculty" value={updatedUser.faculty} onChange={handleChange} className="bg-gray-700 text-white px-3 py-1 rounded-md w-full" />
+                            <input type="text" placeholder="Faculty" name="faculty" value={updatedUser.faculty} onChange={handleChange} className="bg-gray-700 text-white px-3 py-1 rounded-md w-full" />
                         ) : (
                             <p>Faculty: {updatedUser.faculty}</p>
                         )}
@@ -160,7 +160,7 @@ function Profile() {
                     <div className="flex items-center space-x-3 text-gray-300">
                         <FaUserGraduate className="text-orange-400" />
                         {editMode ? (
-                            <input type="number" name="year_of_study" value={updatedUser.year_of_study} onChange={handleChange} className="bg-gray-700 text-white px-3 py-1 rounded-md w-full" />
+                            <input type="number" placeholder="Year of Study" name="year_of_study" value={updatedUser.year_of_study} onChange={handleChange} className="bg-gray-700 text-white px-3 py-1 rounded-md w-full" />
                         ) : (
                             <p>Current Year: {yearOfStudyText(updatedUser.year_of_study)}</p>
                         )}

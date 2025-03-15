@@ -10,6 +10,7 @@ function Signup() {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [role, setRole] = useState("Volunteer");
+    const [gender, setGender] = useState("");
     const [college, setCollege] = useState("");
     const [faculty, setFaculty] = useState("");
     const [year, setYear] = useState("");
@@ -56,6 +57,9 @@ function Signup() {
                 setConfirmPassword(value);
                 setConfirmPasswordError(value !== password ? "Passwords do not match" : "");
                 break;
+            case "gender":
+                setGender(value);
+                break;
             case "college":
                 setCollege(value);
                 break;
@@ -101,6 +105,7 @@ function Signup() {
                 phone,
                 password,
                 role,  
+                gender,
                 college_name: college || "",  
                 faculty: faculty || "",
                 year_of_study: year || null,
@@ -166,11 +171,22 @@ function Signup() {
                     <option value="Admin">Admin</option>
                 </select>
 
+                <div className="flex gap-4 items-center mt-3">
+                <input type='radio' className="mr-2" id="male" name='gender' value='Male' onChange={handleSignupChange} />
+                <label for="male">Male</label>
+                <input type='radio' className="mr-2" name='gender' id='female' value='Female' onChange={handleSignupChange} />
+                <label for="female">Female</label>
+               </div>
+
                 <input type="text" name="college" placeholder="College Name (Optional)" value={college}
                     className="w-full h-12 px-3 rounded-md bg-gray-700 text-lg focus:outline-none mt-3"
                     onChange={handleSignupChange} />
 
                 <input type="text" name="faculty" placeholder="Faculty (Optional)" value={faculty}
+                    className="w-full h-12 px-3 rounded-md bg-gray-700 text-lg focus:outline-none mt-3"
+                    onChange={handleSignupChange} />
+
+                <input type="text" name="year" placeholder="Year of Study (Optional)" value={year}
                     className="w-full h-12 px-3 rounded-md bg-gray-700 text-lg focus:outline-none mt-3"
                     onChange={handleSignupChange} />
 
