@@ -11,7 +11,7 @@ export default defineConfig({
     cors: true,
     proxy: {
       "/api": {
-        target: "https://vhub-5dvu.onrender.com",
+        target: "https://vhub-zb2y.onrender.com",
         changeOrigin: true,
         secure: false,
       },
