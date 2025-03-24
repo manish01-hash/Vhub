@@ -149,7 +149,7 @@ function Signup() {
             await axios.post('https://vhub-zb2y.onrender.com/api/auth/signup/', {
                 name,
                 email,
-                phone: formattedPhone, // Use the formatted phone number
+                phone,
                 password,
                 role,
                 gender,
@@ -159,6 +159,8 @@ function Signup() {
             }, {
                 headers: { "Content-Type": "application/json" }
             });
+
+            console.log("✅ Signup Success");            
 
             Swal.fire({
                 icon: "success",
