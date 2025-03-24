@@ -208,7 +208,7 @@ except json.JSONDecodeError:
 if not CORS_ALLOWED_ORIGINS:
     CORS_ALLOWED_ORIGINS = [
         "https://vhub-zb2y.onrender.com",
-        "https://vhub-pdn0ra2lw-manishs-projects-8b731aa4.vercel.app"
+        "vhub-khaki.vercel.app"
     ]
 
 CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
