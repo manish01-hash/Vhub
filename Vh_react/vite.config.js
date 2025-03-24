@@ -20,5 +20,7 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",  // ✅ Ensures Vercel picks up the correct build folder
+    assetsDir: "assets",  // ✅ Ensures assets (JS, CSS) are served correctly
+    emptyOutDir: true,  // ✅ Prevents old files from interfering
   },
 });
