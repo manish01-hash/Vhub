@@ -146,7 +146,7 @@ function Signup() {
             // Format the phone number correctly before sending it to the backend
             const formattedPhone = phone.startsWith("+") ? phone : `${countryCode}${phone}`;
 
-            await axios.post("${API_BASE_URL}/api/auth/signup/", {
+            await axios.post('${API_BASE_URL}/api/auth/signup/', {
                 name,
                 email,
                 phone: formattedPhone, // Use the formatted phone number
