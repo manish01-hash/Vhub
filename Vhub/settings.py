@@ -14,7 +14,12 @@ from pathlib import Path
 from datetime import timedelta
 import os
 from dotenv import load_dotenv
+import platform
+import dj_database_url
+PORT = os.getenv("PORT")  # Let Render define the correct port
 
+
+load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -23,20 +28,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-j3321e=k_5d!gke@c8#sv#5e(-v%cd=wh$r^tinz3!o1j8=ti4'
+SECRET_KEY = os.getenv("SECRET_KEY")
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]  # Allows all hosts (for testing)
 
-MEDIA_URL = '/media/'
+
+
+STATIC_URL = os.getenv("STATIC_URL", "/static/")
+MEDIA_URL = os.getenv("MEDIA_URL", "/media/")
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
-
-
 
 
 # Application definition
@@ -98,20 +103,25 @@ AUTH_USER_MODEL = 'Vapp.User'
 
 
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'Vh_db',  # Your new database name
-        'USER': 'root',                  # Your MySQL username
-        'PASSWORD': 'vhub@123',       # Your MySQL password
-        'HOST': 'localhost',              # If remote, enter IP
-        'PORT': '3306',                   # Default MySQL port
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'Vh_db',  # Your new database name
+#         'USER': 'root',                  # Your MySQL username
+#         'PASSWORD': 'vhub@123',       # Your MySQL password
+#         'HOST': 'localhost',              # If remote, enter IP
+#         'PORT': '3306',                   # Default MySQL port
+#         'OPTIONS': {
+#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+#         },
+#     }
+# }
 
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://vh_db_user:DMtjZrlbixTX30fhTvepRl0tXQdtZA3G@dpg-cvelmb2n91rc73bikgd0-a/vh_db")
+
+DATABASES = {
+    'default': dj_database_url.config(default=DATABASE_URL, conn_max_age=600)
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -154,12 +164,6 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# CORS settings React (Vite) frontend 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # React (Vite) frontend
-    "http://127.0.0.1:5173",
-    
-]
 
 
 REST_FRAMEWORK = {
@@ -185,10 +189,28 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )
 
+CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+
+# Remove any empty strings from the list (Fixes the error)
+CORS_ALLOWED_ORIGINS = [origin.strip() for origin in CORS_ALLOWED_ORIGINS if origin.strip()]
+
+# If still empty, allow only the backend URL
+if not CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS = ["https://vhub-5dvu.onrender.com"]
+
+
 CORS_ALLOW_ALL_ORIGINS = True
 
 
-load_dotenv()
+if platform.system() == "Windows":
+    WKHTMLTOPDF_PATH = "C:/Program Files/wkhtmltopdf/bin/wkhtmltopdf.exe"
+else:
+    WKHTMLTOPDF_PATH = "/usr/bin/wkhtmltopdf"
+
+PDFKIT_CONFIG = {"wkhtmltopdf": WKHTMLTOPDF_PATH}
+
+
+
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
@@ -197,9 +219,3 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'vcoders04@gmail.com')  # ✅ Default value
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'xelu bpum rhvl odmz')  # ✅ Default value
 
-ALLOWED_HOSTS = ["0.0.0.0", "127.0.0.1", "localhost", "192.168.1.5","172.20.10.6"]
-
-
-PDFKIT_CONFIG = {
-    "wkhtmltopdf": "/usr/bin/wkhtmltopdf"  # Adjust path if needed
-}
