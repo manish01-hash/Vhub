@@ -194,13 +194,7 @@ AUTHENTICATION_BACKENDS = (
 )
 
 CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
-
-# Remove any empty strings from the list (Fixes the error)
-CORS_ALLOWED_ORIGINS = [origin.strip() for origin in CORS_ALLOWED_ORIGINS if origin.strip()]
-
-# If still empty, allow only the backend URL
-if not CORS_ALLOWED_ORIGINS:
-    CORS_ALLOWED_ORIGINS = ["https://vhub-5dvu.onrender.com", "https://vhub-7wqp77tva-manishs-projects-8b731aa4.vercel.app"]
+CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
 
 
 if platform.system() == "Windows":
