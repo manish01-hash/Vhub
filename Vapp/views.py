@@ -50,8 +50,9 @@ from .serializers import EventAnnouncementSerializer, NotificationSerializer
 
 
 
-font_path_bold = "/usr/share/fonts/truetype/msttcorefonts/Arial_Bold.ttf"  # Use Arial Bold
-font_path_regular = "/usr/share/fonts/truetype/msttcorefonts/Arial.ttf"  # Use Arial Regular
+font_path_bold = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+font_path_regular = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+
 
 name_font = ImageFont.truetype(font_path_bold, 50)
 details_font = ImageFont.truetype(font_path_regular, 30)
@@ -1138,7 +1139,10 @@ def generate_certificate_from_pdf(template_pdf: str, output_pdf: str, volunteer_
 
         # Register a custom font (ensure the font file exists)
         font_path = os.path.join(settings.MEDIA_ROOT, "font", "PinyonScript-Regular.ttf")
-        pdfmetrics.registerFont(TTFont("PinyonScript", font_path))
+        if not os.path.exists(font_path):
+            font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+
+        pdfmetrics.registerFont(TTFont("CustomFont", font_path))
 
         # Set font and text positions for the volunteer's name (centered)
         can.setFont("PinyonScript", 60)
