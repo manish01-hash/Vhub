@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "./Sidebar";
 
-
 function AdminEditEvent() {
     const { eventId } = useParams();
     const [eventData, setEventData] = useState(null);
@@ -23,16 +22,17 @@ function AdminEditEvent() {
     
             const event = response.data;
     
-            // ✅ Convert date format (Extract YYYY-MM-DD)
+            // ✅ Convert date and time format
             event.E_Start_Date = event.E_Start_Date.split("T")[0];
             event.E_End_Date = event.E_End_Date.split("T")[0];
+            event.E_Start_Time = event.E_Start_Time ? event.E_Start_Time.slice(0, 5) : "";
+            event.E_End_Time = event.E_End_Time ? event.E_End_Time.slice(0, 5) : "";
     
             setEventData(event);
         } catch (error) {
             setErrorMessage("❌ Error fetching event details.");
         }
     };
-    
 
     const handleChange = (e) => {
         setEventData({ ...eventData, [e.target.name]: e.target.value });
@@ -76,7 +76,7 @@ function AdminEditEvent() {
     
         try {
             const response = await axios.put(
-                `https://vhub-zb2y.onrender.com/api/events/${eventId}/update/`,  // ✅ Correct API URL
+                `https://vhub-zb2y.onrender.com/api/events/${eventId}/update/`,
                 formData,
                 {
                     headers: {
@@ -93,8 +93,6 @@ function AdminEditEvent() {
             setErrorMessage(`❌ Failed to update event: ${error.response?.data?.E_Photo || "Unknown error"}`);
         }
     };
-    
-    
 
     if (!eventData) return <p className="text-white text-center">Loading event details...</p>;
 
@@ -119,8 +117,14 @@ function AdminEditEvent() {
                     <label className="block mb-2">Start Date:</label>
                     <input type="date" name="E_Start_Date" value={eventData.E_Start_Date} onChange={handleChange} required className="w-full p-2 mb-4 bg-gray-700 rounded" />
 
+                    <label className="block mb-2">Start Time:</label>
+                    <input type="time" name="E_Start_Time" value={eventData.E_Start_Time} onChange={handleChange} required className="w-full p-2 mb-4 bg-gray-700 rounded" />
+
                     <label className="block mb-2">End Date:</label>
                     <input type="date" name="E_End_Date" value={eventData.E_End_Date} onChange={handleChange} required className="w-full p-2 mb-4 bg-gray-700 rounded" />
+
+                    <label className="block mb-2">End Time:</label>
+                    <input type="time" name="E_End_Time" value={eventData.E_End_Time} onChange={handleChange} required className="w-full p-2 mb-4 bg-gray-700 rounded" />
 
                     <label className="block mb-2">Status:</label>
                     <select name="E_Status" value={eventData.E_Status} onChange={handleChange} className="w-full p-2 mb-4 bg-gray-700 rounded">
