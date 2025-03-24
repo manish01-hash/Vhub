@@ -1,22 +1,15 @@
 {
     "version": 2,
-    "builds": [
+    "public": true,
+    "rewrites": [
       {
-        "src": "package.json",
-        "use": "@vercel/static-build",
-        "config": {
-          "distDir": "dist",
-          "cleanDistDir": true
-        }
+        "source": "/api/(.*)",
+        "destination": "https://vhub-zb2y.onrender.com/api/$1"
       }
     ],
     "routes": [
       {
-        "src": "/assets/(.*)",
-        "dest": "/assets/$1",
-        "headers": {
-          "Content-Type": "application/javascript"
-        }
+        "handle": "filesystem"
       },
       {
         "src": "/(.*)",
@@ -24,3 +17,4 @@
       }
     ]
   }
+  
