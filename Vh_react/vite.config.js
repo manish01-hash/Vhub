@@ -1,5 +1,5 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
@@ -16,5 +16,9 @@ export default defineConfig({
         secure: false,
       },
     },
+    historyApiFallback: true,  // ✅ Ensures React Router works on refresh
   },
-})
+  build: {
+    outDir: "dist",  // ✅ Ensures Vercel picks up the correct build folder
+  },
+});
