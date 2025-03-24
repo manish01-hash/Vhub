@@ -32,7 +32,7 @@ const API_BASE_URL = "http://127.0.0.1:8000/api";
 
 function Volunteer({ id, name, status, gender, age, phone, flag, setFlag }) {
     function deleteVolunteer() {
-        axios.delete(`${API_BASE_URL}/volunteers/delete/${id}/`)
+        axios.delete(`https://vhub-zb2y.onrender.com/volunteers/delete/${id}/`)
             .then(() => setFlag(!flag))
             .catch(() => alert("Error deleting volunteer!"));
     }

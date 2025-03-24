@@ -43,7 +43,7 @@ function Event({ id, name, description, startDate, endDate, location, refreshEve
     const handleDelete = async () => {
         setLoading(true);
         try {
-            await axios.delete(`${API_BASE_URL}/events/delete/${id}/`);
+            await axios.delete(`https://vhub-zb2y.onrender.com/events/delete/${id}/`);
             alert("Event deleted successfully!");
             refreshEvents();
         } catch (error) {

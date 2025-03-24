@@ -22,7 +22,7 @@ const fetchProfile = async () => {
     }
 
     try {
-        const res = await axios.get("${API_BASE_URL}/api/users/profile/", { // ✅ Using your existing URL
+        const res = await axios.get("https://vhub-zb2y.onrender.com/api/users/profile/", { // ✅ Using your existing URL
             headers: { Authorization: `Bearer ${accessToken}` },
         });
 

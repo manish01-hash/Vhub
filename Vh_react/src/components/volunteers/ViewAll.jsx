@@ -93,7 +93,7 @@ function ViewAll() {
     }, [flag]);
 
     function fetchVolunteers() {
-        axios.get(`${API_BASE_URL}/volunteers/`)
+        axios.get(`https://vhub-zb2y.onrender.com/volunteers/`)
             .then(response => setVolunteers(response.data))
             .catch(() => setMessage("Error fetching volunteers!"));
     }

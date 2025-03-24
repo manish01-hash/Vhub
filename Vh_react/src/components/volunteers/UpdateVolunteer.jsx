@@ -160,7 +160,7 @@ function UpdateVolunteer() {
 
     function handleSearch() {
         setMessage("");
-        axios.get(`${API_BASE_URL}/volunteers/get/${phoneNo}/`)
+        axios.get(`https://vhub-zb2y.onrender.com/volunteers/get/${phoneNo}/`)
             .then(response => {
                 setVolunteerData(response.data);
                 setFound(true);
@@ -173,7 +173,7 @@ function UpdateVolunteer() {
 
     function handleUpdate() {
         setMessage("");
-        axios.put(`${API_BASE_URL}/volunteers/update/${phoneNo}/`, volunteerData)
+        axios.put(`https://vhub-zb2y.onrender.com/volunteers/update/${phoneNo}/`, volunteerData)
             .then(() => {
                 setMessage("Volunteer Updated Successfully");
             })

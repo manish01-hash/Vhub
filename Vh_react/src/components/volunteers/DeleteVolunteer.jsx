@@ -64,7 +64,7 @@ function DeleteVolunteer() {
     async function handleSubmit() {
         setMessage("");
         try {
-            await axios.delete(`${API_BASE_URL}/volunteers/delete/${phoneNo}/`);
+            await axios.delete(`https://vhub-zb2y.onrender.com/volunteers/delete/${phoneNo}/`);
             setMessage("Volunteer Deleted Successfully");
         } catch (error) {
             setMessage("Volunteer Not Found!");
