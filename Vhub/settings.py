@@ -215,4 +215,4 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'vcoders04@gmail.com')  # ✅ Def
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'xelu bpum rhvl odmz')  # ✅ Default value
 
 
-API_BASE_URL = os.getenv("API_BASE_URL", "https://vhub-5dvu.onrender.com") 
+API_BASE_URL = os.getenv("API_BASE_URL","https://vhub-zb2y.onrender.com") 
