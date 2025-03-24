@@ -119,7 +119,7 @@ def verify_otp(request):
         return Response({"error": "User not found!"}, status=status.HTTP_404_NOT_FOUND)
 
 # 🔹 Signup View (Unchanged)
-@api_view(['POST'])
+@api_view(['POST', 'GET'])
 @permission_classes([AllowAny])
 def signup(request):
     try:
