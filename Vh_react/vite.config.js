@@ -16,11 +16,11 @@ export default defineConfig({
         secure: false,
       },
     },
-    historyApiFallback: true,  // ✅ Ensures React Router works on refresh
+    middlewareMode: "html", // ✅ Fix: Ensures correct history fallback
   },
   build: {
-    outDir: "dist",  // ✅ Ensures Vercel picks up the correct build folder
-    assetsDir: "assets",  // ✅ Ensures assets (JS, CSS) are served correctly
-    emptyOutDir: true,  // ✅ Prevents old files from interfering
+    outDir: "dist",
+    assetsDir: "assets",
+    emptyOutDir: true,
   },
 });
