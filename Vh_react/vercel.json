@@ -6,15 +6,6 @@
         "source": "/api/(.*)",
         "destination": "https://vhub-zb2y.onrender.com/api/$1"
       }
-    ],
-    "routes": [
-      {
-        "handle": "filesystem"
-      },
-      {
-        "src": "/(.*)",
-        "dest": "/index.html"
-      }
     ]
   }
   
