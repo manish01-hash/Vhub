@@ -157,7 +157,7 @@ class EventCertificate(models.Model):
     event = models.ForeignKey("Event", on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     file = CloudinaryField('certificates', resource_type="raw")
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, default=timezone.now)
     
     class Meta:
         unique_together = ('event', 'user')  # Ensure one certificate per user per event
