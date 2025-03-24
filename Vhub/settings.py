@@ -45,13 +45,15 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 
 # MEDIA FILES (For User Uploads)
 MEDIA_URL = "/media/"
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")  # Ensure this exists
+MEDIA_ROOT = '/opt/render/project/media/'
+
 
 
 # Application definition
 
 INSTALLED_APPS = [
     'corsheaders',
+    'whitenoise.runserver_nostatic',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
