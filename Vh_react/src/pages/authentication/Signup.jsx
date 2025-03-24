@@ -27,16 +27,21 @@ function Signup() {
     const [isLoggedIn, setIsLoggedIn] = useState(false); // State to check if user is logged in
     const navigate = useNavigate();
 
-    // Check if the user is already logged in
+
+    // ✅ Check if the user is already logged in
     useEffect(() => {
-        const token = localStorage.getItem("token"); // Check for a token in local storage
+        const token = localStorage.getItem("token");
         if (token) {
-            setIsLoggedIn(true); // Set isLoggedIn to true if token exists
+            setIsLoggedIn(true);
+            console.log("🔒 User is already logged in.");
+        } else {
+            console.log("🔓 No token found. User not logged in.");
         }
-    console.log("✅ Signup Component Mounted");
+
+        console.log("✅ Signup Component Mounted");
     }, []);
 
-    // Validate email
+    // ✅ Validate email function
     function validateEmail(email) {
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
         return emailRegex.test(email);
@@ -161,7 +166,7 @@ function Signup() {
                 headers: { "Content-Type": "application/json" }
             });
 
-            console.log("✅ Signup Success");            
+            console.log("✅ Signup Success");
 
             Swal.fire({
                 icon: "success",

@@ -5,23 +5,10 @@
     {
       "source": "/api/(.*)",
       "destination": "https://vhub-zb2y.onrender.com/api/$1"
-    }
-  ],
-  "redirects": [
-    {
-      "source": "/signup",
-      "destination": "/signup.html",
-      "statusCode": 200
-    },
-    {
-      "source": "/login",
-      "destination": "/login.html",
-      "statusCode": 200
     },
     {
       "source": "/(.*)",
-      "destination": "/index.html",
-      "statusCode": 200
+      "destination": "/index.html"
     }
   ]
 }

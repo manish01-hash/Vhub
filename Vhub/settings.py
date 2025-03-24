@@ -15,6 +15,7 @@ from datetime import timedelta
 import os
 from dotenv import load_dotenv
 import platform
+import json
 import dj_database_url
 PORT = os.getenv("PORT")  # Let Render define the correct port
 
@@ -62,7 +63,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware', 
+    'corsheaders.middleware.CorsMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -70,7 +72,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
 
 ROOT_URLCONF = 'Vhub.urls'
@@ -193,31 +194,41 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )
 
-import json
+CORS_ALLOW_ALL_ORIGINS = False  # ❌ DO NOT use True in production
+CORS_ALLOW_CREDENTIALS = True
 
-try:
-    CORS_ALLOWED_ORIGINS = json.loads(os.getenv("CORS_ALLOWED_ORIGINS", '["https://vhub-zb2y.onrender.com", "https://vhub-manish01-hash-manishs-projects-8b731aa4.vercel.app"]'))
-except json.JSONDecodeError:
-    CORS_ALLOWED_ORIGINS = [
-        "https://vhub-zb2y.onrender.com",
-        "https://vhub-manish01-hash-manishs-projects-8b731aa4.vercel.app",
-        "https://vhub-khaki.vercel.app"
-        
-    ]
+CORS_ALLOWED_ORIGINS = [
+    "https://vhub-zb2y.onrender.com",
+    "https://vhub-manish01-hash-manishs-projects-8b731aa4.vercel.app",
+    "https://vhub-khaki.vercel.app"
+]
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://vhub-zb2y.onrender.com",
+    "https://vhub-manish01-hash-manishs-projects-8b731aa4.vercel.app",
+    "https://vhub-khaki.vercel.app"
+]
 
-# If it's still empty, set default allowed origins
-if not CORS_ALLOWED_ORIGINS:
-    CORS_ALLOWED_ORIGINS = [
-        "https://vhub-zb2y.onrender.com",
-        "https://vhub-manish01-hash-manishs-projects-8b731aa4.vercel.app",
-        "https://vhub-khaki.vercel.app"
-        
-    ]
+CORS_ALLOW_METHODS = [
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "OPTIONS"
+]
 
-CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
-
-
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
 if platform.system() == "Windows":
     WKHTMLTOPDF_PATH = "C:/Program Files/wkhtmltopdf/bin/wkhtmltopdf.exe"
 else:
