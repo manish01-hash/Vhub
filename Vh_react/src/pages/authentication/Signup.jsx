@@ -4,7 +4,7 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import { isValidPhoneNumber } from "libphonenumber-js"; // Library for phone number validation
 import countries from "./countries.json"; // Import the updated countries.json file
-import API_BASE_URL from "../../config";
+
 
 function Signup() {
     const [name, setName] = useState("");
