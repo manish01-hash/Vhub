@@ -38,10 +38,13 @@ ALLOWED_HOSTS = ["*"]  # Allows all hosts (for testing)
 
 
 
-STATIC_URL = os.getenv("STATIC_URL", "/static/")
-MEDIA_URL = os.getenv("MEDIA_URL", "/media/")
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-STATIC_ROOT = os.path.join(BASE_DIR, "static")
+STATIC_URL = "/static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")  # Important for Render
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
+
+# MEDIA FILES (For User Uploads)
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")  # Ensure this exists
 
 
 # Application definition
@@ -67,6 +70,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
 
 ROOT_URLCONF = 'Vhub.urls'
