@@ -2,7 +2,7 @@ import os
 import django
 
 # Set up Django environment
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'your_project.settings')  # Replace with your project's name
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Vhub.settings')  # Replace with your project's name
 django.setup()
 
 from django.contrib.auth import get_user_model
