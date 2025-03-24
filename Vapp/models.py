@@ -97,6 +97,8 @@ from django.contrib.auth import get_user_model
 import uuid
 import cloudinary
 import cloudinary.uploader
+from cloudinary.models import CloudinaryField
+
 
 User = get_user_model()
 
@@ -116,7 +118,7 @@ class Event(models.Model):
     E_Registered_Count = models.PositiveIntegerField(default=0)
 
     # ✅ Store event photo in Cloudinary
-    E_Photo = cloudinary.models.CloudinaryField('event_photo', null=True, blank=True)
+    E_Photo = CloudinaryField('event_photo', null=True, blank=True)
 
     # ✅ Volunteer & Role Assignments
     E_Required_Volunteers = models.PositiveIntegerField(default=10)

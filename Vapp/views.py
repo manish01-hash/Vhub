@@ -51,6 +51,7 @@ from cloudinary.uploader import upload
 from cloudinary.utils import cloudinary_url
 from django.conf import settings
 import cloudinary
+from cloudinary.models import CloudinaryField
 API_BASE_URL = settings.API_BASE_URL 
 
 font_path_bold = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
