@@ -33,6 +33,7 @@ function Signup() {
         if (token) {
             setIsLoggedIn(true); // Set isLoggedIn to true if token exists
         }
+    console.log("✅ Signup Component Mounted");
     }, []);
 
     // Validate email

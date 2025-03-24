@@ -10,12 +10,12 @@
   "redirects": [
     {
       "source": "/signup",
-      "destination": "/index.html",
+      "destination": "/signup.html",
       "statusCode": 200
     },
     {
       "source": "/login",
-      "destination": "/index.html",
+      "destination": "/login.html",
       "statusCode": 200
     },
     {
