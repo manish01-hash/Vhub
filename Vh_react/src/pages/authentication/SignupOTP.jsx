@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import API_BASE_URL from "../../config";
+
 
 function Signup() {
     const [name, setName] = useState("");
@@ -38,7 +38,7 @@ function Signup() {
         try {
             console.log(email)
             setLoading(true)
-            const response = await axios.post("${API_BASE_URL}/api/auth/send-signup-otp/", {
+            const response = await axios.post("https://vhub-zb2y.onrender.com/api/auth/send-signup-otp/", {
                 email: email.trim()  // ✅ Ensure email is sent correctly
             }, {
                 headers: { "Content-Type": "application/json" }

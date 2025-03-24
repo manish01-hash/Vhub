@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import axios from "axios";
-import API_BASE_URL from "../../config";
+
 function QRCodeScanResult() {
     const location = useLocation();
     const [volunteerDetails, setVolunteerDetails] = useState(null);
@@ -25,7 +25,7 @@ function QRCodeScanResult() {
     async function fetchVolunteerDetails(qrData) {
         try {
             const response = await axios.post(
-                "${API_BASE_URL}/api/qr/scan/",  // ✅ Updated to correct backend IP
+                "https://vhub-zb2y.onrender.com/api/qr/scan/",  // ✅ Updated to correct backend IP
                 { qr_data: qrData },
                 { headers: { "Content-Type": "application/json" } }
             );

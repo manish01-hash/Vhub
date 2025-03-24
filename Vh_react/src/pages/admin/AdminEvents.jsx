@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "./Sidebar";
 import { useAuth } from "../../context/AuthContext";
-import API_BASE_URL from "../../config";
+
 
 function AdminEvents() {
     const [events, setEvents] = useState([]);
@@ -24,7 +24,7 @@ function AdminEvents() {
                 return;
             }
 
-            const response = await axios.get("${API_BASE_URL}/api/events/", {
+            const response = await axios.get("https://vhub-zb2y.onrender.com/api/events/", {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
@@ -76,7 +76,7 @@ function AdminEvents() {
 
         let msg = confirm("Are you sure you want to delete this event?");
         if (msg) {
-            axios.delete(`${API_BASE_URL}/api/events/${id}/delete/`, {
+            axios.delete(`https://vhub-zb2y.onrender.com/api/events/${id}/delete/`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
                 .then(() => {

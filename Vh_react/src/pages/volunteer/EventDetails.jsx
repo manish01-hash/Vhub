@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import { FaTasks } from "react-icons/fa";
-import API_BASE_URL from "../../config";
+
 function EventDetails() {
     const { eventId } = useParams();
     const [event, setEvent] = useState(null);
@@ -26,7 +26,7 @@ function EventDetails() {
         try {
             console.log("📡 Fetching event details...");
             const token = localStorage.getItem("accessToken");
-            const response = await axios.get(`${API_BASE_URL}/api/events/${eventId}/`, {
+            const response = await axios.get(`https://vhub-zb2y.onrender.com/api/events/${eventId}/`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setEvent(response.data);
@@ -44,7 +44,7 @@ function EventDetails() {
             console.log("📡 Generating QR Code...");
             const token = localStorage.getItem("accessToken");
             const response = await axios.get(
-                `${API_BASE_URL}/api/events/${eventId}/generate-qr/`,
+                `https://vhub-zb2y.onrender.com/api/events/${eventId}/generate-qr/`,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
@@ -63,7 +63,7 @@ function EventDetails() {
             console.log("📡 Checking certificate...");
             const token = localStorage.getItem("accessToken");
             const response = await axios.get(
-                `${API_BASE_URL}/api/events/${eventId}/check-certificate/`,
+                `https://vhub-zb2y.onrender.com/api/events/${eventId}/check-certificate/`,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
     
@@ -97,7 +97,7 @@ function EventDetails() {
             console.log("📡 Generating new certificate...");
             const token = localStorage.getItem("accessToken");
             const response = await axios.post(
-                `${API_BASE_URL}/api/events/${eventId}/generate-certificate/`,
+                `https://vhub-zb2y.onrender.com/api/events/${eventId}/generate-certificate/`,
                 {},
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -127,7 +127,7 @@ function EventDetails() {
     }
 
     // ✅ Ensure the URL is correct
-    let fullUrl = certificateUrl.startsWith("http") ? certificateUrl : `${API_BASE_URL}${certificateUrl}`;
+    let fullUrl = certificateUrl.startsWith("http") ? certificateUrl : `https://vhub-zb2y.onrender.com${certificateUrl}`;
     
     console.log("📥 Opening certificate:", fullUrl);
 
@@ -138,7 +138,7 @@ function EventDetails() {
 const fetchTasks = async () => {
     try {
         const token = localStorage.getItem("accessToken");
-        const response = await axios.get(`${API_BASE_URL}/api/events/${eventId}/tasks/`, {
+        const response = await axios.get(`https://vhub-zb2y.onrender.com/api/events/${eventId}/tasks/`, {
             headers: { Authorization: `Bearer ${token}` },
         });
 

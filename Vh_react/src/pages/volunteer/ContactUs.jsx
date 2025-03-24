@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FaEnvelope, FaPhone, FaMapMarkerAlt, FaPaperPlane } from "react-icons/fa";
-import API_BASE_URL from "../../config";
+
 
 const ContactUs = () => {
     const [formData, setFormData] = useState({ name: "", email: "", message: "" });
@@ -14,7 +14,7 @@ const ContactUs = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            axios.post("${API_BASE_URL}/contact-us/", {
+            axios.post("https://vhub-zb2y.onrender.com/contact-us/", {
                 name: userName,
                 email: userEmail,
                 message: userMessage,

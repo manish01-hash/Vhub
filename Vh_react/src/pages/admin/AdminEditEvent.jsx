@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "./Sidebar";
-import API_BASE_URL from "../../config";
+
 
 function AdminEditEvent() {
     const { eventId } = useParams();
@@ -17,7 +17,7 @@ function AdminEditEvent() {
     const fetchEventDetails = async () => {
         try {
             const token = localStorage.getItem("accessToken");
-            const response = await axios.get(`${API_BASE_URL}/api/events/${eventId}/`, {
+            const response = await axios.get(`https://vhub-zb2y.onrender.com/api/events/${eventId}/`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
     
@@ -76,7 +76,7 @@ function AdminEditEvent() {
     
         try {
             const response = await axios.put(
-                `${API_BASE_URL}/api/events/${eventId}/update/`,  // ✅ Correct API URL
+                `https://vhub-zb2y.onrender.com/api/events/${eventId}/update/`,  // ✅ Correct API URL
                 formData,
                 {
                     headers: {

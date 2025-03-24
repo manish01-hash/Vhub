@@ -7,7 +7,7 @@ import AddTaskModal from "./AddTaskModal"; // ✅ Import the modal
 import { useNavigate } from "react-router-dom";
 import ViewTasks from "./ViewTasks";
 import AssignRole from "./AssignRole";
-import API_BASE_URL from "../../config";
+
 
 function EventSpecificVolunteers() {
     const [volunteers, setVolunteers] = useState([]);
@@ -33,7 +33,7 @@ function EventSpecificVolunteers() {
         const fetchVolunteers = async () => {
             try {
                 const token = localStorage.getItem("accessToken");
-                const response = await axios.get("${API_BASE_URL}/api/registrations/", {
+                const response = await axios.get("https://vhub-zb2y.onrender.com/api/registrations/", {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
@@ -87,7 +87,7 @@ function EventSpecificVolunteers() {
     const fetchTasks = async () => {
         try {
             const token = localStorage.getItem("accessToken");
-            const response = await axios.get(`${API_BASE_URL}/api/events/${eventId}/tasks/`, {
+            const response = await axios.get(`https://vhub-zb2y.onrender.com/api/events/${eventId}/tasks/`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setTasks(response.data);
@@ -113,7 +113,7 @@ function EventSpecificVolunteers() {
         try {
             const token = localStorage.getItem("accessToken");
             await axios.post(
-                `${API_BASE_URL}/api/events/${eventId}/announcement/`,
+                `https://vhub-zb2y.onrender.com/api/events/${eventId}/announcement/`,
                 { message: announcement },
                 { 
                     headers: { 

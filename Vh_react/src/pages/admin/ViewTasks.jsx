@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import Sidebar from "./Sidebar";
-import API_BASE_URL from "../../config";
+
+
 
 function ViewTasks({tasks1,searchQuery}) {
     const { eventId } = useAuth();
@@ -19,7 +20,7 @@ function ViewTasks({tasks1,searchQuery}) {
         const fetchTasks = async () => {
             try {
                 const token = localStorage.getItem("accessToken");
-                const response = await axios.get(`${API_BASE_URL}/api/events/${eventId}/tasks/`, {
+                const response = await axios.get(`https://vhub-zb2y.onrender.com/api/events/${eventId}/tasks/`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setTasks(response.data);

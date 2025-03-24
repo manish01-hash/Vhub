@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
-import API_BASE_URL from "../../config";
+
 function EventPost({ event, ename, description, requiredVolunteers, totVolunteers, fetchEvents, newRegistration, setNewRegistration }) {
     const navigate = useNavigate();
     const [isJoined, setIsJoined] = useState(false);
@@ -31,7 +31,7 @@ function EventPost({ event, ename, description, requiredVolunteers, totVolunteer
 
         try {
             const response = await axios.post(
-                `${API_BASE_URL}/api/events/${event.E_ID}/register/`,
+                `https://vhub-zb2y.onrender.com/api/events/${event.E_ID}/register/`,
                 {},
                 { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
             );
@@ -64,7 +64,7 @@ function EventPost({ event, ename, description, requiredVolunteers, totVolunteer
         try {
             const token = localStorage.getItem("accessToken");
             await axios.post(
-                `${API_BASE_URL}/api/events/${event.E_ID}/leave/`,
+                `https://vhub-zb2y.onrender.com/api/events/${event.E_ID}/leave/`,
                 {},
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -86,7 +86,7 @@ function EventPost({ event, ename, description, requiredVolunteers, totVolunteer
             {/* Event Image */}
             <div className="relative">
                 <img
-                    src={event.E_Photo ? `${API_BASE_URL}${event.E_Photo}` : "https://via.placeholder.com/400x200"}
+                    src={event.E_Photo ? `https://vhub-zb2y.onrender.com${event.E_Photo}` : "https://via.placeholder.com/400x200"}
                     alt={event.E_Name}
                     className="w-full h-52 object-cover rounded-xl shadow-md border border-gray-700 transition-all duration-300 hover:brightness-110"
                 />

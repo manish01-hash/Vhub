@@ -3,7 +3,7 @@ import { FaUserShield, FaSearch } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "./Sidebar";
-import API_BASE_URL from "../../config";
+
 
 function AdminVolunteers() {
     const [volunteers, setVolunteers] = useState([]);
@@ -14,7 +14,7 @@ function AdminVolunteers() {
         const fetchVolunteers = async () => {
             try {
                 const token = localStorage.getItem("accessToken");
-                const response = await axios.get("${API_BASE_URL}/api/volunteers/", {
+                const response = await axios.get("https://vhub-zb2y.onrender.com/api/volunteers/", {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setVolunteers(response.data);
