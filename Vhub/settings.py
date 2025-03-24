@@ -196,11 +196,11 @@ AUTHENTICATION_BACKENDS = (
 import json
 
 try:
-    CORS_ALLOWED_ORIGINS = json.loads(os.getenv("CORS_ALLOWED_ORIGINS", '["https://vhub-zb2y.onrender.com", "https://vhub-khaki.vercel.app"]'))
+    CORS_ALLOWED_ORIGINS = json.loads(os.getenv("CORS_ALLOWED_ORIGINS", '["https://vhub-zb2y.onrender.com", "https://vhub-manish01-hash-manishs-projects-8b731aa4.vercel.app/"]'))
 except json.JSONDecodeError:
     CORS_ALLOWED_ORIGINS = [
         "https://vhub-zb2y.onrender.com",
-        "https://vhub-khaki.vercel.app"
+        "https://vhub-manish01-hash-manishs-projects-8b731aa4.vercel.app/"
     ]
 
 
@@ -208,7 +208,7 @@ except json.JSONDecodeError:
 if not CORS_ALLOWED_ORIGINS:
     CORS_ALLOWED_ORIGINS = [
         "https://vhub-zb2y.onrender.com",
-        "vhub-khaki.vercel.app"
+        "https://vhub-manish01-hash-manishs-projects-8b731aa4.vercel.app/"
     ]
 
 CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
