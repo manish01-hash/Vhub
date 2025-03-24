@@ -6,6 +6,13 @@
         "source": "/api/(.*)",
         "destination": "https://vhub-zb2y.onrender.com/api/$1"
       }
+    ],
+    "redirects": [
+      {
+        "source": "/",
+        "destination": "/index.html",
+        "statusCode": 200
+      }
     ]
   }
   
