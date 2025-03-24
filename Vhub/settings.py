@@ -194,7 +194,15 @@ AUTHENTICATION_BACKENDS = (
 )
 
 import json
-CORS_ALLOWED_ORIGINS = json.loads(os.getenv("CORS_ALLOWED_ORIGINS", "[]"))
+
+try:
+    CORS_ALLOWED_ORIGINS = json.loads(os.getenv("CORS_ALLOWED_ORIGINS", '["https://vhub-zb2y.onrender.com", "https://vhub-khaki.vercel.app"]'))
+except json.JSONDecodeError:
+    CORS_ALLOWED_ORIGINS = [
+        "https://vhub-zb2y.onrender.com",
+        "https://vhub-khaki.vercel.app"
+    ]
+
 
 # If it's still empty, set default allowed origins
 if not CORS_ALLOWED_ORIGINS:
