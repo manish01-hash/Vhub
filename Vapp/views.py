@@ -414,42 +414,62 @@ def get_event_by_id(request, E_ID):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-
-
-
-# Create Event
+# Update the create_event view
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser])
 def create_event(request):
-    serializer = EventSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save(E_Created_By=request.user)
-        return Response({"message": "Event created successfully!"}, status=status.HTTP_201_CREATED)
+    try:
+        # Handle file upload to Cloudinary
+        if 'E_Photo' in request.FILES:
+            uploaded_file = request.FILES['E_Photo']
+            upload_result = cloudinary.uploader.upload(
+                uploaded_file,
+                folder="event_photos/"
+            )
+            request.data._mutable = True
+            request.data['E_Photo'] = upload_result['secure_url']
+            request.data._mutable = False
 
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer = EventSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(E_Created_By=request.user)
+            return Response({"message": "Event created successfully!"}, status=status.HTTP_201_CREATED)
 
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+# Update the update_event view
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
-@parser_classes([MultiPartParser, FormParser])  # ✅ Allow file uploads
+@parser_classes([MultiPartParser, FormParser])
 def update_event(request, E_ID):
-    """
-    Updates an existing event.
-    Supports partial updates (PATCH) and file uploads.
-    """
     try:
-        event = Event.objects.get(E_ID=E_ID)  # ✅ Fetch event by E_ID
+        event = Event.objects.get(E_ID=E_ID)
+        
+        # Handle file upload to Cloudinary if new photo is provided
+        if 'E_Photo' in request.FILES:
+            uploaded_file = request.FILES['E_Photo']
+            upload_result = cloudinary.uploader.upload(
+                uploaded_file,
+                folder="event_photos/"
+            )
+            request.data._mutable = True
+            request.data['E_Photo'] = upload_result['secure_url']
+            request.data._mutable = False
+
+        serializer = EventSerializer(event, data=request.data, partial=True, context={"request": request})
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Event updated successfully!"}, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     except Event.DoesNotExist:
         return Response({"error": "Event not found!"}, status=status.HTTP_404_NOT_FOUND)
-
-    serializer = EventSerializer(event, data=request.data, partial=True, context={"request": request})
-
-    if serializer.is_valid():
-        serializer.save()
-        return Response({"message": "Event updated successfully!"}, status=status.HTTP_200_OK)
-
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # Delete Event
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])  # Ensure only logged-in users can delete

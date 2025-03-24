@@ -20,6 +20,7 @@ import cloudinary
 import cloudinary.uploader
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
+from cloudinary.models import CloudinaryField
 
 # Custom User Manager
 class UserManager(BaseUserManager):
@@ -64,7 +65,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     year_of_study = models.IntegerField(blank=True, null=True)
 
     # Profile Information
-    profile_image = models.ImageField(upload_to="profile_images/", blank=True, null=True)
+    profile_image = CloudinaryField('profile_images', blank=True, null=True)
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
@@ -119,6 +120,7 @@ class Event(models.Model):
 
     # Store event photo in Cloudinary
     E_Photo = CloudinaryField('event_photo', null=True, blank=True)
+    
 
     # Volunteer & Role Assignments
     E_Required_Volunteers = models.PositiveIntegerField(default=10)
@@ -144,7 +146,7 @@ class Event(models.Model):
         if self.E_End_Date and self.E_End_Time:
             event_end = timezone.make_aware(timezone.datetime.combine(self.E_End_Date, self.E_End_Time))
             return timezone.now() >= event_end
-        return False
+        return False    
 
     def __str__(self):
         return self.E_Name
@@ -154,49 +156,56 @@ class EventCertificate(models.Model):
     id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
     event = models.ForeignKey("Event", on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    file_url = models.URLField(max_length=500, blank=True, null=True)  # ✅ Store only the URL
-
+    file = CloudinaryField('certificates', resource_type="raw")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('event', 'user')  # Ensure one certificate per user per event
+    
     def __str__(self):
         return f"Certificate for {self.user} - {self.event}"
+    @classmethod
+    def generate_certificate(cls, event, user):
+        """
+        Generates and uploads a certificate to Cloudinary
+        Returns the certificate instance
+        """
+        # Check if certificate already exists
+        existing_cert = cls.objects.filter(event=event, user=user).first()
+        if existing_cert:
+            return existing_cert
 
-
-def upload_certificate(request):
-    """Upload a certificate to Cloudinary and store the URL."""
-    if request.method == 'POST' and request.FILES.get('certificate'):
-        event_id = request.POST.get('event_id')
-        user_id = request.POST.get('user_id')
-
-        # ✅ Validate event & user
-        event = get_object_or_404(Event, E_ID=event_id)
-        user = get_object_or_404(User, id=user_id)
-
-        uploaded_file = request.FILES['certificate']
-
-        try:
-            # ✅ Upload as "raw" since it's a PDF or document
-            upload_result = cloudinary.uploader.upload(uploaded_file, resource_type="raw")
-
-            # ✅ Store Cloudinary URL
-            certificate = EventCertificate.objects.create(
-                event=event,
-                user=user,
-                file_url=upload_result['secure_url']
-            )
-
-            return JsonResponse({'message': 'Upload successful', 'url': certificate.file_url})
-
-        except Exception as e:
-            return JsonResponse({'error': f'Upload failed: {str(e)}'}, status=500)
-
-    return JsonResponse({'error': 'Invalid request'}, status=400)
-
-
-def get_certificates(request):
-    """Retrieve all event certificates."""
-    certificates = EventCertificate.objects.all().values(
-        'user__username', 'event__E_Name', 'file_url'
-    )
-    return JsonResponse(list(certificates), safe=False)
+        # Generate certificate in memory (simplified example)
+        from reportlab.pdfgen import canvas
+        from io import BytesIO
+        
+        buffer = BytesIO()
+        c = canvas.Canvas(buffer)
+        
+        # Draw certificate content
+        c.drawString(100, 750, f"Certificate of Participation")
+        c.drawString(100, 700, f"Event: {event.E_Name}")
+        c.drawString(100, 650, f"Participant: {user.name}")
+        c.drawString(100, 600, f"Date: {event.E_End_Date.strftime('%Y-%m-%d')}")
+        c.showPage()
+        c.save()
+        
+        buffer.seek(0)
+        
+        # Upload to Cloudinary
+        upload_result = cloudinary.uploader.upload(
+            buffer,
+            folder="certificates/",
+            public_id=f"cert_{event.E_ID}_{user.id}",
+            resource_type="raw"
+        )
+        
+        # Create and return certificate
+        return cls.objects.create(
+            event=event,
+            user=user,
+            file=upload_result['secure_url']
+        )
 
 
 class EventAnnouncement(models.Model):
@@ -247,15 +256,26 @@ class Registration(models.Model):
     )
 
     def save(self, *args, **kwargs):
-        if not self.qr_code:  # ✅ Prevent regenerating QR codes
+        if not self.qr_code:
+            # Generate QR code in memory
             qr = qrcode.make(f"Event: {self.event.E_Name} | Volunteer: {self.volunteer.name}")
             buffer = BytesIO()
             qr.save(buffer, format="PNG")
-            self.qr_code.save(f"qr_{self.R_ID}.png", ContentFile(buffer.getvalue()), save=False)
+            
+            # Upload to Cloudinary
+            upload_result = cloudinary.uploader.upload(
+                buffer.getvalue(),
+                folder="qr_codes/",
+                public_id=f"qr_{self.R_ID}",
+                resource_type="image"
+            )
+            
+            # Store Cloudinary URL
+            self.qr_code = upload_result['secure_url']
 
         super().save(*args, **kwargs)
-
-        # ✅ Update event registered count
+        
+        # Update event registered count
         self.event.E_Registered_Count = self.event.registrations.count()
         self.event.save()
 

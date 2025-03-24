@@ -65,7 +65,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'Vapp',
     'cloudinary',
-    
+    'cloudinary_storage',
 ]
 
 MIDDLEWARE = [
@@ -255,7 +255,7 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'xelu bpum rhvl odmz')  #
 
 API_BASE_URL = os.getenv("API_BASE_URL","https://vhub-zb2y.onrender.com") 
 
-
+DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': 'deih0ghdz',

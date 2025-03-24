@@ -3,22 +3,23 @@ from django.contrib.auth import authenticate
 from .models import User, Event, Task, Attendance, Registration,EventAnnouncement,SampleTask,Notification
 
 
-# ✅ User Serializer
+# ✅ User Serializerclass UserSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
-    profile_image = serializers.ImageField()
+    profile_image = serializers.SerializerMethodField()
+    
     class Meta:
         model = User
         fields = [
             'id', 'email', 'name', 'phone', 'role',
-            'gender',
-            'college_name', 'faculty', 'year_of_study', 
+            'gender', 'college_name', 'faculty', 'year_of_study', 
             'profile_image', 'is_active', 'created_at'
         ]
+    
     def get_profile_image(self, obj):
-        request = self.context.get("request")
         if obj.profile_image:
-            return request.build_absolute_uri(obj.profile_image.url) if request else obj.profile_image.url
+            return obj.profile_image.url
         return None
+
 
 
 # ✅ Signup Serializer
@@ -72,11 +73,12 @@ class SampleTaskSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+# Update EventSerializer to handle Cloudinary URLs
 class EventSerializer(serializers.ModelSerializer):
-    E_Created_By = UserSerializer(read_only=True)  # Show event creator details
-    E_Volunteers = UserSerializer(many=True, read_only=True)  # Show registered volunteers
-    E_Registered_Count = serializers.IntegerField(read_only=True)  # Track number of registered volunteers
-    E_Photo = serializers.ImageField()  # ✅ Use SerializerMethodField
+    E_Created_By = UserSerializer(read_only=True)
+    E_Volunteers = UserSerializer(many=True, read_only=True)
+    E_Registered_Count = serializers.IntegerField(read_only=True)
+    E_Photo = serializers.SerializerMethodField()
     announcements = EventAnnouncementSerializer(many=True, read_only=True)
     sample_tasks = SampleTaskSerializer(many=True, read_only=True)
 
@@ -86,12 +88,9 @@ class EventSerializer(serializers.ModelSerializer):
         read_only_fields = ['E_ID']
 
     def get_E_Photo(self, obj):
-        request = self.context.get('request')  # ✅ Get request context
         if obj.E_Photo:
-            if request:  # ✅ Prevent AttributeError
-                return request.build_absolute_uri(obj.E_Photo.url)  # ✅ Full URL
-            return obj.E_Photo.url  # ✅ Return relative URL if no request
-        return None  # ✅ Handle case where no photo is uploaded
+            return obj.E_Photo.url
+        return None
 
 class EventAnnouncementSerializer(serializers.ModelSerializer):
     class Meta:
@@ -130,11 +129,18 @@ class AttendanceSerializer(serializers.ModelSerializer):
         read_only_fields = ['A_ID', 'scanned_at']
         
 
+# Update RegistrationSerializer to handle Cloudinary URLs
 class RegistrationSerializer(serializers.ModelSerializer):
-    volunteer = UserSerializer(read_only=True)  # ✅ Return full volunteer details
-    event = EventSerializer(read_only=True)  # ✅ Return full event details instead of just ID
+    volunteer = UserSerializer(read_only=True)
+    event = EventSerializer(read_only=True)
+    qr_code = serializers.SerializerMethodField()
 
     class Meta:
         model = Registration
         fields = ['R_ID', 'event', 'volunteer', 'qr_code']
         read_only_fields = ['R_ID', 'qr_code']
+
+    def get_qr_code(self, obj):
+        if obj.qr_code:
+            return obj.qr_code.url
+        return None
