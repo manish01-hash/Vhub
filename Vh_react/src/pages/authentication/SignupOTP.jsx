@@ -38,7 +38,7 @@ function Signup() {
         try {
             console.log(email)
             setLoading(true)
-            const response = await axios.post("http://127.0.0.1:8000/api/auth/send-signup-otp/", {
+            const response = await axios.post("${API_BASE_URL}/api/auth/send-signup-otp/", {
                 email: email.trim()  // ✅ Ensure email is sent correctly
             }, {
                 headers: { "Content-Type": "application/json" }
@@ -60,7 +60,7 @@ function Signup() {
         }
         setErrorMessage("");
         try {
-            const response = await axios.post("http://127.0.0.1:8000/api/auth/verify-signup-otp/", {
+            const response = await axios.post("${API_BASE_URL}/api/auth/verify-signup-otp/", {
                 email,
                 otp,
                 name,

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const AuthContext = createContext();
-const API_BASE_URL = "https://vhub-5dvu.onrender.com/api";
+const API_BASE_URL = "https://vhub-5dvu.onrender.com";
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
