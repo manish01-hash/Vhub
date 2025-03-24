@@ -47,8 +47,10 @@ from django.http import HttpRequest
 import textwrap 
 from .models import Event, EventAnnouncement, Notification
 from .serializers import EventAnnouncementSerializer, NotificationSerializer
-
+from cloudinary.uploader import upload
+from cloudinary.utils import cloudinary_url
 from django.conf import settings
+import cloudinary
 API_BASE_URL = settings.API_BASE_URL 
 
 font_path_bold = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
@@ -1065,7 +1067,7 @@ def generate_certificate(request, E_ID):
 
         # Fetch the event or return 404 if not found
         event = get_object_or_404(Event, E_ID=E_ID)
-        print(f"📡 Generating certificate for event: {event.E_Name} (ID: {E_ID}) for user: {user.email}")
+        print(f"\ud83d\udce1 Generating certificate for event: {event.E_Name} (ID: {E_ID}) for user: {user.email}")
 
         # Ensure the event is completed
         if event.E_Status != "Completed":
@@ -1095,30 +1097,29 @@ def generate_certificate(request, E_ID):
             issued_date=event.E_End_Date.strftime("%d/%m/%Y")  # Use the event end date as the issued date
         )
 
+        # Upload the certificate to Cloudinary
+        cloudinary_response = upload(certificate_path, folder="certificates/")
+        certificate_url = cloudinary_response.get("url")
+
         # Save the certificate record in the database
         certificate_record, created = EventCertificate.objects.get_or_create(
             event=event,
             user=user,
-            defaults={"file": f"certificates/{certificate_filename}"}
+            defaults={"file": certificate_url}
         )
-
-        # Build the absolute URL for the certificate
-        print(f"MEDIA_URL: {settings.MEDIA_URL}")  # Debug: Check MEDIA_URL
-        print(f"Certificate filename: {certificate_filename}")  # Debug: Check filename
-        certificate_url = request.build_absolute_uri(f"{settings.MEDIA_URL}certificates/{certificate_filename}")
 
         # Return the certificate URL in the response
         return Response({"certificate_url": certificate_url}, status=201)
 
     except Exception as e:
         # Log the error and return a 500 response
-        print(f"❌ Error in generate_certificate: {e}")
+        print(f"\u274c Error in generate_certificate: {e}")
         return Response({"error": "Internal Server Error"}, status=500)
 
 
 
 def generate_certificate_from_pdf(template_pdf: str, output_pdf: str, volunteer_name: str, event_name: str, issued_date: str):
-    """Generates a certificate with the volunteer's name, event name, and issued date."""
+    """Generates a certificate with the volunteer's name, event name, and issued date, then uploads it to Cloudinary."""
     try:
         # Debug: Check input arguments
         print(f"Template PDF: {template_pdf}")
@@ -1153,7 +1154,7 @@ def generate_certificate_from_pdf(template_pdf: str, output_pdf: str, volunteer_
 
         # Add the new appreciation message
         appreciation_text = (
-            f"In gratitude for their valuable contributions and dedication as a volunteer at {event_name} on {issued_date}. "
+                "In gratitude for their valuable contributions and dedication as a volunteer at {event_name} on {issued_date}. "
             "We hope to see them again at future events and appreciate their continued support."
         )
         can.setFont("Helvetica", 16)
@@ -1215,6 +1216,13 @@ def generate_certificate_from_pdf(template_pdf: str, output_pdf: str, volunteer_
             pdf_writer.write(output_file)
 
         print(f"✅ Certificate generated: {output_pdf}")
+
+        # Upload to Cloudinary
+        cloudinary_response = cloudinary.uploader.upload(output_pdf, resource_type="raw")
+        cloudinary_url = cloudinary_response.get("url")
+        print(f"✅ Certificate uploaded to Cloudinary: {cloudinary_url}")
+
+        return cloudinary_url
 
     except Exception as e:
         # Log the error and re-raise

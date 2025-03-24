@@ -17,6 +17,9 @@ from dotenv import load_dotenv
 import platform
 import json
 import dj_database_url
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 PORT = os.getenv("PORT")  # Let Render define the correct port
 
 
@@ -61,6 +64,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'Vapp',
+    'cloudinary',
     
 ]
 
@@ -250,3 +254,17 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'xelu bpum rhvl odmz')  #
 
 
 API_BASE_URL = os.getenv("API_BASE_URL","https://vhub-zb2y.onrender.com") 
+
+
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': 'deih0ghdz',
+    'API_KEY': '158678226591292',
+    'API_SECRET': 'zKVIAZputYd8n6CkUgZdz9tjMWs'
+}
+
+cloudinary.config(
+    cloud_name=CLOUDINARY_STORAGE['CLOUD_NAME'],
+    api_key=CLOUDINARY_STORAGE['API_KEY'],
+    api_secret=CLOUDINARY_STORAGE['API_SECRET']
+)

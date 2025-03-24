@@ -1,7 +1,9 @@
 asgiref==3.8.1
+certifi==2025.1.31
 channels==4.2.0
 channels_redis==4.2.1
 chardet==5.2.0
+cloudinary==1.43.0
 dj-database-url==2.3.0
 Django==5.1.6
 django-cors-headers==4.7.0
@@ -21,6 +23,8 @@ python-dotenv==1.0.1
 qrcode==8.0
 redis==5.2.1
 reportlab==4.3.1
+six==1.17.0
 sqlparse==0.5.3
 typing_extensions==4.12.2
+urllib3==2.3.0
 whitenoise==6.9.0

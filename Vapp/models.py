@@ -16,6 +16,10 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.utils.timezone import make_aware, get_current_timezone
+import cloudinary
+import cloudinary.uploader
+from django.shortcuts import get_object_or_404
+from django.contrib.auth import get_user_model
 
 # Custom User Manager
 class UserManager(BaseUserManager):
@@ -73,7 +77,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.name} ({self.role})"
-from django.contrib.auth import get_user_model
+
 User = get_user_model()  # ✅ Correct Placement
 
 # ✅ OTP Verification Model (Moved Below User Model)
@@ -85,32 +89,56 @@ class OTPVerification(models.Model):
     def __str__(self):
         return f"OTP for {self.user.email}"
 
-# Event Model
+# Event Modelfrom django.db import models
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.contrib.auth import get_user_model
+import uuid
+import cloudinary
+import cloudinary.uploader
+
+User = get_user_model()
+
+
 class Event(models.Model):
     E_ID = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
     E_Name = models.CharField(max_length=255)
     E_Description = models.TextField()
     E_Start_Date = models.DateTimeField()
     E_End_Date = models.DateTimeField()
-    E_Start_Time = models.TimeField(null=True, blank=True)  # ✅ Start Time
-    E_End_Time = models.TimeField(null=True, blank=True)    # ✅ End Time
+    E_Start_Time = models.TimeField(null=True, blank=True)
+    E_End_Time = models.TimeField(null=True, blank=True)
     E_Location = models.TextField()
-    E_Created_By = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_events", null=True, blank=True)
+    E_Created_By = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="created_events", null=True, blank=True
+    )
     E_Registered_Count = models.PositiveIntegerField(default=0)
 
-    # ✅ Restored Fields
-    E_Photo = models.ImageField(upload_to="event_photos/", blank=True, null=True)
-    E_Required_Volunteers = models.PositiveIntegerField(default=10)  
-    E_Volunteers = models.ManyToManyField(settings.AUTH_USER_MODEL, through="Registration", related_name="volunteered_events", blank=True)
+    # ✅ Store event photo in Cloudinary
+    E_Photo = cloudinary.models.CloudinaryField('event_photo', null=True, blank=True)
 
+    # ✅ Volunteer & Role Assignments
+    E_Required_Volunteers = models.PositiveIntegerField(default=10)
+    E_Volunteers = models.ManyToManyField(
+        User, through="Registration", related_name="volunteered_events", blank=True
+    )
     E_Coordinators = models.ManyToManyField(User, related_name="coordinated_events", blank=True)
     E_Super_Volunteers = models.ManyToManyField(User, related_name="super_volunteer_events", blank=True)
 
-    E_Status = models.CharField(
-        max_length=20,
-        choices=[("Upcoming", "Upcoming"), ("Ongoing", "Ongoing"), ("Completed", "Completed")],
-        default="Upcoming"
-    )
+    @property
+    def E_Status(self):
+        """Dynamically determine event status."""
+        now = timezone.now()
+        start = timezone.make_aware(self.E_Start_Date)
+        end = timezone.make_aware(self.E_End_Date)
+        if now < start:
+            return "Upcoming"
+        elif start <= now <= end:
+            return "Ongoing"
+        else:
+            return "Completed"
+
     def has_event_ended(self):
         """Check if the event has ended."""
         if self.E_End_Date and self.E_End_Time:
@@ -120,13 +148,55 @@ class Event(models.Model):
 
     def __str__(self):
         return self.E_Name
-    
+
 
 class EventCertificate(models.Model):
     id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
     event = models.ForeignKey("Event", on_delete=models.CASCADE)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    file = models.FileField(upload_to="certificates/", default="certificates/default_certificate.pdf")
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    file_url = models.URLField(max_length=500, blank=True, null=True)  # ✅ Store only the URL
+
+    def __str__(self):
+        return f"Certificate for {self.user} - {self.event}"
+
+
+def upload_certificate(request):
+    """Upload a certificate to Cloudinary and store the URL."""
+    if request.method == 'POST' and request.FILES.get('certificate'):
+        event_id = request.POST.get('event_id')
+        user_id = request.POST.get('user_id')
+
+        # ✅ Validate event & user
+        event = get_object_or_404(Event, E_ID=event_id)
+        user = get_object_or_404(User, id=user_id)
+
+        uploaded_file = request.FILES['certificate']
+
+        try:
+            # ✅ Upload as "raw" since it's a PDF or document
+            upload_result = cloudinary.uploader.upload(uploaded_file, resource_type="raw")
+
+            # ✅ Store Cloudinary URL
+            certificate = EventCertificate.objects.create(
+                event=event,
+                user=user,
+                file_url=upload_result['secure_url']
+            )
+
+            return JsonResponse({'message': 'Upload successful', 'url': certificate.file_url})
+
+        except Exception as e:
+            return JsonResponse({'error': f'Upload failed: {str(e)}'}, status=500)
+
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+
+def get_certificates(request):
+    """Retrieve all event certificates."""
+    certificates = EventCertificate.objects.all().values(
+        'user__username', 'event__E_Name', 'file_url'
+    )
+    return JsonResponse(list(certificates), safe=False)
 
 
 class EventAnnouncement(models.Model):
