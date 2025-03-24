@@ -3,6 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.utils.html import format_html
 from .models import Event, Task, Registration,Notification
 from django.contrib.auth import get_user_model
+from django.utils.translation import gettext_lazy as _
 
 User = get_user_model()  # ✅ Get custom user model
 
@@ -29,10 +30,30 @@ class CustomUserAdmin(UserAdmin):
 
 
 # ✅ Event Admin (Now Includes Attendance & Volunteers Info)
+
+class EventStatusFilter(admin.SimpleListFilter):
+    title = _('Event Status')
+    parameter_name = 'e_status'
+
+    def lookups(self, request, model_admin):
+        """Define the filter options."""
+        return [
+            ('Upcoming', _('Upcoming')),
+            ('Ongoing', _('Ongoing')),
+            ('Completed', _('Completed')),
+        ]
+
+    def queryset(self, request, queryset):
+        """Filter events based on their dynamic status."""
+        status = self.value()
+        if status:
+            return [event for event in queryset if event.E_Status == status]
+        return queryset
+
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
     list_display = ("E_ID", "E_Name", "E_Start_Date", "E_End_Date", "E_Status", "total_volunteers", "checked_in_volunteers", "pending_volunteers")  
-    list_filter = ("E_Status", "E_Start_Date", "E_End_Date")
+    list_filter = (EventStatusFilter, "E_Start_Date", "E_End_Date")
     search_fields = ("E_Name", "E_Location")
 
     fieldsets = (

@@ -117,10 +117,10 @@ class Event(models.Model):
     )
     E_Registered_Count = models.PositiveIntegerField(default=0)
 
-    # ✅ Store event photo in Cloudinary
+    # Store event photo in Cloudinary
     E_Photo = CloudinaryField('event_photo', null=True, blank=True)
 
-    # ✅ Volunteer & Role Assignments
+    # Volunteer & Role Assignments
     E_Required_Volunteers = models.PositiveIntegerField(default=10)
     E_Volunteers = models.ManyToManyField(
         User, through="Registration", related_name="volunteered_events", blank=True
@@ -132,11 +132,9 @@ class Event(models.Model):
     def E_Status(self):
         """Dynamically determine event status."""
         now = timezone.now()
-        start = timezone.make_aware(self.E_Start_Date)
-        end = timezone.make_aware(self.E_End_Date)
-        if now < start:
+        if now < self.E_Start_Date:
             return "Upcoming"
-        elif start <= now <= end:
+        elif self.E_Start_Date <= now <= self.E_End_Date:
             return "Ongoing"
         else:
             return "Completed"
