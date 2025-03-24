@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "./Sidebar";
-
+import API_BASE_URL from "../../config";
 function AdminCreateEvent() {
     const navigate = useNavigate();
     const [eventData, setEventData] = useState({
@@ -79,7 +79,7 @@ function AdminCreateEvent() {
 
         try {
             const token = localStorage.getItem("accessToken");
-            await axios.post("http://127.0.0.1:8000/api/events/create/", formData, {
+            await axios.post("${API_BASE_URL}/api/events/create/", formData, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     "Content-Type": "multipart/form-data",

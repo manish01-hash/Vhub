@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { FaTimes } from "react-icons/fa";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
-
+import API_BASE_URL from "../../config";
 function AddTaskModal({ isOpen, onClose, fetchTasks }) {
     const { eventId } = useAuth();
     const [taskData, setTaskData] = useState({
@@ -29,7 +29,7 @@ function AddTaskModal({ isOpen, onClose, fetchTasks }) {
     
             console.log("📩 Sending Task Data:", payload);
     
-            await axios.post(`http://127.0.0.1:8000/api/events/${eventId}/tasks/create/`, payload, {
+            await axios.post(`${API_BASE_URL}/api/events/${eventId}/tasks/create/`, payload, {
                 headers: { Authorization: `Bearer ${token}` },
             });
 

@@ -3,7 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
 import EventPost from "./EventPost";
 import { FaSearch, FaFilter, FaBell, FaCheckCircle } from "react-icons/fa";
-
+import API_BASE_URL from "../../config";
 function MyEvents() {
     const { user } = useAuth(); 
     const [myEvents, setMyEvents] = useState([]);
@@ -30,7 +30,7 @@ function MyEvents() {
     
     async function fetchMyEvents() {
         try {
-            const response = await axios.get("http://127.0.0.1:8000/api/my-events/", {
+            const response = await axios.get("${API_BASE_URL}/api/my-events/", {
                 headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
             });
             if (response.data.length === 0) {
@@ -51,7 +51,7 @@ function MyEvents() {
 
     async function fetchNotifications() {
         try {
-            const response = await axios.get("http://127.0.0.1:8000/api/notifications/", {
+            const response = await axios.get("${API_BASE_URL}/api/notifications/", {
                 headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
             });
             setNotifications(response.data);
@@ -62,7 +62,7 @@ function MyEvents() {
 
     async function markAllAsRead() {
         try {
-            await axios.patch("http://127.0.0.1:8000/api/notifications/mark-all-read/", {}, {
+            await axios.patch("${API_BASE_URL}/api/notifications/mark-all-read/", {}, {
                 headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
             });
             setNotifications([]);

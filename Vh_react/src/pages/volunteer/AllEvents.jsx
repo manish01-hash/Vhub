@@ -3,7 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
 import EventPost from "./EventPost"; // Event Card Component
 import { FaSearch, FaFilter } from "react-icons/fa";
-
+import API_BASE_URL from "../../config";
 function AllEvents() {
     const { user, logout } = useAuth();
     const [events, setEvents] = useState([]);
@@ -32,7 +32,7 @@ function AllEvents() {
     async function fetchEvents() {
         try {
             console.log("🟡 Fetching events...");
-            const response = await axios.get("http://127.0.0.1:8000/api/events/", {
+            const response = await axios.get("${API_BASE_URL}/api/events/", {
                 headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
             });
 

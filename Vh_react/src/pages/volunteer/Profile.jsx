@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { FaEnvelope, FaPhone, FaUniversity, FaUserGraduate, FaBriefcase, FaEdit } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
-
+import API_BASE_URL from "../../config";
 function Profile() {
     const { user, loading, fetchProfile } = useAuth(); 
     const [editMode, setEditMode] = useState(false);
@@ -63,7 +63,7 @@ function Profile() {
 
         try {
             const response = await axios.patch(
-                `http://127.0.0.1:8000/api/users/${user.id}/update/`,
+                `${API_BASE_URL}/api/users/${user.id}/update/`,
                 formData,
                 {
                     headers: {

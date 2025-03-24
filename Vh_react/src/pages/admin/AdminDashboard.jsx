@@ -3,6 +3,7 @@ import { FaUsers, FaCalendarCheck, FaTasks, FaPlusCircle, FaBullhorn } from "rea
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "./Sidebar";
+import API_BASE_URL from "../../config";
 
 function AdminDashboard() {
     const navigate = useNavigate();
@@ -15,12 +16,12 @@ function AdminDashboard() {
         const fetchData = async () => {
             try {
                 const token = localStorage.getItem("accessToken");
-                const eventsResponse = await axios.get("http://127.0.0.1:8000/api/events/", {
+                const eventsResponse = await axios.get("${API_BASE_URL}/api/events/", {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setTotalEvents(eventsResponse.data.length);
 
-                const volunteersResponse = await axios.get("http://127.0.0.1:8000/api/volunteers/", {
+                const volunteersResponse = await axios.get("${API_BASE_URL}/api/volunteers/", {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setActiveVolunteers(volunteersResponse.data.length);

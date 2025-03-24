@@ -1,85 +1,9 @@
-// import React, { createContext, useState, useEffect } from "react";
-// import { useNavigate } from "react-router-dom";
-// import axios from "axios";
-
-// const AuthContext = createContext();
-
-// export const AuthProvider = ({ children }) => {
-//     const [user, setUser] = useState(null);
-//     const [loading, setLoading] = useState(true);
-//     const [eventId, setEventId] = useState(null);
-//     const navigate = useNavigate();
-
-//     // Load user from localStorage on app start
-//     useEffect(() => {
-//         const accessToken = localStorage.getItem("accessToken");
-//         const storedUser = localStorage.getItem("user");
-
-//         if (accessToken && storedUser) {
-//             setUser(JSON.parse(storedUser));
-//         }
-//         setLoading(false);
-//     }, []);
-
-    
-
-//     // Login function
-//     const login = async (email, password) => {
-//         try {
-//             const response = await axios.post("http://127.0.0.1:8000/api/auth/login/", { email, password }, {
-//                 headers: { "Content-Type": "application/json" }
-//             });
-
-//             localStorage.setItem("accessToken", response.data.access);
-//             localStorage.setItem("refreshToken", response.data.refresh);
-//             localStorage.setItem("user", JSON.stringify(response.data.user));
-
-//             setUser(response.data.user);
-//             return { success: true };
-//         } catch (error) {
-//             return { success: false, message: error.response?.data?.error || "Login failed!" };
-//         }
-//     };
-
-//     // Logout function
-//     const logout = () => {
-//         localStorage.removeItem("accessToken");
-//         localStorage.removeItem("refreshToken");
-//         localStorage.removeItem("user");
-//         setUser(null);
-//         navigate("/login");
-//     };
-
-//     return (
-//         <AuthContext.Provider value={{ user, login, logout, loading }}>
-//             {children}
-//         </AuthContext.Provider>
-//     );
-// };
-
-// export const useAuth = () => React.useContext(AuthContext);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import React, { createContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const AuthContext = createContext();
+const API_BASE_URL = "https://vhub-5dvu.onrender.com/api";
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
@@ -98,7 +22,7 @@ const fetchProfile = async () => {
     }
 
     try {
-        const res = await axios.get("http://127.0.0.1:8000/api/users/profile/", { // ✅ Using your existing URL
+        const res = await axios.get("${API_BASE_URL}/api/users/profile/", { // ✅ Using your existing URL
             headers: { Authorization: `Bearer ${accessToken}` },
         });
 
@@ -153,7 +77,7 @@ useEffect(() => {
     // ✅ Login function (No changes, just added `fetchProfile()`)
     const login = async (email, password) => {
         try {
-            const response = await axios.post("http://127.0.0.1:8000/api/auth/login/", { email, password }, {
+            const response = await axios.post("${API_BASE_URL}/api/auth/login/", { email, password }, {
                 headers: { "Content-Type": "application/json" }
             });
     

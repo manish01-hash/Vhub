@@ -48,7 +48,8 @@ import textwrap
 from .models import Event, EventAnnouncement, Notification
 from .serializers import EventAnnouncementSerializer, NotificationSerializer
 
-
+from django.conf import settings
+API_BASE_URL = settings.API_BASE_URL 
 
 font_path_bold = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 font_path_regular = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
@@ -588,7 +589,7 @@ def generate_qr_code_view(request, E_ID):
         }
         encoded_data = base64.b64encode(json.dumps(raw_data).encode()).decode()
 
-        frontend_url = f"http://192.168.1.5:5173/qr/scan-result?qr_data={encoded_data}"
+        frontend_url = f"{API_BASE_URL}/qr/scan-result?qr_data={encoded_data}"
         print(f"🔍 DEBUG: QR Code Redirect URL → {frontend_url}")
 
         # ✅ Generate and Save New QR Code Image

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-
+import API_BASE_URL from "../../config";
 function EventRegistration() {
     const { eventId } = useParams();
     const navigate = useNavigate();
@@ -17,7 +17,7 @@ function EventRegistration() {
         try {
             const token = localStorage.getItem("accessToken");
             const response = await axios.get(
-                `http://127.0.0.1:8000/api/events/${eventId}/registration-status/`,
+                `${API_BASE_URL}/api/events/${eventId}/registration-status/`,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             setIsRegistered(response.data.registered); // ✅ Set registered status
@@ -44,7 +44,7 @@ function EventRegistration() {
             console.log("🟢 Registering:", formData);
             const token = localStorage.getItem("accessToken");
             const response = await axios.post(
-                `http://127.0.0.1:8000/api/events/${eventId}/register/`,
+                `${API_BASE_URL}/api/events/${eventId}/register/`,
                 formData,
                 { headers: { Authorization: `Bearer ${token}` } }
             );

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import API_BASE_URL from "../../config";
 
 const AssignRole = ({ userId, eventId, currentRole, onRoleUpdate }) => {
     const [role, setRole] = useState(currentRole);
@@ -12,7 +13,7 @@ const AssignRole = ({ userId, eventId, currentRole, onRoleUpdate }) => {
             setLoading(true);
             const token = localStorage.getItem("accessToken");
 
-            const apiUrl = `http://127.0.0.1:8000/api/events/${eventId}/update-role/`; // ✅ Corrected endpoint
+            const apiUrl = `${API_BASE_URL}/api/events/${eventId}/update-role/`; // ✅ Corrected endpoint
 
             const response = await axios.patch(
                 apiUrl,

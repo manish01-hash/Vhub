@@ -10,6 +10,7 @@ import ContactUs from "../volunteer/ContactUs";
 import { useAuth } from "../../context/AuthContext";
 import teamLogo from "../../assets/Vcoders_logo.png"; // ✅ Imported Team Logo
 import "./home.css";
+import API_BASE_URL from "../../config";
 
 function Home() {
     const { user, logout } = useAuth();

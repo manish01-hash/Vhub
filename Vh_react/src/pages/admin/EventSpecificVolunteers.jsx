@@ -7,6 +7,7 @@ import AddTaskModal from "./AddTaskModal"; // ✅ Import the modal
 import { useNavigate } from "react-router-dom";
 import ViewTasks from "./ViewTasks";
 import AssignRole from "./AssignRole";
+import API_BASE_URL from "../../config";
 
 function EventSpecificVolunteers() {
     const [volunteers, setVolunteers] = useState([]);
@@ -32,7 +33,7 @@ function EventSpecificVolunteers() {
         const fetchVolunteers = async () => {
             try {
                 const token = localStorage.getItem("accessToken");
-                const response = await axios.get("http://127.0.0.1:8000/api/registrations/", {
+                const response = await axios.get("${API_BASE_URL}/api/registrations/", {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
@@ -86,7 +87,7 @@ function EventSpecificVolunteers() {
     const fetchTasks = async () => {
         try {
             const token = localStorage.getItem("accessToken");
-            const response = await axios.get(`http://127.0.0.1:8000/api/events/${eventId}/tasks/`, {
+            const response = await axios.get(`${API_BASE_URL}/api/events/${eventId}/tasks/`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setTasks(response.data);
@@ -112,7 +113,7 @@ function EventSpecificVolunteers() {
         try {
             const token = localStorage.getItem("accessToken");
             await axios.post(
-                `http://127.0.0.1:8000/api/events/${eventId}/announcement/`,
+                `${API_BASE_URL}/api/events/${eventId}/announcement/`,
                 { message: announcement },
                 { 
                     headers: { 

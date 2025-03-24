@@ -1,10 +1,8 @@
 import React from "react";
 import { FaUsers, FaUniversity, FaCode, FaGithub, FaLinkedin } from "react-icons/fa";
-
 import teamLogo from "../../assets/Vcoders_logo.png";
-
 import { TypeAnimation } from "react-type-animation";
-
+import API_BASE_URL from "../../config";
 const teamMembers = [
     {
         name: "Chaitanya",

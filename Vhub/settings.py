@@ -200,10 +200,7 @@ CORS_ALLOWED_ORIGINS = [origin.strip() for origin in CORS_ALLOWED_ORIGINS if ori
 
 # If still empty, allow only the backend URL
 if not CORS_ALLOWED_ORIGINS:
-    CORS_ALLOWED_ORIGINS = ["https://vhub-5dvu.onrender.com"]
-
-
-CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOWED_ORIGINS = ["https://vhub-5dvu.onrender.com", "https://vhub-7wqp77tva-manishs-projects-8b731aa4.vercel.app"]
 
 
 if platform.system() == "Windows":
@@ -223,3 +220,5 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'vcoders04@gmail.com')  # ✅ Default value
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'xelu bpum rhvl odmz')  # ✅ Default value
 
+
+API_BASE_URL = os.getenv("API_BASE_URL", "https://vhub-5dvu.onrender.com") 
