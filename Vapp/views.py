@@ -475,15 +475,7 @@ def create_event(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.decorators import api_view, permission_classes, parser_classes
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework import status
-from django.utils import timezone
-import cloudinary.uploader
-from .models import Event
-from .serializers import EventSerializer
+
 
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
@@ -504,31 +496,44 @@ def update_event(request, E_ID):
             )
             request_data['E_Photo'] = upload_result['secure_url']
 
-        # ✅ Ensure `E_Coordinators` and `E_Super_Volunteers` are valid UUIDs or None
-        if "E_Coordinators" in request_data and request_data["E_Coordinators"] in ["null", "[]", ""]:
-            request_data["E_Coordinators"] = None
-        if "E_Super_Volunteers" in request_data and request_data["E_Super_Volunteers"] in ["null", "[]", ""]:
-            request_data["E_Super_Volunteers"] = None
+        # ✅ Convert empty lists (sent as strings) to None
+        if "E_Coordinators" in request_data:
+            if isinstance(request_data["E_Coordinators"], str) and request_data["E_Coordinators"] in ["null", "[]", ""]:
+                request_data["E_Coordinators"] = None
+        if "E_Super_Volunteers" in request_data:
+            if isinstance(request_data["E_Super_Volunteers"], str) and request_data["E_Super_Volunteers"] in ["null", "[]", ""]:
+                request_data["E_Super_Volunteers"] = None
 
         serializer = EventSerializer(event, data=request_data, partial=True, context={"request": request})
 
         if serializer.is_valid():
             updated_event = serializer.save()
 
-            # ✅ Automatically update event status based on current date/time
+            # ✅ Automatically determine event status based on date & time
             now = timezone.now()
-            if updated_event.E_Start_Date and updated_event.E_End_Date:
-                if updated_event.E_End_Date < now:
-                    updated_event.E_Status = "Completed"
-                elif updated_event.E_Start_Date > now:
-                    updated_event.E_Status = "Upcoming"
-                else:
-                    updated_event.E_Status = "Ongoing"
-                updated_event.save()  # Save status update
+            if updated_event.E_Start_Date and updated_event.E_Start_Time and updated_event.E_End_Date and updated_event.E_End_Time:
+                start_datetime = timezone.make_aware(
+                    datetime.combine(updated_event.E_Start_Date, updated_event.E_Start_Time)
+                )
+                end_datetime = timezone.make_aware(
+                    datetime.combine(updated_event.E_End_Date, updated_event.E_End_Time)
+                )
 
-            return Response({"message": "Event updated successfully!"}, status=status.HTTP_200_OK)
+                # ✅ No need to set `E_Status` manually, just return the computed value
+                if now < start_datetime:
+                    event_status = "Upcoming"
+                elif start_datetime <= now <= end_datetime:
+                    event_status = "Ongoing"
+                else:
+                    event_status = "Completed"
+
+            return Response({
+                "message": "Event updated successfully!",
+                "E_Status": event_status  # ✅ Return dynamically computed status
+            }, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     except Event.DoesNotExist:
         return Response({"error": "Event not found!"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:

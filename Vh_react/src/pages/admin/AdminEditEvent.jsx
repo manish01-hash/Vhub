@@ -83,6 +83,14 @@ function AdminEditEvent() {
         // ✅ Remove E_Status before sending the request
         const { E_Status, ...updatedEventData } = eventData;
     
+        // ✅ Fix: Convert empty arrays into null to prevent UUID errors
+        if (Array.isArray(updatedEventData.E_Coordinators) && updatedEventData.E_Coordinators.length === 0) {
+            updatedEventData.E_Coordinators = null;
+        }
+        if (Array.isArray(updatedEventData.E_Super_Volunteers) && updatedEventData.E_Super_Volunteers.length === 0) {
+            updatedEventData.E_Super_Volunteers = null;
+        }
+    
         const formData = new FormData();
         Object.keys(updatedEventData).forEach((key) => {
             let value = updatedEventData[key];
