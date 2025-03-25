@@ -312,46 +312,45 @@ def get_profile(request):
     - Recent certificates
     """
     try:
-        user = request.user
-        if not user:
-            return Response({"error": "User not found"}, status=404)
+        # Ensure the user is authenticated
+        if not request.user or not request.user.is_authenticated:
+            return Response({"error": "User is not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
 
-        
+        user = get_object_or_404(User, id=request.user.id)  # Ensures a valid user instance
+
         # Basic user data
         user_data = UserSerializer(user, context={"request": request}).data
-        
-        # Add additional profile statistics
+
+        # Profile statistics
         profile_stats = {
             "events_attended": Attendance.objects.filter(volunteer=user).count(),
             "events_organized": Event.objects.filter(E_Created_By=user).count(),
             "tasks_completed": Task.objects.filter(assigned_to=user, status="Completed").count(),
             "upcoming_events": Event.objects.filter(
-                Q(E_Volunteers=user) | 
-                Q(E_Coordinators=user) |
-                Q(E_Super_Volunteers=user),
+                Q(E_Volunteers=user) | Q(E_Coordinators=user) | Q(E_Super_Volunteers=user),
                 E_Status="Upcoming"
             ).count(),
         }
-        
-        # Add recent certificates (last 3)
+
+        # Recent certificates
         certificates = EventCertificate.objects.filter(user=user).order_by('-created_at')[:3]
         certificate_data = [{
             "event_name": cert.event.E_Name,
             "issued_date": cert.created_at.strftime("%Y-%m-%d"),
             "download_url": request.build_absolute_uri(cert.file.url) if cert.file else None
         } for cert in certificates]
-        
+
         response_data = {
             **user_data,
             "stats": profile_stats,
             "recent_certificates": certificate_data,
-            "profile_completion": calculate_profile_completion(user)  # Helper function
+            "profile_completion": calculate_profile_completion(user)
         }
-        
+
         return Response(response_data, status=status.HTTP_200_OK)
-        
+
     except Exception as e:
-        logger.error(f"Error fetching profile for user {request.user.id}: {str(e)}")
+        logger.error(f"Error fetching profile for user {request.user.id if request.user else 'Unknown'}: {str(e)}")
         return Response(
             {"error": "Could not retrieve profile data", "details": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -383,36 +382,24 @@ def calculate_profile_completion(user):
 @permission_classes([IsAuthenticated])
 def get_events(request):
     try:
-        # Safely get the queryset with additional null checks
+        # Fetch events, ensuring related fields are preloaded for efficiency
         events = Event.objects.select_related('E_Created_By')\
                    .prefetch_related('E_Volunteers', 'E_Coordinators', 'E_Super_Volunteers', 'event_announcements')\
                    .exclude(E_Created_By__isnull=True)\
                    .order_by('-E_Start_Date')
-        
-        # Convert to list to force evaluation and catch any None values
-        events_list = list(events)
-        
-        if not events_list:
+
+        # Validate that the queryset is not empty
+        if not events.exists():
             return Response({"message": "No events found"}, status=status.HTTP_200_OK)
 
-        # Additional safety check for None values
-        valid_events = [event for event in events_list if event is not None]
-        
-        if not valid_events:
-            return Response({"message": "No valid events found"}, status=status.HTTP_200_OK)
-
-        serializer = EventSerializer(
-            valid_events,
-            many=True,
-            context={'request': request}
-        )
-        
+        # Serialize data safely, avoiding None values
+        serializer = EventSerializer(events, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     except Exception as e:
         logger.error(f"Error in get_events: {str(e)}", exc_info=True)
         return Response(
-            {"error": "Failed to load events. Please try again later."},
+            {"error": "Failed to load events. Please try again later.", "details": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 #get my events

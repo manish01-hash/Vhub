@@ -132,67 +132,11 @@ class EventSerializer(serializers.ModelSerializer):
     is_registered = serializers.SerializerMethodField()
     user_role = serializers.SerializerMethodField()
     E_Created_By = UserSerializer(read_only=True)
+
     class Meta:
         model = Event
         fields = '__all__'
         read_only_fields = ['E_ID', 'E_Status']
-        extra_kwargs = {
-            'E_Photo': {'write_only': True}
-        }
-
-    def get_E_Volunteers(self, obj):
-        """Optimized volunteer list through prefetched registrations"""
-        try:
-            if hasattr(obj, 'prefetched_registrations'):
-                volunteers = [reg.volunteer for reg in obj.prefetched_registrations]
-            else:
-                volunteers = obj.E_Volunteers.all()[:20]  # Limit for safety
-            
-            return UserSerializer(
-                volunteers,
-                many=True,
-                context=self.context
-            ).data
-        except Exception as e:
-            logger.error(f"Error getting volunteers for event {obj.E_ID}: {str(e)}")
-            return []
-
-    def get_E_Registered_Count(self, obj):
-        """Efficient count of registrations"""
-        try:
-            if hasattr(obj, 'registration_count'):
-                return obj.registration_count
-            return obj.registrations.count()
-        except Exception as e:
-            logger.error(f"Error counting registrations: {str(e)}")
-            return 0
-
-    def get_E_Status(self, obj):
-        """Robust status calculation with timezone handling"""
-        try:                
-            current_time = timezone.localtime(timezone.now())
-            
-            if None in [obj.E_Start_Date, obj.E_Start_Time, obj.E_End_Date, obj.E_End_Time]:
-                return "Unknown"
-
-            start_datetime = timezone.make_aware(datetime.combine(
-                obj.E_Start_Date, 
-                obj.E_Start_Time
-            ))
-            end_datetime = timezone.make_aware(datetime.combine(
-                obj.E_End_Date, 
-                obj.E_End_Time
-            ))
-
-            if current_time < start_datetime:
-                return "Upcoming"
-            elif start_datetime <= current_time <= end_datetime:
-                return "Ongoing"
-            return "Completed"
-            
-        except Exception as e:
-            logger.error(f"Status calculation error for event {obj.E_ID}: {str(e)}")
-            return "Error"
 
     def get_E_Photo(self, obj):
         """Safe handling of image URLs"""
@@ -206,18 +150,43 @@ class EventSerializer(serializers.ModelSerializer):
             logger.error(f"Photo URL error for event {obj.E_ID}: {str(e)}")
         return None
 
-    def get_announcements(self, obj):
-        """Get recent announcements with limit"""
+    def get_E_Status(self, obj):
+        """Robust status calculation with timezone handling"""
         try:
-            announcements = obj.event_announcements.order_by('-created_at')[:3]
-            return EventAnnouncementSerializer(
-                announcements, 
-                many=True,
-                context=self.context
-            ).data
+            if not all([obj.E_Start_Date, obj.E_End_Date]):
+                return "Unknown"
+
+            current_time = timezone.localtime(timezone.now())
+            start_datetime = timezone.make_aware(obj.E_Start_Date) if timezone.is_naive(obj.E_Start_Date) else obj.E_Start_Date
+            end_datetime = timezone.make_aware(obj.E_End_Date) if timezone.is_naive(obj.E_End_Date) else obj.E_End_Date
+
+            if current_time < start_datetime:
+                return "Upcoming"
+            elif start_datetime <= current_time <= end_datetime:
+                return "Ongoing"
+            return "Completed"
         except Exception as e:
-            logger.error(f"Error getting announcements: {str(e)}")
-            return []
+            logger.error(f"Status calculation error for event {obj.E_ID}: {str(e)}")
+            return "Error"
+
+    def get_E_Registered_Count(self, obj):
+        """Ensure count retrieval is safe"""
+        try:
+            return obj.registrations.count() if hasattr(obj, 'registrations') else 0
+        except Exception as e:
+            logger.error(f"Error counting registrations: {str(e)}")
+            return 0
+
+    def get_is_registered(self, obj):
+        """Check if current user is registered"""
+        request = self.context.get('request')
+        if request and request.user and request.user.is_authenticated:
+            try:
+                return obj.registrations.filter(volunteer=request.user).exists()
+            except Exception as e:
+                logger.error(f"Registration check error: {str(e)}")
+        return False
+
 
     def get_sample_tasks(self, obj):
         """Get sample tasks with optimization"""

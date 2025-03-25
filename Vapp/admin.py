@@ -4,7 +4,9 @@ from django.utils.html import format_html
 from .models import Event, Task, Registration, Notification
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
-
+from django.core.exceptions import ProtectedError
+from django.contrib import messages
+from django.db.models import Count
 User = get_user_model()  # ✅ Get custom user model
 
 # ✅ Custom User Admin
@@ -49,81 +51,41 @@ class EventStatusFilter(admin.SimpleListFilter):
         ]
 
     def queryset(self, request, queryset):
-        status = self.value()
-        if status:
-            filtered_ids = [event.id for event in queryset if event.E_Status == status]
-            return queryset.filter(id__in=filtered_ids)
+        """Use direct filtering instead of iterating manually."""
+        if self.value():
+            return queryset.filter(E_Status=self.value())
         return queryset
 
 
-@admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ("E_ID", "E_Name", "E_Start_Date", "E_End_Date", "display_E_Status", 
-                    "total_volunteers", "checked_in_volunteers", "pending_volunteers")
-    list_filter = (EventStatusFilter, "E_Start_Date", "E_End_Date")
+    list_display = ("E_ID", "E_Name", "E_Start_Date", "E_End_Date", "display_E_Status", "total_volunteers")
+    list_filter = (EventStatusFilter, "E_Start_Date", "E_End_Date")  # ✅ Use custom filter
     search_fields = ("E_Name", "E_Location")
-    filter_horizontal = ("E_Coordinators", "E_Super_Volunteers")  # Removed E_Volunteers
+    ordering = ("-E_Start_Date",)
 
-    fieldsets = (
-        ("Basic Info", {
-            "fields": (
-                "E_ID",
-                "E_Name", 
-                "E_Description",
-                "E_Location",
-                "E_Required_Volunteers",
-                "E_Photo"
-            )
-        }),
-        ("Schedule", {
-            "fields": (
-                "E_Start_Date",
-                "E_End_Date",
-                "E_Start_Time",
-                "E_End_Time"
-            )
-        }),
-        ("Personnel", {
-            "fields": (
-                "E_Created_By",
-                # Removed E_Volunteers from here
-                "E_Coordinators",
-                "E_Super_Volunteers"
-            )
-        }),
-    )
+    def get_queryset(self, request):
+        """Optimize queries by prefetching related fields"""
+        queryset = super().get_queryset(request)
+        return queryset.prefetch_related("registrations").annotate(volunteer_count=Count("registrations"))
 
-    readonly_fields = ("E_ID", "display_event_photo", "E_Created_By")
+    def total_volunteers(self, obj):
+        return obj.volunteer_count if hasattr(obj, 'volunteer_count') else obj.registrations.count()
+    total_volunteers.short_description = "Total Volunteers"
+
+    def delete_queryset(self, request, queryset):
+        """Handle dependent objects safely when deleting events"""
+        for obj in queryset:
+            try:
+                obj.delete()
+            except ProtectedError:
+                self.message_user(request, f"❌ Cannot delete event '{obj.E_Name}' because it has related records.", level=messages.ERROR)
+                continue  # ✅ Skip this event instead of failing
 
     def display_E_Status(self, obj):
         return obj.E_Status
     display_E_Status.short_description = "Event Status"
 
-    def display_event_photo(self, obj):
-        if obj.E_Photo:
-            return format_html(
-                '<img src="{}" width="100" height="100" style="border-radius: 5px;" />', 
-                obj.E_Photo.url
-            )
-        return "No Image"
-    display_event_photo.short_description = "Event Photo"
-
-    def save_model(self, request, obj, form, change):
-        if not obj.E_Created_By:
-            obj.E_Created_By = request.user
-        super().save_model(request, obj, form, change)
-
-    def total_volunteers(self, obj):
-        return obj.registrations.count()
-    total_volunteers.short_description = "Total Volunteers"
-
-    def checked_in_volunteers(self, obj):
-        return obj.attendances.count()
-    checked_in_volunteers.short_description = "Checked In"
-
-    def pending_volunteers(self, obj):
-        return obj.registrations.count() - obj.attendances.count()
-    pending_volunteers.short_description = "Pending Check-in"
+admin.site.register(Event, EventAdmin)
 # ✅ Task Admin
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
