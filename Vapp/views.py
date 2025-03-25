@@ -231,10 +231,9 @@ def logout_view(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_users(request):
-    users = User.objects.all()
+    users = User.objects.all()[:100]  # Limit to prevent overload
     serializer = UserSerializer(users, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
-
 
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
