@@ -310,30 +310,25 @@ def get_profile(request):
 ### ------------------- EVENT MANAGEMENT ------------------- ###
 
 # Get All Events@api_view(["GET"])
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
 def get_events(request):
     events = Event.objects.all()
-    
-    if not events.exists():
-        return Response([], status=status.HTTP_200_OK)
+    current_time = now()  # ✅ Get timezone-aware datetime
 
     updated_events = []
-    current_time = timezone.localtime(timezone.now())  # Ensures correct timezone handling
-
     for event in events:
-        start_time = timezone.localtime(event.E_Start_Date)
-        end_time = timezone.localtime(event.E_End_Date)
+        event_start = event.E_Start_Date
+        event_end = event.E_End_Date
 
-        if current_time < start_time:
-            event_status = "Upcoming"
-        elif start_time <= current_time <= end_time:
-            event_status = "Ongoing"
-        else:
+        # ✅ Ensure correct timezone comparison
+        if event_end < current_time.date():  # Ensure this checks full DateTime, not just Date
             event_status = "Completed"
+        elif event_start > current_time.date():
+            event_status = "Upcoming"
+        else:
+            event_status = "Ongoing"
 
         event_data = EventSerializer(event).data
-        event_data["E_Status"] = event_status  # Override stored status
+        event_data["E_Status"] = event_status
         updated_events.append(event_data)
 
     return Response(updated_events, status=status.HTTP_200_OK)
