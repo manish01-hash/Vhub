@@ -42,6 +42,8 @@ function AdminEvents() {
         }
     };
     const determineEventStatus = (startDate, startTime, endDate, endTime) => {
+        if (!startDate || !startTime || !endDate || !endTime) return "Unknown";
+
         const now = new Date();
         const start = new Date(`${startDate}T${startTime}:00`);
         const end = new Date(`${endDate}T${endTime}:00`);
@@ -197,6 +199,7 @@ function AdminEvents() {
                                         <td className="p-3">
                                             {determineEventStatus(event.E_Start_Date, event.E_Start_Time, event.E_End_Date, event.E_End_Time)}
                                         </td>
+
                                         <td className="p-3 flex space-x-3">
                                             <button title="View" onClick={() => navigate(`/events/${event.E_ID}`)} className="text-blue-400 hover:text-blue-600">
                                                 <FaEye />

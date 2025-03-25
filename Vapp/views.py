@@ -314,49 +314,30 @@ def get_profile(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_events(request):
-    try:
-        events = Event.objects.all()
+    events = Event.objects.all()
+    
+    if not events.exists():
+        return Response([], status=status.HTTP_200_OK)
 
-        if not events.exists():
-            return Response([], status=status.HTTP_200_OK)
+    updated_events = []
+    current_time = timezone.localtime(timezone.now())  # Ensures correct timezone handling
 
-        updated_events = []
-        current_time = now()  # Ensure current time is timezone-aware
+    for event in events:
+        start_time = timezone.localtime(event.E_Start_Date)
+        end_time = timezone.localtime(event.E_End_Date)
 
-        for event in events:
-            try:
-                # Ensure dates are present
-                if not event.E_Start_Date or not event.E_End_Date:
-                    event_status = "Unknown"
-                else:
-                    # Ensure dates are timezone-aware
-                    if event.E_Start_Date.tzinfo is None:
-                        event.E_Start_Date = timezone.make_aware(event.E_Start_Date)
+        if current_time < start_time:
+            event_status = "Upcoming"
+        elif start_time <= current_time <= end_time:
+            event_status = "Ongoing"
+        else:
+            event_status = "Completed"
 
-                    if event.E_End_Date.tzinfo is None:
-                        event.E_End_Date = timezone.make_aware(event.E_End_Date)
+        event_data = EventSerializer(event).data
+        event_data["E_Status"] = event_status  # Override stored status
+        updated_events.append(event_data)
 
-                    # Dynamically determine the event status
-                    if current_time < event.E_Start_Date:
-                        event_status = "Upcoming"
-                    elif event.E_Start_Date <= current_time <= event.E_End_Date:
-                        event_status = "Ongoing"
-                    else:
-                        event_status = "Completed"
-
-                # Serialize event and update status before sending response
-                event_data = EventSerializer(event).data
-                event_data["E_Status"] = event_status  # Override the stored status
-                updated_events.append(event_data)
-
-            except Exception as e:
-                print(f"⚠ Error processing event {event.E_ID}: {e}")
-        
-        return Response(updated_events, status=status.HTTP_200_OK)
-
-    except Exception as e:
-        print(f"❌ Error in get_events API: {str(e)}")
-        return Response({"error": "Internal Server Error", "details": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return Response(updated_events, status=status.HTTP_200_OK)
 
 #get my events
 @api_view(["GET"])
