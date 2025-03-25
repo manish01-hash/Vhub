@@ -120,7 +120,7 @@ class Event(models.Model):
     E_Start_Time = models.TimeField(null=True, blank=True)
     E_End_Time = models.TimeField(null=True, blank=True)
     E_Location = models.TextField()
-    E_Created_By = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="created_events")
+    E_Created_By = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="created_events", default=1)
     E_Registered_Count = models.PositiveIntegerField(default=0)
 
     # Store event photo in Cloudinary
