@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.html import format_html
-from .models import Event, Task, Registration,Notification
+from .models import Event, Task, Registration, Notification
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 
@@ -10,7 +10,7 @@ User = get_user_model()  # ✅ Get custom user model
 # ✅ Custom User Admin
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ("email", "name", "phone", "role", "gender" ,"college_name", "faculty", "year_of_study", "is_active", "is_staff", "profile_image",)
+    list_display = ("email", "name", "phone", "role", "gender", "college_name", "faculty", "year_of_study", "is_active", "is_staff", "profile_image",)
     search_fields = ("email", "name", "phone", "college_name", "faculty")
     ordering = ("email",)
 
@@ -47,8 +47,9 @@ class EventStatusFilter(admin.SimpleListFilter):
         """Filter events based on their dynamic status."""
         status = self.value()
         if status:
-            return [event for event in queryset if event.E_Status == status]
+            return queryset.filter(id__in=[event.id for event in queryset if event.E_Status == status])
         return queryset
+
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
@@ -123,9 +124,11 @@ class RegistrationAdmin(admin.ModelAdmin):
     display_qr_code.short_description = "QR Code"
 
 
-
+# ✅ Notification Admin
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
     list_display = ("recipient", "event", "message", "created_at", "is_read")  
     list_filter = ("is_read", "created_at")  
-    search_fields = ("recipient__name", "event__E_Name", "message")  
+    search_fields = ("recipient__name", "event__E_Name", "message")
+
+
