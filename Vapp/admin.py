@@ -62,7 +62,7 @@ class EventAdmin(admin.ModelAdmin):
                     "total_volunteers", "checked_in_volunteers", "pending_volunteers")
     list_filter = (EventStatusFilter, "E_Start_Date", "E_End_Date")
     search_fields = ("E_Name", "E_Location")
-    filter_horizontal = ("E_Volunteers", "E_Coordinators", "E_Super_Volunteers")
+    filter_horizontal = ("E_Coordinators", "E_Super_Volunteers")  # Removed E_Volunteers
 
     fieldsets = (
         ("Basic Info", {
@@ -86,7 +86,7 @@ class EventAdmin(admin.ModelAdmin):
         ("Personnel", {
             "fields": (
                 "E_Created_By",
-                "E_Volunteers",
+                # Removed E_Volunteers from here
                 "E_Coordinators",
                 "E_Super_Volunteers"
             )
