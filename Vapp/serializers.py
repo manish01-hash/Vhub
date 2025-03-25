@@ -77,7 +77,7 @@ class EventSerializer(serializers.ModelSerializer):
     E_Created_By = UserSerializer(read_only=True)
     E_Volunteers = UserSerializer(many=True, read_only=True)
     E_Registered_Count = serializers.IntegerField(read_only=True)
-    E_Photo = serializers.IMAGEFIELD()
+    E_Photo = serializers.ImageField()
     announcements = EventAnnouncementSerializer(many=True, read_only=True)
     sample_tasks = SampleTaskSerializer(many=True, read_only=True)
     E_Status = serializers.SerializerMethodField() 
