@@ -91,7 +91,13 @@ class EventSerializer(serializers.ModelSerializer):
         return obj.E_Status  # ✅ This ensures the frontend receives E_Status dynamically
 
     def get_E_Photo(self, obj):
-        return obj.E_Photo.url if obj.E_Photo else None
+        if obj.E_Photo:
+            try:
+                return obj.E_Photo.url  # ✅ Safe way to access Cloudinary image URL
+            except AttributeError:
+                return None  # ✅ Avoids errors if `.url` does not exist
+        return None  # ✅ Ensures None is returned safely
+
 
 
 class EventAnnouncementSerializer(serializers.ModelSerializer):

@@ -42,7 +42,6 @@ class EventStatusFilter(admin.SimpleListFilter):
     parameter_name = 'e_status'
 
     def lookups(self, request, model_admin):
-        """Define the filter options."""
         return [
             ('Upcoming', _('Upcoming')),
             ('Ongoing', _('Ongoing')),
@@ -50,45 +49,47 @@ class EventStatusFilter(admin.SimpleListFilter):
         ]
 
     def queryset(self, request, queryset):
-        """Filter events based on their dynamic status."""
         status = self.value()
         if status:
-            return queryset.filter(id__in=[event.id for event in queryset if event.E_Status == status])
+            filtered_ids = [event.id for event in queryset if event.E_Status == status]
+            return queryset.filter(id__in=filtered_ids)
         return queryset
 
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ("E_ID", "E_Name", "E_Start_Date", "E_End_Date", "E_Status", "total_volunteers", "checked_in_volunteers", "pending_volunteers")  
+    list_display = ("E_ID", "E_Name", "E_Start_Date", "E_End_Date", "E_Status", "total_volunteers", "checked_in_volunteers", "pending_volunteers")
     list_filter = (EventStatusFilter, "E_Start_Date", "E_End_Date")
     search_fields = ("E_Name", "E_Location")
 
     fieldsets = (
-        ("Event Details", {"fields": ("E_ID", "E_Name", "E_Description", "E_Location", "E_Status")}),
+        ("Event Details", {"fields": ("E_ID", "E_Name", "E_Description", "E_Location")}),
         ("Schedule", {"fields": ("E_Start_Date", "E_End_Date")}),
-        ("Media", {"fields": ("E_Photo",)}),
+        ("Media", {"fields": ("display_event_photo",)})
     )
 
-    readonly_fields = ("E_ID", "E_Created_By")
+    readonly_fields = ("E_ID", "E_Created_By", "E_Status")
+
+    def display_event_photo(self, obj):
+        if obj.E_Photo:
+            return format_html('<img src="{}" width="100" height="100" style="border-radius: 5px;" />', obj.E_Photo.url)
+        return "No Image"
+
+    display_event_photo.short_description = "Event Photo"
 
     def save_model(self, request, obj, form, change):
-        """Automatically assign the creator of the event."""
         if not obj.E_Created_By:
-            obj.E_Created_By = request.user  
+            obj.E_Created_By = request.user
         obj.save()
 
-    # ✅ Attendance Section
     def total_volunteers(self, obj):
-        return obj.registrations.count()
-    total_volunteers.short_description = "Total Volunteers"
+        return obj.registrations.count() if obj.registrations.exists() else 0
 
     def checked_in_volunteers(self, obj):
-        return obj.registrations.filter(qr_code__isnull=False).count()
-    checked_in_volunteers.short_description = "Checked-in Volunteers"
+        return obj.registrations.filter(qr_code__isnull=False).count() if obj.registrations.exists() else 0
 
     def pending_volunteers(self, obj):
-        return obj.registrations.filter(qr_code__isnull=True).count()
-    pending_volunteers.short_description = "Pending Volunteers"
+        return obj.registrations.filter(qr_code__isnull=True).count() if obj.registrations.exists() else 0
 
 
 # ✅ Task Admin
