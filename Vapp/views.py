@@ -386,7 +386,7 @@ def get_events(request):
         # Safely get the queryset with additional null checks
         events = Event.objects.select_related('E_Created_By')\
                    .prefetch_related('E_Volunteers', 'E_Coordinators', 'E_Super_Volunteers', 'event_announcements')\
-                   .filter(E_Created_By__isnull=False)\
+                   .exclude(E_Created_By__isnull=True)\
                    .order_by('-E_Start_Date')
         
         # Convert to list to force evaluation and catch any None values
@@ -586,8 +586,9 @@ def update_event(request, E_ID):
                 else:
                     event_status = "Completed"
 
-                updated_event.E_Status = event_status  # ✅ Store in DB
-                updated_event.save()  # ✅ Save to database
+                updated_event.E_Status = event_status
+                updated_event.save()
+
 
             return Response({
                 "message": "Event updated successfully!",
