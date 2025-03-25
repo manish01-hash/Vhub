@@ -475,6 +475,16 @@ def create_event(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.decorators import api_view, permission_classes, parser_classes
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
+from django.utils import timezone
+import cloudinary.uploader
+from .models import Event
+from .serializers import EventSerializer
+
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
 @parser_classes([MultiPartParser, FormParser])
@@ -482,24 +492,31 @@ def update_event(request, E_ID):
     try:
         event = Event.objects.get(E_ID=E_ID)
 
-        # Handle file upload to Cloudinary if new photo is provided
+        # ✅ Create a mutable copy of request.data
+        request_data = request.data.copy()
+
+        # ✅ Handle file upload to Cloudinary if a new photo is provided
         if 'E_Photo' in request.FILES:
             uploaded_file = request.FILES['E_Photo']
             upload_result = cloudinary.uploader.upload(
                 uploaded_file,
                 folder="event_photos/"
             )
-            request.data._mutable = True
-            request.data['E_Photo'] = upload_result['secure_url']
-            request.data._mutable = False
+            request_data['E_Photo'] = upload_result['secure_url']
 
-        serializer = EventSerializer(event, data=request.data, partial=True, context={"request": request})
+        # ✅ Ensure `E_Coordinators` and `E_Super_Volunteers` are valid UUIDs or None
+        if "E_Coordinators" in request_data and request_data["E_Coordinators"] in ["null", "[]", ""]:
+            request_data["E_Coordinators"] = None
+        if "E_Super_Volunteers" in request_data and request_data["E_Super_Volunteers"] in ["null", "[]", ""]:
+            request_data["E_Super_Volunteers"] = None
+
+        serializer = EventSerializer(event, data=request_data, partial=True, context={"request": request})
 
         if serializer.is_valid():
             updated_event = serializer.save()
 
-            # Automatically update event status based on the new date/time
-            now = timezone.now().date()  # Get current date
+            # ✅ Automatically update event status based on current date/time
+            now = timezone.now()
             if updated_event.E_Start_Date and updated_event.E_End_Date:
                 if updated_event.E_End_Date < now:
                     updated_event.E_Status = "Completed"
@@ -516,6 +533,7 @@ def update_event(request, E_ID):
         return Response({"error": "Event not found!"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 # Delete Event
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])  # Ensure only logged-in users can delete
