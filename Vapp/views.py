@@ -383,18 +383,26 @@ def calculate_profile_completion(user):
 @permission_classes([IsAuthenticated])
 def get_events(request):
     try:
-        # Optimized query with prefetch_related for many-to-many relationships
+        # Safely get the queryset with additional null checks
         events = Event.objects.select_related('E_Created_By')\
                    .prefetch_related('E_Volunteers', 'E_Coordinators', 'E_Super_Volunteers', 'event_announcements')\
                    .filter(E_Created_By__isnull=False)\
-                   .order_by('-E_Start_Date')  # Typically want newest events first
+                   .order_by('-E_Start_Date')
         
-        if not events.exists():
+        # Convert to list to force evaluation and catch any None values
+        events_list = list(events)
+        
+        if not events_list:
             return Response({"message": "No events found"}, status=status.HTTP_200_OK)
 
-        # Use list comprehension for cleaner code
+        # Additional safety check for None values
+        valid_events = [event for event in events_list if event is not None]
+        
+        if not valid_events:
+            return Response({"message": "No valid events found"}, status=status.HTTP_200_OK)
+
         serializer = EventSerializer(
-            events, 
+            valid_events,
             many=True,
             context={'request': request}
         )
@@ -402,7 +410,7 @@ def get_events(request):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     except Exception as e:
-        logger.error(f"Error in get_events: {str(e)}")  # Better than print for production
+        logger.error(f"Error in get_events: {str(e)}", exc_info=True)
         return Response(
             {"error": "Failed to load events. Please try again later."},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
