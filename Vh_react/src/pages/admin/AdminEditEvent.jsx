@@ -11,9 +11,12 @@ function AdminEditEvent() {
 
     useEffect(() => {
         fetchEventDetails();
-    }, []);
+    }, [eventId]); // ✅ Ensures fetching only when eventId changes
 
+    // ✅ Improved function to determine event status dynamically
     const determineEventStatus = (startDate, startTime, endDate, endTime) => {
+        if (!startDate || !startTime || !endDate || !endTime) return "Unknown"; // ✅ Handle missing data
+
         const now = new Date();
         const start = new Date(`${startDate}T${startTime}:00`);
         const end = new Date(`${endDate}T${endTime}:00`);
@@ -40,8 +43,8 @@ function AdminEditEvent() {
                 const event = response.data;
 
                 // ✅ Format date and time correctly
-                event.E_Start_Date = event.E_Start_Date.split("T")[0];
-                event.E_End_Date = event.E_End_Date.split("T")[0];
+                event.E_Start_Date = event.E_Start_Date?.split("T")[0] || "";
+                event.E_End_Date = event.E_End_Date?.split("T")[0] || "";
                 event.E_Start_Time = event.E_Start_Time ? event.E_Start_Time.slice(0, 5) : "";
                 event.E_End_Time = event.E_End_Time ? event.E_End_Time.slice(0, 5) : "";
 
@@ -65,18 +68,18 @@ function AdminEditEvent() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setErrorMessage("");
-    
+
         const token = localStorage.getItem("accessToken");
         if (!token) {
             setErrorMessage("❌ Unauthorized! No token found.");
             return;
         }
-    
+
         if (!eventData) {
             setErrorMessage("❌ No event data available.");
             return;
         }
-    
+
         // ✅ Calculate event status dynamically
         const updatedStatus = determineEventStatus(
             eventData.E_Start_Date,
@@ -84,9 +87,9 @@ function AdminEditEvent() {
             eventData.E_End_Date,
             eventData.E_End_Time
         );
-    
+
         const updatedEventData = { ...eventData, E_Status: updatedStatus };
-    
+
         // ✅ Fix: Ensure empty arrays are sent as `null` instead of `[]`
         if (Array.isArray(updatedEventData.E_Coordinators) && updatedEventData.E_Coordinators.length === 0) {
             updatedEventData.E_Coordinators = null;
@@ -94,23 +97,22 @@ function AdminEditEvent() {
         if (Array.isArray(updatedEventData.E_Super_Volunteers) && updatedEventData.E_Super_Volunteers.length === 0) {
             updatedEventData.E_Super_Volunteers = null;
         }
-    
+
         const formData = new FormData();
         Object.keys(updatedEventData).forEach((key) => {
             let value = updatedEventData[key];
-    
+
             if (value) {
                 if (key === "E_Photo" && value instanceof File) {
                     formData.append("E_Photo", value);
                 } else if (Array.isArray(value)) {
-                    // ✅ Convert array to JSON string only if it's not null
                     formData.append(key, JSON.stringify(value));
                 } else {
                     formData.append(key, value);
                 }
             }
         });
-    
+
         try {
             const response = await axios.put(
                 `https://vhub-zb2y.onrender.com/api/events/${eventId}/update/`,
@@ -122,7 +124,7 @@ function AdminEditEvent() {
                     },
                 }
             );
-    
+
             console.log("✅ Event Updated:", response.data);
             navigate("/admin/events");
         } catch (error) {
@@ -130,7 +132,7 @@ function AdminEditEvent() {
             setErrorMessage(`❌ Failed to update event: ${JSON.stringify(error.response?.data)}`);
         }
     };
-    
+
     if (!eventData) return <p className="text-white text-center">Loading event details...</p>;
 
     return (
