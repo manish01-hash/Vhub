@@ -13,22 +13,42 @@ function AdminEditEvent() {
         fetchEventDetails();
     }, []);
 
+    const determineEventStatus = (startDate, startTime, endDate, endTime) => {
+        const now = new Date();
+        const start = new Date(`${startDate}T${startTime}:00`);
+        const end = new Date(`${endDate}T${endTime}:00`);
+
+        if (now < start) return "Upcoming";
+        if (now >= start && now <= end) return "Ongoing";
+        return "Completed";
+    };
+
     const fetchEventDetails = async () => {
         try {
             const token = localStorage.getItem("accessToken");
-            const response = await axios.get(`https://vhub-zb2y.onrender.com/api/events/${eventId}/`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-    
-            const event = response.data;
-    
-            // ✅ Convert date and time format
-            event.E_Start_Date = event.E_Start_Date.split("T")[0];
-            event.E_End_Date = event.E_End_Date.split("T")[0];
-            event.E_Start_Time = event.E_Start_Time ? event.E_Start_Time.slice(0, 5) : "";
-            event.E_End_Time = event.E_End_Time ? event.E_End_Time.slice(0, 5) : "";
-    
-            setEventData(event);
+            if (!token) {
+                setErrorMessage("❌ Unauthorized! No token found.");
+                return;
+            }
+
+            const response = await axios.get(
+                `https://vhub-zb2y.onrender.com/api/events/${eventId}/`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (response.data) {
+                const event = response.data;
+
+                // ✅ Format date and time correctly
+                event.E_Start_Date = event.E_Start_Date.split("T")[0];
+                event.E_End_Date = event.E_End_Date.split("T")[0];
+                event.E_Start_Time = event.E_Start_Time ? event.E_Start_Time.slice(0, 5) : "";
+                event.E_End_Time = event.E_End_Time ? event.E_End_Time.slice(0, 5) : "";
+
+                setEventData(event);
+            } else {
+                setErrorMessage("❌ Event data not found.");
+            }
         } catch (error) {
             setErrorMessage("❌ Error fetching event details.");
         }
@@ -45,38 +65,50 @@ function AdminEditEvent() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setErrorMessage("");
-    
+
         const token = localStorage.getItem("accessToken");
         if (!token) {
             setErrorMessage("❌ Unauthorized! No token found.");
             return;
         }
-    
+
+        if (!eventData) {
+            setErrorMessage("❌ No event data available.");
+            return;
+        }
+
+        // ✅ Calculate event status dynamically
+        const updatedStatus = determineEventStatus(
+            eventData.E_Start_Date,
+            eventData.E_Start_Time,
+            eventData.E_End_Date,
+            eventData.E_End_Time
+        );
+
+        const updatedEventData = { ...eventData, E_Status: updatedStatus };
+
         const formData = new FormData();
-    
-        // ✅ Append only fields that have values
-        Object.keys(eventData).forEach((key) => {
-            let value = eventData[key];
-    
-            // ✅ Filter out empty UUIDs (fix for E_Coordinators & E_Super_Volunteers)
+        Object.keys(updatedEventData).forEach((key) => {
+            let value = updatedEventData[key];
+
             if (["E_Coordinators", "E_Super_Volunteers"].includes(key) && Array.isArray(value)) {
                 value = value.filter((id) => id !== "" && id !== null);
             }
-    
+
             if (value) {
                 if (key === "E_Photo" && value instanceof File) {
-                    formData.append("E_Photo", value); // ✅ Correct way to send a file
+                    formData.append("E_Photo", value);
                 } else if (Array.isArray(value)) {
-                    value.forEach((item) => formData.append(`${key}[]`, item)); // ✅ Send arrays properly
+                    formData.append(key, JSON.stringify(value));
                 } else {
                     formData.append(key, value);
                 }
             }
         });
-    
+
         try {
             const response = await axios.put(
-                `https://vhub-zb2y.onrender.com/api/events/${eventId}/update/`,
+                `https://vhub-zb2y.onrender.com/api/events/${eventId}/`,
                 formData,
                 {
                     headers: {
@@ -85,12 +117,12 @@ function AdminEditEvent() {
                     },
                 }
             );
-    
+
             console.log("✅ Event Updated:", response.data);
             navigate("/admin/events");
         } catch (error) {
             console.error("❌ Error updating event:", error.response?.data || error);
-            setErrorMessage(`❌ Failed to update event: ${error.response?.data?.E_Photo || "Unknown error"}`);
+            setErrorMessage(`❌ Failed to update event: ${error.response?.data?.error || "Unknown error"}`);
         }
     };
 
@@ -125,13 +157,6 @@ function AdminEditEvent() {
 
                     <label className="block mb-2">End Time:</label>
                     <input type="time" name="E_End_Time" value={eventData.E_End_Time} onChange={handleChange} required className="w-full p-2 mb-4 bg-gray-700 rounded" />
-
-                    <label className="block mb-2">Status:</label>
-                    <select name="E_Status" value={eventData.E_Status} onChange={handleChange} className="w-full p-2 mb-4 bg-gray-700 rounded">
-                        <option value="Upcoming">Upcoming</option>
-                        <option value="Ongoing">Ongoing</option>
-                        <option value="Completed">Completed</option>
-                    </select>
 
                     {errorMessage && <p className="text-red-500">{errorMessage}</p>}
 

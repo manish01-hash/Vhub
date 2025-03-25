@@ -41,47 +41,57 @@ function AdminEvents() {
             setEvents([]);
         }
     };
+    const determineEventStatus = (startDate, startTime, endDate, endTime) => {
+        const now = new Date();
+        const start = new Date(`${startDate}T${startTime}:00`);
+        const end = new Date(`${endDate}T${endTime}:00`);
+
+        if (now < start) return "Upcoming";
+        if (now >= start && now <= end) return "Ongoing";
+        return "Completed";
+    };
+
 
     function searchEvents(e) {
         const search = e.target.value;
         setSearchQuery(search);
-    
+
         console.log("🔎 Searching for:", search);
-    
+
         if (!backupEvents || backupEvents.length === 0) {
             console.log("🛑 No events available for search!");
             return;
         }
-    
+
         const searchedEvents = backupEvents.filter((event) =>
             event.E_Name.toLowerCase().includes(search.trim().toLowerCase())
         );
-    
+
         console.log("✅ Searched Events:", searchedEvents);
-    
+
         setEvents(searchedEvents);
     }
-        
+
     useEffect(() => {
         console.log("🟡 Current Filter Status:", filterStatus);
         console.log("🟡 Backup Events:", backupEvents); // Debugging log
-    
+
         // Ensure `backupEvents` contains data before filtering
         if (!backupEvents || backupEvents.length === 0) {
             console.log("🛑 No backup events found!");
             return;
         }
-    
+
         // Filter events based on status
         let filteredEvents = backupEvents.filter(
             (event) => filterStatus === 'all' || event.E_Status === filterStatus
         );
-    
+
         console.log("✅ Filtered Events:", filteredEvents); // Debugging log
-    
+
         setEvents(filteredEvents);
     }, [filterStatus, backupEvents]);
-    
+
     useEffect(() => {
         fetchEvents();
     }, []);
@@ -184,7 +194,9 @@ function AdminEvents() {
                                         </td>
                                         <td className="p-3">{formatDate(event.E_Start_Date)}</td>
                                         <td className="p-3">{formatDate(event.E_End_Date)}</td>
-                                        <td className="p-3">{event.E_Status}</td>
+                                        <td className="p-3">
+                                            {determineEventStatus(event.E_Start_Date, event.E_Start_Time, event.E_End_Date, event.E_End_Time)}
+                                        </td>
                                         <td className="p-3 flex space-x-3">
                                             <button title="View" onClick={() => navigate(`/events/${event.E_ID}`)} className="text-blue-400 hover:text-blue-600">
                                                 <FaEye />

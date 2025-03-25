@@ -52,6 +52,7 @@ from cloudinary.utils import cloudinary_url
 from django.conf import settings
 import cloudinary
 from cloudinary.models import CloudinaryField
+from django.utils import timezone 
 API_BASE_URL = settings.API_BASE_URL 
 
 font_path_bold = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
@@ -309,18 +310,32 @@ def get_profile(request):
 
 ### ------------------- EVENT MANAGEMENT ------------------- ###
 
-# Get All Events
-@api_view(["GET"])
+# Get All Events@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_events(request):
     events = Event.objects.all()
     
-    # Ensure an empty list is returned instead of an object with a message
     if not events.exists():
         return Response([], status=status.HTTP_200_OK)
 
-    serializer = EventSerializer(events, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    updated_events = []
+    current_time = now()
+
+    for event in events:
+        # Dynamically determine the event status
+        if current_time < event.E_Start_Date:
+            event_status = "Upcoming"
+        elif event.E_Start_Date <= current_time <= event.E_End_Date:
+            event_status = "Ongoing"
+        else:
+            event_status = "Completed"
+
+        # Serialize event and update status before sending response
+        event_data = EventSerializer(event).data
+        event_data["E_Status"] = event_status  # Override the stored status
+        updated_events.append(event_data)
+
+    return Response(updated_events, status=status.HTTP_200_OK)
 
 #get my events
 @api_view(["GET"])
@@ -439,15 +454,13 @@ def create_event(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-# Update the update_event view
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
 @parser_classes([MultiPartParser, FormParser])
 def update_event(request, E_ID):
     try:
         event = Event.objects.get(E_ID=E_ID)
-        
+
         # Handle file upload to Cloudinary if new photo is provided
         if 'E_Photo' in request.FILES:
             uploaded_file = request.FILES['E_Photo']
@@ -462,7 +475,19 @@ def update_event(request, E_ID):
         serializer = EventSerializer(event, data=request.data, partial=True, context={"request": request})
 
         if serializer.is_valid():
-            serializer.save()
+            updated_event = serializer.save()
+
+            # Automatically update event status based on the new date/time
+            now = timezone.now().date()  # Get current date
+            if updated_event.E_Start_Date and updated_event.E_End_Date:
+                if updated_event.E_End_Date < now:
+                    updated_event.E_Status = "Completed"
+                elif updated_event.E_Start_Date > now:
+                    updated_event.E_Status = "Upcoming"
+                else:
+                    updated_event.E_Status = "Ongoing"
+                updated_event.save()  # Save status update
+
             return Response({"message": "Event updated successfully!"}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
