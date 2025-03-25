@@ -10,7 +10,7 @@ User = get_user_model()  # ✅ Get custom user model
 # ✅ Custom User Admin
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ("email", "name", "phone", "role", "gender", "college_name", "faculty", "year_of_study", "is_active", "is_staff", "profile_image",)
+    list_display = ("email", "name", "phone", "role", "gender", "college_name", "faculty", "year_of_study", "is_active", "is_staff", "profile_image_tag")
     search_fields = ("email", "name", "phone", "college_name", "faculty")
     ordering = ("email",)
 
@@ -27,6 +27,12 @@ class CustomUserAdmin(UserAdmin):
             "gender", "college_name", "profile_image", "faculty", "year_of_study", "is_staff"),
         }),
     )
+
+    def profile_image_tag(self, obj):
+        if obj.profile_image:
+            return format_html('<img src="{}" width="50" height="50" style="border-radius: 5px;" />', obj.profile_image.url)
+        return "No Image"
+    profile_image_tag.short_description = "Profile Image"
 
 
 # ✅ Event Admin (Now Includes Attendance & Volunteers Info)
