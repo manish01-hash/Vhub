@@ -313,11 +313,7 @@ def get_profile(request):
 def get_events(request):
     try:
         # Optimize query with select_related and prefetch_related
-        events = Event.objects.select_related('E_Created_By').prefetch_related(
-            'registrations',
-            'registrations__volunteer',
-        ).all()
-
+        events = Event.objects.all()
         if not events.exists():
             return Response({"message": "No events found"}, status=status.HTTP_200_OK)
 

@@ -75,7 +75,6 @@ class SampleTaskSerializer(serializers.ModelSerializer):
 
 # Update EventSerializer to handle Cloudinary URLs
 class EventSerializer(serializers.ModelSerializer):
-    E_Created_By = serializers.SerializerMethodField()  # Changed to handle null cases
     E_Volunteers = serializers.SerializerMethodField()
     E_Registered_Count = serializers.IntegerField(read_only=True)
     E_Photo = serializers.SerializerMethodField()
@@ -88,11 +87,7 @@ class EventSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['E_ID', 'E_Status']
 
-    def get_E_Created_By(self, obj):
-        """Safe handling of potentially null creator"""
-        if obj.E_Created_By:
-            return UserSerializer(obj.E_Created_By, context=self.context).data
-        return None
+    
 
     def get_E_Volunteers(self, obj):
         """Safe volunteer list through registrations"""
@@ -167,8 +162,6 @@ class NotificationSerializer(serializers.ModelSerializer):
 # ✅ Task Serializer (Shows assigned user & related event)
 class TaskSerializer(serializers.ModelSerializer):
     assigned_to = UserSerializer(many=True, read_only=True)
-    created_by = UserSerializer(read_only=True)
-
     class Meta:
         model = Task
         fields = "__all__"
