@@ -80,14 +80,28 @@ function AdminEditEvent() {
             return;
         }
     
-        // Remove E_Status before sending the request
-        const { E_Status, ...updatedEventData } = eventData;
+        const updatedEventData = { ...eventData };
+    
+        // ✅ Fix: If `E_Coordinators` or `E_Super_Volunteers` are empty arrays, send `null`
+        if (Array.isArray(updatedEventData.E_Coordinators) && updatedEventData.E_Coordinators.length === 0) {
+            updatedEventData.E_Coordinators = null;
+        }
+        if (Array.isArray(updatedEventData.E_Super_Volunteers) && updatedEventData.E_Super_Volunteers.length === 0) {
+            updatedEventData.E_Super_Volunteers = null;
+        }
     
         const formData = new FormData();
         Object.keys(updatedEventData).forEach((key) => {
             let value = updatedEventData[key];
-            if (value) {
-                formData.append(key, value);
+    
+            if (value !== null && value !== undefined) {
+                if (key === "E_Photo" && value instanceof File) {
+                    formData.append("E_Photo", value);
+                } else if (Array.isArray(value)) {
+                    formData.append(key, JSON.stringify(value));  // ✅ Ensure arrays are handled correctly
+                } else {
+                    formData.append(key, value);
+                }
             }
         });
     
@@ -110,6 +124,7 @@ function AdminEditEvent() {
             setErrorMessage(`❌ Failed to update event: ${JSON.stringify(error.response?.data)}`);
         }
     };
+    
     
 
     if (!eventData) return <p className="text-white text-center">Loading event details...</p>;
