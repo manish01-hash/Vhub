@@ -120,6 +120,7 @@ class Event(models.Model):
     E_Start_Time = models.TimeField(null=True, blank=True)
     E_End_Time = models.TimeField(null=True, blank=True)
     E_Location = models.TextField()
+    E_Created_By = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="created_events", default=1)
     E_Registered_Count = models.PositiveIntegerField(default=0)
 
     # Store event photo in Cloudinary
@@ -449,6 +450,7 @@ class Task(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     assigned_to = models.ManyToManyField("User", related_name="tasks_assigned", blank=True)  
+    created_by = models.ForeignKey("User", on_delete=models.CASCADE, related_name="tasks_created")
     deadline = models.DateTimeField(default=now)
     priority = models.CharField(
         max_length=20, choices=[("Low", "Low"), ("Medium", "Medium"), ("High", "High")]

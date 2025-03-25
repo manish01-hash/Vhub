@@ -375,108 +375,30 @@ def calculate_profile_completion(user):
 ### ------------------- EVENT MANAGEMENT ------------------- ###
 
 # Get All Events@api_view(["GET"])@api_view(["GET"])@api_view(["GET"])
-@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_events(request):
-    """
-    Retrieve all events with optimized queries, filtering options, and pagination.
-    Includes:
-    - Basic event info
-    - Current user's registration status
-    - Event statistics
-    - Filtering by status, date range, etc.
-    """
     try:
-        # Get query parameters
-        status_filter = request.query_params.get('status')
-        date_from = request.query_params.get('from')
-        date_to = request.query_params.get('to')
-        page = int(request.query_params.get('page', 1))
-        page_size = int(request.query_params.get('page_size', 10))
-
-        # Base queryset with optimizations
-        events = Event.objects.select_related('E_Created_By')\
-                             .prefetch_related('E_Volunteers', 'E_Coordinators', 'E_Super_Volunteers')
-
-        # Apply filters
-        if status_filter:
-            events = events.filter(E_Status=status_filter)
-        
-        if date_from and date_to:
-            events = events.filter(
-                E_Start_Date__gte=date_from,
-                E_End_Date__lte=date_to
-            )
-
-        # Pagination
-        total_events = events.count()
-        events = events.order_by('-E_Start_Date')[(page-1)*page_size : page*page_size]
-
+        # Optimize query with select_related and prefetch_related
+        events = Event.objects.all()
         if not events.exists():
-            return Response({
-                "message": "No events found",
-                "filters": {
-                    "status": status_filter,
-                    "date_range": {"from": date_from, "to": date_to}
-                }
-            }, status=status.HTTP_200_OK)
+            return Response({"message": "No events found"}, status=status.HTTP_200_OK)
 
-        # Prepare response data
         event_list = []
-        current_user = request.user
-        
         for event in events:
-            serializer = EventSerializer(event, context={'request': request}).data
-            
-            # Add user-specific data
-            serializer['is_registered'] = Registration.objects.filter(
-                event=event, 
-                volunteer=current_user
-            ).exists()
-            
-            serializer['user_role'] = get_user_event_role(current_user, event)
-            
-            event_list.append(serializer)
+            if event is None:
+                continue  # ✅ Skip invalid events
 
-        return Response({
-            "events": event_list,
-            "pagination": {
-                "total_events": total_events,
-                "current_page": page,
-                "page_size": page_size,
-                "total_pages": (total_events + page_size - 1) // page_size
-            },
-            "filters": {
-                "status": status_filter,
-                "date_range": {"from": date_from, "to": date_to}
-            }
-        }, status=status.HTTP_200_OK)
+            serializer = EventSerializer(event, context={'request': request})
+            event_list.append(serializer.data)
 
-    except ValueError as e:
-        logger.error(f"Invalid parameter in get_events: {str(e)}")
-        return Response(
-            {"error": "Invalid request parameters"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        return Response(event_list, status=status.HTTP_200_OK)
+
     except Exception as e:
-        logger.error(f"Error in get_events: {str(e)}", exc_info=True)
+        print(f"❌ Error in get_events: {str(e)}")
         return Response(
-            {"error": "An error occurred while fetching events"},
+            {"error": f"Failed to load events. Please try again later. Error: {str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-
-
-def get_user_event_role(user, event):
-    """Helper function to determine user's role in a specific event"""
-    if user == event.E_Created_By:
-        return "Organizer"
-    if user in event.E_Coordinators.all():
-        return "Coordinator"
-    if user in event.E_Super_Volunteers.all():
-        return "Super Volunteer"
-    if user in event.E_Volunteers.all():
-        return "Volunteer"
-    return None
 
 
 #get my events
