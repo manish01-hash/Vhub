@@ -81,11 +81,15 @@ class EventSerializer(serializers.ModelSerializer):
     E_Photo = serializers.SerializerMethodField()
     announcements = EventAnnouncementSerializer(many=True, read_only=True)
     sample_tasks = SampleTaskSerializer(many=True, read_only=True)
+    E_Status = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
         fields = '__all__'
         read_only_fields = ['E_ID']
+    
+    def get_E_Status(self, obj):
+        return obj.E_Status 
 
     def get_E_Photo(self, obj):
         if obj.E_Photo:

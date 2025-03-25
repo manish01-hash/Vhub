@@ -45,23 +45,43 @@ function AdminEvents() {
     function searchEvents(e) {
         const search = e.target.value;
         setSearchQuery(search);
-        setAllEvents(backupEvents);
-        const searchedEvents = allEvents.filter((event) => {
-            return event.E_Name.toLowerCase().includes(search.trim().toLowerCase());
-        });
-
+    
+        console.log("🔎 Searching for:", search);
+    
+        if (!backupEvents || backupEvents.length === 0) {
+            console.log("🛑 No events available for search!");
+            return;
+        }
+    
+        const searchedEvents = backupEvents.filter((event) =>
+            event.E_Name.toLowerCase().includes(search.trim().toLowerCase())
+        );
+    
+        console.log("✅ Searched Events:", searchedEvents);
+    
         setEvents(searchedEvents);
-        setAllEvents(backupEvents);
     }
-
+        
     useEffect(() => {
-        console.log("🟡 Filter Status:", filterStatus);
-        setAllEvents(backupEvents);
-        let filteredEvents = allEvents.filter((event) => filterStatus === 'all' || event.E_Status === filterStatus);
+        console.log("🟡 Current Filter Status:", filterStatus);
+        console.log("🟡 Backup Events:", backupEvents); // Debugging log
+    
+        // Ensure `backupEvents` contains data before filtering
+        if (!backupEvents || backupEvents.length === 0) {
+            console.log("🛑 No backup events found!");
+            return;
+        }
+    
+        // Filter events based on status
+        let filteredEvents = backupEvents.filter(
+            (event) => filterStatus === 'all' || event.E_Status === filterStatus
+        );
+    
+        console.log("✅ Filtered Events:", filteredEvents); // Debugging log
+    
         setEvents(filteredEvents);
-        setAllEvents(backupEvents);
-    }, [filterStatus]);
-
+    }, [filterStatus, backupEvents]);
+    
     useEffect(() => {
         fetchEvents();
     }, []);
