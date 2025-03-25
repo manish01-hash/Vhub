@@ -85,7 +85,7 @@ class EventAdmin(admin.ModelAdmin):
         }),
         ("Personnel", {
             "fields": (
-                "E_Created_By",
+                
                 # Removed E_Volunteers from here
                 "E_Coordinators",
                 "E_Super_Volunteers"
@@ -93,7 +93,7 @@ class EventAdmin(admin.ModelAdmin):
         }),
     )
 
-    readonly_fields = ("E_ID", "display_event_photo", "E_Created_By")
+    readonly_fields = ("E_ID", "display_event_photo")
 
     def display_E_Status(self, obj):
         return obj.E_Status
@@ -108,10 +108,7 @@ class EventAdmin(admin.ModelAdmin):
         return "No Image"
     display_event_photo.short_description = "Event Photo"
 
-    def save_model(self, request, obj, form, change):
-        if not obj.E_Created_By:
-            obj.E_Created_By = request.user
-        super().save_model(request, obj, form, change)
+    
 
     def total_volunteers(self, obj):
         return obj.registrations.count()
