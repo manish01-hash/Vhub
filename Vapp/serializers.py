@@ -131,10 +131,10 @@ class EventSerializer(serializers.ModelSerializer):
     E_Status = serializers.SerializerMethodField()
     is_registered = serializers.SerializerMethodField()
     user_role = serializers.SerializerMethodField()
-
+    E_Created_By = UserSerializer(read_only=True)
     class Meta:
         model = Event
-        exclude = ['E_Created_By']  # Explicitly exclude the created_by field
+        fields = '__all__'
         read_only_fields = ['E_ID', 'E_Status']
         extra_kwargs = {
             'E_Photo': {'write_only': True}

@@ -379,7 +379,7 @@ def calculate_profile_completion(user):
 def get_events(request):
     try:
         # Optimize query with select_related and prefetch_related
-        events = Event.objects.all()
+        events = Event.objects.select_related('E_Created_By').all()
         if not events.exists():
             return Response({"message": "No events found"}, status=status.HTTP_200_OK)
 
