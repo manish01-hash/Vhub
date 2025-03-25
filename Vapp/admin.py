@@ -58,43 +58,72 @@ class EventStatusFilter(admin.SimpleListFilter):
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ("E_ID", "E_Name", "E_Start_Date", "E_End_Date", "display_E_Status", "total_volunteers", "checked_in_volunteers", "pending_volunteers")
+    list_display = ("E_ID", "E_Name", "E_Start_Date", "E_End_Date", "display_E_Status", 
+                    "total_volunteers", "checked_in_volunteers", "pending_volunteers")
     list_filter = (EventStatusFilter, "E_Start_Date", "E_End_Date")
     search_fields = ("E_Name", "E_Location")
+    filter_horizontal = ("E_Volunteers", "E_Coordinators", "E_Super_Volunteers")
 
     fieldsets = (
-        ("Event Details", {"fields": ("E_ID", "E_Name", "E_Description", "E_Location")}),
-        ("Schedule", {"fields": ("E_Start_Date", "E_End_Date")}),
-        ("Media", {"fields": ("display_event_photo",)})
+        ("Basic Info", {
+            "fields": (
+                "E_ID",
+                "E_Name", 
+                "E_Description",
+                "E_Location",
+                "E_Required_Volunteers",
+                "E_Photo"
+            )
+        }),
+        ("Schedule", {
+            "fields": (
+                "E_Start_Date",
+                "E_End_Date",
+                "E_Start_Time",
+                "E_End_Time"
+            )
+        }),
+        ("Personnel", {
+            "fields": (
+                "E_Created_By",
+                "E_Volunteers",
+                "E_Coordinators",
+                "E_Super_Volunteers"
+            )
+        }),
     )
 
-    readonly_fields = ("E_ID", "E_Created_By")
+    readonly_fields = ("E_ID", "display_event_photo", "E_Created_By")
+
     def display_E_Status(self, obj):
-        return obj.E_Status  # ✅ Use dynamic status
+        return obj.E_Status
     display_E_Status.short_description = "Event Status"
 
     def display_event_photo(self, obj):
         if obj.E_Photo:
-            return format_html('<img src="{}" width="100" height="100" style="border-radius: 5px;" />', obj.E_Photo.url)
+            return format_html(
+                '<img src="{}" width="100" height="100" style="border-radius: 5px;" />', 
+                obj.E_Photo.url
+            )
         return "No Image"
-
     display_event_photo.short_description = "Event Photo"
 
     def save_model(self, request, obj, form, change):
         if not obj.E_Created_By:
             obj.E_Created_By = request.user
-        obj.save()
+        super().save_model(request, obj, form, change)
 
     def total_volunteers(self, obj):
-        return obj.registrations.count() if obj.registrations.exists() else 0
+        return obj.registrations.count()
+    total_volunteers.short_description = "Total Volunteers"
 
     def checked_in_volunteers(self, obj):
-        return obj.registrations.filter(qr_code__isnull=False).count() if obj.registrations.exists() else 0
+        return obj.attendances.count()
+    checked_in_volunteers.short_description = "Checked In"
 
     def pending_volunteers(self, obj):
-        return obj.registrations.filter(qr_code__isnull=True).count() if obj.registrations.exists() else 0
-
-
+        return obj.registrations.count() - obj.attendances.count()
+    pending_volunteers.short_description = "Pending Check-in"
 # ✅ Task Admin
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
