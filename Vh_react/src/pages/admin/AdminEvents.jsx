@@ -42,15 +42,24 @@ function AdminEvents() {
         }
     };
     const determineEventStatus = (startDate, startTime, endDate, endTime) => {
-        if (!startDate || !startTime || !endDate || !endTime) return "Unknown";
-
-        const now = new Date();
-        const start = new Date(`${startDate}T${startTime}:00`);
-        const end = new Date(`${endDate}T${endTime}:00`);
-
-        if (now < start) return "Upcoming";
-        if (now >= start && now <= end) return "Ongoing";
-        return "Completed";
+        if (!startDate || !endDate) return "Unknown";  // Ensure date is present
+        if (!startTime || !endTime) return "Unknown";  // Ensure time is present
+    
+        try {
+            const now = new Date();
+            const start = new Date(`${startDate}T${startTime}:00`);
+            const end = new Date(`${endDate}T${endTime}:00`);
+    
+            console.log(`⏳ Current Browser Time: ${now.toISOString()}`);
+            console.log(`📅 Event Start: ${start.toISOString()}, End: ${end.toISOString()}`);
+    
+            if (now < start) return "Upcoming";
+            if (now >= start && now <= end) return "Ongoing";
+            return "Completed";
+        } catch (error) {
+            console.error("❌ Error parsing event time:", error);
+            return "Unknown";
+        }
     };
 
 
