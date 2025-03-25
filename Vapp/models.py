@@ -132,14 +132,20 @@ class Event(models.Model):
 
     @property
     def E_Status(self):
-        """Dynamically determine event status."""
-        now = timezone.now()
-        if now < self.E_Start_Date:
-            return "Upcoming"
-        elif self.E_Start_Date <= now <= self.E_End_Date:
-            return "Ongoing"
-        else:
-            return "Completed"
+        """Dynamically determine event status, with error handling."""
+        try:
+            current_time = now()
+            if not self.E_Start_Date or not self.E_End_Date:
+                return "Unknown"  # Handle missing date
+            if current_time < self.E_Start_Date:
+                return "Upcoming"
+            elif self.E_Start_Date <= current_time <= self.E_End_Date:
+                return "Ongoing"
+            else:
+                return "Completed"
+        except Exception as e:
+            print(f"Error calculating event status: {e}")
+            return "Error"
 
     def has_event_ended(self):
         """Check if the event has ended."""
