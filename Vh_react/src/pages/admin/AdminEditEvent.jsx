@@ -68,28 +68,21 @@ function AdminEditEvent() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setErrorMessage("");
-
+    
         const token = localStorage.getItem("accessToken");
         if (!token) {
             setErrorMessage("❌ Unauthorized! No token found.");
             return;
         }
-
+    
         if (!eventData) {
             setErrorMessage("❌ No event data available.");
             return;
         }
-
-        // ✅ Calculate event status dynamically
-        const updatedStatus = determineEventStatus(
-            eventData.E_Start_Date,
-            eventData.E_Start_Time,
-            eventData.E_End_Date,
-            eventData.E_End_Time
-        );
-
-        const updatedEventData = { ...eventData, E_Status: updatedStatus };
-
+    
+        // ✅ Remove E_Status from request payload
+        const { E_Status, ...updatedEventData } = eventData;
+    
         // ✅ Fix: Ensure empty arrays are sent as `null` instead of `[]`
         if (Array.isArray(updatedEventData.E_Coordinators) && updatedEventData.E_Coordinators.length === 0) {
             updatedEventData.E_Coordinators = null;
@@ -97,11 +90,11 @@ function AdminEditEvent() {
         if (Array.isArray(updatedEventData.E_Super_Volunteers) && updatedEventData.E_Super_Volunteers.length === 0) {
             updatedEventData.E_Super_Volunteers = null;
         }
-
+    
         const formData = new FormData();
         Object.keys(updatedEventData).forEach((key) => {
             let value = updatedEventData[key];
-
+    
             if (value) {
                 if (key === "E_Photo" && value instanceof File) {
                     formData.append("E_Photo", value);
@@ -112,7 +105,7 @@ function AdminEditEvent() {
                 }
             }
         });
-
+    
         try {
             const response = await axios.put(
                 `https://vhub-zb2y.onrender.com/api/events/${eventId}/update/`,
@@ -124,7 +117,7 @@ function AdminEditEvent() {
                     },
                 }
             );
-
+    
             console.log("✅ Event Updated:", response.data);
             navigate("/admin/events");
         } catch (error) {
