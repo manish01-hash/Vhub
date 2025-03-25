@@ -209,7 +209,7 @@ class EventSerializer(serializers.ModelSerializer):
     def get_announcements(self, obj):
         """Get recent announcements with limit"""
         try:
-            announcements = obj.announcements.order_by('-created_at')[:3]
+            announcements = obj.event_announcements.order_by('-created_at')[:3]
             return EventAnnouncementSerializer(
                 announcements, 
                 many=True,

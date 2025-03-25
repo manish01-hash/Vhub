@@ -313,6 +313,9 @@ def get_profile(request):
     """
     try:
         user = request.user
+        if not user:
+            return Response({"error": "User not found"}, status=404)
+
         
         # Basic user data
         user_data = UserSerializer(user, context={"request": request}).data
@@ -375,32 +378,35 @@ def calculate_profile_completion(user):
 ### ------------------- EVENT MANAGEMENT ------------------- ###
 
 # Get All Events@api_view(["GET"])@api_view(["GET"])@api_view(["GET"])
+
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_events(request):
     try:
-        # Optimize query with select_related and prefetch_related
-        events = Event.objects.select_related('E_Created_By').all()
+        # Optimized query with prefetch_related for many-to-many relationships
+        events = Event.objects.select_related('E_Created_By')\
+                   .prefetch_related('E_Volunteers', 'E_Coordinators', 'E_Super_Volunteers', 'event_announcements')\
+                   .filter(E_Created_By__isnull=False)\
+                   .order_by('-E_Start_Date')  # Typically want newest events first
+        
         if not events.exists():
             return Response({"message": "No events found"}, status=status.HTTP_200_OK)
 
-        event_list = []
-        for event in events:
-            if event is None:
-                continue  # ✅ Skip invalid events
-
-            serializer = EventSerializer(event, context={'request': request})
-            event_list.append(serializer.data)
-
-        return Response(event_list, status=status.HTTP_200_OK)
+        # Use list comprehension for cleaner code
+        serializer = EventSerializer(
+            events, 
+            many=True,
+            context={'request': request}
+        )
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     except Exception as e:
-        print(f"❌ Error in get_events: {str(e)}")
+        logger.error(f"Error in get_events: {str(e)}")  # Better than print for production
         return Response(
-            {"error": f"Failed to load events. Please try again later. Error: {str(e)}"},
+            {"error": "Failed to load events. Please try again later."},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-
-
 #get my events
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
