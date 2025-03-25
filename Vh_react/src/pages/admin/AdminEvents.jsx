@@ -42,16 +42,32 @@ function AdminEvents() {
         }
     };
     const determineEventStatus = (startDate, startTime, endDate, endTime) => {
-        if (!startDate || !endDate) return "Unknown";  // Ensure date is present
-        if (!startTime || !endTime) return "Unknown";  // Ensure time is present
+        if (!startDate || !startTime || !endDate || !endTime) return "Unknown";  
     
         try {
             const now = new Date();
-            const start = new Date(`${startDate}T${startTime}:00`);
-            const end = new Date(`${endDate}T${endTime}:00`);
     
-            console.log(`⏳ Current Browser Time: ${now.toISOString()}`);
-            console.log(`📅 Event Start: ${start.toISOString()}, End: ${end.toISOString()}`);
+            // Convert UTC date to local timezone
+            const startDateLocal = new Date(startDate);  
+            const endDateLocal = new Date(endDate);
+    
+            // Combine local date with provided local time correctly
+            const start = new Date(
+                startDateLocal.getFullYear(),
+                startDateLocal.getMonth(),
+                startDateLocal.getDate(),
+                ...startTime.split(":").map(Number)  // Extract HH:MM:SS
+            );
+    
+            const end = new Date(
+                endDateLocal.getFullYear(),
+                endDateLocal.getMonth(),
+                endDateLocal.getDate(),
+                ...endTime.split(":").map(Number)
+            );
+    
+            console.log(`⏳ Current Local Time: ${now}`);
+            console.log(`📅 Fixed Event Start (Local): ${start}, End: ${end}`);
     
             if (now < start) return "Upcoming";
             if (now >= start && now <= end) return "Ongoing";
@@ -61,6 +77,7 @@ function AdminEvents() {
             return "Unknown";
         }
     };
+    
 
 
     function searchEvents(e) {
