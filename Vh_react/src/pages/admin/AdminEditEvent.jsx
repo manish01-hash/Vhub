@@ -108,7 +108,7 @@ function AdminEditEvent() {
 
         try {
             const response = await axios.put(
-                `https://vhub-zb2y.onrender.com/api/events/${eventId}/`,
+                `https://vhub-zb2y.onrender.com/api/events/${eventId}/update/`,
                 formData,
                 {
                     headers: {
