@@ -3,10 +3,13 @@ from django.contrib.auth import authenticate
 from .models import User, Event, Task, Attendance, Registration,EventAnnouncement,SampleTask,Notification
 from django.utils import timezone 
 from datetime import datetime, time
+import logging
+logger = logging.getLogger(__name__)
 
-# ✅ User Serializerclass UserSerializer(serializers.ModelSerializer):
+# ✅ User Serializerclass 
 class UserSerializer(serializers.ModelSerializer):
     profile_image = serializers.SerializerMethodField()
+    role = serializers.CharField(read_only=True)  # Make role read-only for security
     
     class Meta:
         model = User
@@ -15,9 +18,54 @@ class UserSerializer(serializers.ModelSerializer):
             'gender', 'college_name', 'faculty', 'year_of_study', 
             'profile_image', 'is_active', 'created_at'
         ]
-    
+        read_only_fields = ['id', 'is_active', 'created_at']  # Auto fields
+        extra_kwargs = {
+            'email': {'validators': []}  # Disable default unique validator
+        }
+
     def get_profile_image(self, obj):
-        return obj.profile_image.url if obj.profile_image else ""
+        """Safe profile image URL generation with request context"""
+        try:
+            if obj.profile_image:
+                request = self.context.get('request')
+                if request:
+                    # Return absolute URL with optimized image parameters
+                    return request.build_absolute_uri(
+                        f"{obj.profile_image.url}?w=200&h=200&c=fill"
+                    )
+                return obj.profile_image.url
+            return None  # Explicit None instead of empty string
+        except Exception as e:
+            logger.error(f"Error getting profile image for user {obj.id}: {str(e)}")
+            return None
+
+    def validate_email(self, value):
+        """Custom email validation"""
+        if not value:
+            raise serializers.ValidationError("Email is required")
+        if not '@' in value:
+            raise serializers.ValidationError("Enter a valid email address")
+        return value.lower()  # Normalize to lowercase
+
+    def validate_phone(self, value):
+        """Basic phone number validation"""
+        if value and len(value) < 8:
+            raise serializers.ValidationError("Phone number too short")
+        return value
+
+    def to_representation(self, instance):
+        """Final representation with additional calculated fields"""
+        data = super().to_representation(instance)
+        
+        # Add calculated fields if needed
+        if self.context.get('include_stats', False):
+            data['events_attended'] = instance.attended_events.count()
+            data['tasks_completed'] = instance.tasks.filter(status='Completed').count()
+        
+        # Remove null values if preferred
+        data = {k: v for k, v in data.items() if v is not None}
+        
+        return data
 
 
 
@@ -76,52 +124,66 @@ class SampleTaskSerializer(serializers.ModelSerializer):
 # Update EventSerializer to handle Cloudinary URLs
 class EventSerializer(serializers.ModelSerializer):
     E_Volunteers = serializers.SerializerMethodField()
-    E_Registered_Count = serializers.IntegerField(read_only=True)
+    E_Registered_Count = serializers.SerializerMethodField()
     E_Photo = serializers.SerializerMethodField()
-    announcements = EventAnnouncementSerializer(many=True, read_only=True)
-    sample_tasks = SampleTaskSerializer(many=True, read_only=True)
+    announcements = serializers.SerializerMethodField()
+    sample_tasks = serializers.SerializerMethodField()
     E_Status = serializers.SerializerMethodField()
+    is_registered = serializers.SerializerMethodField()
+    user_role = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
-        fields = '__all__'
+        exclude = ['E_Created_By']  # Explicitly exclude the created_by field
         read_only_fields = ['E_ID', 'E_Status']
-
-    
+        extra_kwargs = {
+            'E_Photo': {'write_only': True}
+        }
 
     def get_E_Volunteers(self, obj):
-        """Safe volunteer list through registrations"""
-        if hasattr(obj, 'registrations') and obj.registrations is not None:
-            try:
-                volunteers = obj.registrations.select_related('volunteer').values_list('volunteer', flat=True)
-                return UserSerializer(
-                    User.objects.filter(id__in=volunteers),
-                    many=True,
-                    context=self.context
-                ).data
-            except Exception as e:
-                print(f"Error getting volunteers: {e}")
-        return []
+        """Optimized volunteer list through prefetched registrations"""
+        try:
+            if hasattr(obj, 'prefetched_registrations'):
+                volunteers = [reg.volunteer for reg in obj.prefetched_registrations]
+            else:
+                volunteers = obj.E_Volunteers.all()[:20]  # Limit for safety
+            
+            return UserSerializer(
+                volunteers,
+                many=True,
+                context=self.context
+            ).data
+        except Exception as e:
+            logger.error(f"Error getting volunteers for event {obj.E_ID}: {str(e)}")
+            return []
+
+    def get_E_Registered_Count(self, obj):
+        """Efficient count of registrations"""
+        try:
+            if hasattr(obj, 'registration_count'):
+                return obj.registration_count
+            return obj.registrations.count()
+        except Exception as e:
+            logger.error(f"Error counting registrations: {str(e)}")
+            return 0
 
     def get_E_Status(self, obj):
         """Robust status calculation with timezone handling"""
-        try:
+        try:                
             current_time = timezone.localtime(timezone.now())
             
-            # Validate all required datetime components exist
             if None in [obj.E_Start_Date, obj.E_Start_Time, obj.E_End_Date, obj.E_End_Time]:
                 return "Unknown"
 
-            # Create timezone-aware datetimes
-            start_datetime = datetime.combine(obj.E_Start_Date, obj.E_Start_Time)
-            end_datetime = datetime.combine(obj.E_End_Date, obj.E_End_Time)
+            start_datetime = timezone.make_aware(datetime.combine(
+                obj.E_Start_Date, 
+                obj.E_Start_Time
+            ))
+            end_datetime = timezone.make_aware(datetime.combine(
+                obj.E_End_Date, 
+                obj.E_End_Time
+            ))
 
-            if timezone.is_naive(start_datetime):
-                start_datetime = timezone.make_aware(start_datetime)
-            if timezone.is_naive(end_datetime):
-                end_datetime = timezone.make_aware(end_datetime)
-
-            # Determine status
             if current_time < start_datetime:
                 return "Upcoming"
             elif start_datetime <= current_time <= end_datetime:
@@ -129,16 +191,100 @@ class EventSerializer(serializers.ModelSerializer):
             return "Completed"
             
         except Exception as e:
-            print(f"Error calculating status for event {obj.E_ID}: {str(e)}")
+            logger.error(f"Status calculation error for event {obj.E_ID}: {str(e)}")
             return "Error"
 
     def get_E_Photo(self, obj):
-        """Safe handling of Cloudinary field"""
+        """Safe handling of image URLs"""
         try:
-            if obj.E_Photo and hasattr(obj.E_Photo, 'url'):
-                return obj.E_Photo.url
+            if obj.E_Photo:
+                request = self.context.get('request')
+                if request and hasattr(obj.E_Photo, 'url'):
+                    return request.build_absolute_uri(obj.E_Photo.url)
+                return str(obj.E_Photo)
         except Exception as e:
-            print(f"Error getting photo URL: {e}")
+            logger.error(f"Photo URL error for event {obj.E_ID}: {str(e)}")
+        return None
+
+    def get_announcements(self, obj):
+        """Get recent announcements with limit"""
+        try:
+            announcements = obj.announcements.order_by('-created_at')[:3]
+            return EventAnnouncementSerializer(
+                announcements, 
+                many=True,
+                context=self.context
+            ).data
+        except Exception as e:
+            logger.error(f"Error getting announcements: {str(e)}")
+            return []
+
+    def get_sample_tasks(self, obj):
+        """Get sample tasks with optimization"""
+        try:
+            if hasattr(obj, 'prefetched_sample_tasks'):
+                tasks = obj.prefetched_sample_tasks
+            else:
+                tasks = obj.sample_tasks.all()[:5]
+            return SampleTaskSerializer(tasks, many=True).data
+        except Exception as e:
+            logger.error(f"Error getting sample tasks: {str(e)}")
+            return []
+
+    def get_is_registered(self, obj):
+        """Check if current user is registered"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            try:
+                if hasattr(obj, 'prefetched_user_registration'):
+                    return bool(obj.prefetched_user_registration)
+                return obj.registrations.filter(volunteer=request.user).exists()
+            except Exception as e:
+                logger.error(f"Registration check error: {str(e)}")
+        return False
+
+    def get_user_role(self, obj):
+        """Determine current user's role in event"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            user = request.user
+            if user in obj.E_Coordinators.all():
+                return "Coordinator"
+            if user in obj.E_Super_Volunteers.all():
+                return "Super Volunteer"
+            if user in obj.E_Volunteers.all():
+                return "Volunteer"
+        return None
+
+    def to_representation(self, instance):
+        """Final representation with calculated fields"""
+        data = super().to_representation(instance)
+        
+        # Add calculated fields
+        data['days_remaining'] = self._calculate_days_remaining(instance)
+        data['progress_percentage'] = self._calculate_progress(instance)
+        
+        return data
+
+    def _calculate_days_remaining(self, event):
+        """Helper for days remaining calculation"""
+        try:
+            if event.E_Status == "Upcoming" and event.E_Start_Date:
+                delta = event.E_Start_Date - timezone.now().date()
+                return max(0, delta.days)
+        except Exception as e:
+            logger.error(f"Days remaining calculation error: {str(e)}")
+        return None
+
+    def _calculate_progress(self, event):
+        """Calculate event progress percentage"""
+        try:
+            if event.E_Status == "Ongoing":
+                total_duration = (event.E_End_Date - event.E_Start_Date).days
+                elapsed_days = (timezone.now().date() - event.E_Start_Date).days
+                return min(100, max(0, int((elapsed_days / total_duration) * 100)))
+        except Exception as e:
+            logger.error(f"Progress calculation error: {str(e)}")
         return None
 
 

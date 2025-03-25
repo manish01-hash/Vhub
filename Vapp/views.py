@@ -53,6 +53,8 @@ from django.conf import settings
 import cloudinary
 from cloudinary.models import CloudinaryField
 from django.utils import timezone 
+import logging
+logger = logging.getLogger(__name__)
 API_BASE_URL = settings.API_BASE_URL 
 
 font_path_bold = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
@@ -301,38 +303,180 @@ def get_user_by_id(request, user_id):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_profile(request):
-    serializer = UserSerializer(request.user, context={"request": request})
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    """
+    Retrieve the authenticated user's profile with complete details.
+    Includes:
+    - Basic user info
+    - Event participation stats
+    - Upcoming events
+    - Recent certificates
+    """
+    try:
+        user = request.user
+        
+        # Basic user data
+        user_data = UserSerializer(user, context={"request": request}).data
+        
+        # Add additional profile statistics
+        profile_stats = {
+            "events_attended": Attendance.objects.filter(volunteer=user).count(),
+            "events_organized": Event.objects.filter(E_Created_By=user).count(),
+            "tasks_completed": Task.objects.filter(assigned_to=user, status="Completed").count(),
+            "upcoming_events": Event.objects.filter(
+                Q(E_Volunteers=user) | 
+                Q(E_Coordinators=user) |
+                Q(E_Super_Volunteers=user),
+                E_Status="Upcoming"
+            ).count(),
+        }
+        
+        # Add recent certificates (last 3)
+        certificates = EventCertificate.objects.filter(user=user).order_by('-created_at')[:3]
+        certificate_data = [{
+            "event_name": cert.event.E_Name,
+            "issued_date": cert.created_at.strftime("%Y-%m-%d"),
+            "download_url": request.build_absolute_uri(cert.file.url) if cert.file else None
+        } for cert in certificates]
+        
+        response_data = {
+            **user_data,
+            "stats": profile_stats,
+            "recent_certificates": certificate_data,
+            "profile_completion": calculate_profile_completion(user)  # Helper function
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Error fetching profile for user {request.user.id}: {str(e)}")
+        return Response(
+            {"error": "Could not retrieve profile data", "details": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+def calculate_profile_completion(user):
+    """Calculate profile completion percentage based on filled fields"""
+    required_fields = [
+        'name', 'email', 'phone', 
+        'college_name', 'faculty', 'year_of_study',
+        'profile_image'
+    ]
+    
+    completed = 0
+    for field in required_fields:
+        if getattr(user, field, None):
+            completed += 1
+    
+    return int((completed / len(required_fields)) * 100)
 
 
 
 ### ------------------- EVENT MANAGEMENT ------------------- ###
 
 # Get All Events@api_view(["GET"])@api_view(["GET"])@api_view(["GET"])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_events(request):
+    """
+    Retrieve all events with optimized queries, filtering options, and pagination.
+    Includes:
+    - Basic event info
+    - Current user's registration status
+    - Event statistics
+    - Filtering by status, date range, etc.
+    """
     try:
-        # Optimize query with select_related and prefetch_related
-        events = Event.objects.all()
+        # Get query parameters
+        status_filter = request.query_params.get('status')
+        date_from = request.query_params.get('from')
+        date_to = request.query_params.get('to')
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 10))
+
+        # Base queryset with optimizations
+        events = Event.objects.select_related('E_Created_By')\
+                             .prefetch_related('E_Volunteers', 'E_Coordinators', 'E_Super_Volunteers')
+
+        # Apply filters
+        if status_filter:
+            events = events.filter(E_Status=status_filter)
+        
+        if date_from and date_to:
+            events = events.filter(
+                E_Start_Date__gte=date_from,
+                E_End_Date__lte=date_to
+            )
+
+        # Pagination
+        total_events = events.count()
+        events = events.order_by('-E_Start_Date')[(page-1)*page_size : page*page_size]
+
         if not events.exists():
-            return Response({"message": "No events found"}, status=status.HTTP_200_OK)
+            return Response({
+                "message": "No events found",
+                "filters": {
+                    "status": status_filter,
+                    "date_range": {"from": date_from, "to": date_to}
+                }
+            }, status=status.HTTP_200_OK)
 
+        # Prepare response data
         event_list = []
+        current_user = request.user
+        
         for event in events:
-            if event is None:
-                continue  # ✅ Skip invalid events
+            serializer = EventSerializer(event, context={'request': request}).data
+            
+            # Add user-specific data
+            serializer['is_registered'] = Registration.objects.filter(
+                event=event, 
+                volunteer=current_user
+            ).exists()
+            
+            serializer['user_role'] = get_user_event_role(current_user, event)
+            
+            event_list.append(serializer)
 
-            serializer = EventSerializer(event, context={'request': request})
-            event_list.append(serializer.data)
+        return Response({
+            "events": event_list,
+            "pagination": {
+                "total_events": total_events,
+                "current_page": page,
+                "page_size": page_size,
+                "total_pages": (total_events + page_size - 1) // page_size
+            },
+            "filters": {
+                "status": status_filter,
+                "date_range": {"from": date_from, "to": date_to}
+            }
+        }, status=status.HTTP_200_OK)
 
-        return Response(event_list, status=status.HTTP_200_OK)
-
-    except Exception as e:
-        print(f"❌ Error in get_events: {str(e)}")
+    except ValueError as e:
+        logger.error(f"Invalid parameter in get_events: {str(e)}")
         return Response(
-            {"error": f"Failed to load events. Please try again later. Error: {str(e)}"},
+            {"error": "Invalid request parameters"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    except Exception as e:
+        logger.error(f"Error in get_events: {str(e)}", exc_info=True)
+        return Response(
+            {"error": "An error occurred while fetching events"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+def get_user_event_role(user, event):
+    """Helper function to determine user's role in a specific event"""
+    if user == event.E_Created_By:
+        return "Organizer"
+    if user in event.E_Coordinators.all():
+        return "Coordinator"
+    if user in event.E_Super_Volunteers.all():
+        return "Super Volunteer"
+    if user in event.E_Volunteers.all():
+        return "Volunteer"
+    return None
 
 
 #get my events
