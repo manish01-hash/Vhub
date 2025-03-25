@@ -76,9 +76,9 @@ class SampleTaskSerializer(serializers.ModelSerializer):
 # Update EventSerializer to handle Cloudinary URLs
 class EventSerializer(serializers.ModelSerializer):
     E_Created_By = UserSerializer(read_only=True)
-    E_Volunteers = UserSerializer(many=True, read_only=True)
+    E_Volunteers = serializers.SerializerMethodField()  # Changed from UserSerializer
     E_Registered_Count = serializers.IntegerField(read_only=True)
-    E_Photo = serializers.SerializerMethodField()  # Changed from ImageField to SerializerMethodField
+    E_Photo = serializers.SerializerMethodField()
     announcements = EventAnnouncementSerializer(many=True, read_only=True)
     sample_tasks = SampleTaskSerializer(many=True, read_only=True)
     E_Status = serializers.SerializerMethodField()
@@ -87,6 +87,16 @@ class EventSerializer(serializers.ModelSerializer):
         model = Event
         fields = '__all__'
         read_only_fields = ['E_ID', 'E_Status']
+
+    def get_E_Volunteers(self, obj):
+        # Safely serialize through the registration relationship
+        from .serializers import UserSerializer
+        volunteers = obj.registrations.values_list('volunteer', flat=True)
+        return UserSerializer(
+            User.objects.filter(id__in=volunteers),
+            many=True,
+            context=self.context
+        ).data
 
     def get_E_Status(self, obj):
         try:
@@ -99,17 +109,15 @@ class EventSerializer(serializers.ModelSerializer):
             elif obj.E_Start_Date <= current_time <= obj.E_End_Date:
                 return "Ongoing"
             return "Completed"
-        except Exception as e:
-            print(f"Error calculating status for event {obj.E_ID}: {str(e)}")
+        except Exception:
             return "Error"
 
     def get_E_Photo(self, obj):
         try:
             if obj.E_Photo:
                 return obj.E_Photo.url
-        except Exception as e:
-            print(f"Error getting photo URL for event {obj.E_ID}: {str(e)}")
-        return None
+        except Exception:
+            return None
 
 
 class EventAnnouncementSerializer(serializers.ModelSerializer):

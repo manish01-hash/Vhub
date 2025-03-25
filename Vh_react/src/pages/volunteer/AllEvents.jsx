@@ -44,25 +44,36 @@ function AllEvents() {
             const response = await axios.get("https://vhub-zb2y.onrender.com/api/events/", {
                 headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
             });
-
-            if (response.data.length === 0) {
+    
+            // Add null checks for response data
+            const eventsData = response.data || [];
+            
+            if (eventsData.length === 0) {
                 setNoEventsMessage("No upcoming volunteer events. Stay tuned for new opportunities!");
                 setEvents([]);
                 setBackupEvents([]);
             } else {
-                setEvents(response.data);
-                setBackupEvents(response.data);
+                // Ensure all events have required fields
+                const validatedEvents = eventsData.map(event => ({
+                    ...event,
+                    E_Name: event.E_Name || "Untitled Event",
+                    E_Description: event.E_Description || "",
+                    E_Required_Volunteers: event.E_Required_Volunteers || 0,
+                    E_Volunteers: event.E_Volunteers || []
+                }));
+                
+                setEvents(validatedEvents);
+                setBackupEvents(validatedEvents);
                 setNoEventsMessage("");
             }
         } catch (error) {
             console.error("Error fetching events:", error);
-            setErrorMessage("Failed to load events. Please try again later.");
+            setErrorMessage(error.response?.data?.error || "Failed to load events. Please try again later.");
             setNoEventsMessage("");
         } finally {
             setLoading(false);
         }
     }
-
     return (
         <div className="h-full w-full p-6 bg-[#1a202c]">
             <nav className="bg-[#2d3748] p-4 rounded-lg shadow-md flex items-center justify-between mb-6">
