@@ -81,20 +81,19 @@ class EventSerializer(serializers.ModelSerializer):
     E_Photo = serializers.SerializerMethodField()
     announcements = EventAnnouncementSerializer(many=True, read_only=True)
     sample_tasks = SampleTaskSerializer(many=True, read_only=True)
-    E_Status = serializers.SerializerMethodField()
+    E_Status = serializers.SerializerMethodField()  # ✅ Ensure status is computed dynamically
 
     class Meta:
         model = Event
         fields = '__all__'
-        read_only_fields = ['E_ID']
-    
+        read_only_fields = ['E_ID', 'E_Status']  # ✅ Ensure E_Status is read-only
+
     def get_E_Status(self, obj):
-        return obj.E_Status 
+        return obj.E_Status  # ✅ This ensures the frontend receives E_Status dynamically
 
     def get_E_Photo(self, obj):
-        if obj.E_Photo:
-            return obj.E_Photo.url
-        return None
+        return obj.E_Photo.url if obj.E_Photo else None
+
 
 class EventAnnouncementSerializer(serializers.ModelSerializer):
     class Meta:

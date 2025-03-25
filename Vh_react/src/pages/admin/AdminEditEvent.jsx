@@ -80,16 +80,8 @@ function AdminEditEvent() {
             return;
         }
     
-        // ✅ Remove E_Status from request payload
+        // ✅ Remove E_Status before sending the request
         const { E_Status, ...updatedEventData } = eventData;
-    
-        // ✅ Fix: Ensure empty arrays are sent as `null` instead of `[]`
-        if (Array.isArray(updatedEventData.E_Coordinators) && updatedEventData.E_Coordinators.length === 0) {
-            updatedEventData.E_Coordinators = null;
-        }
-        if (Array.isArray(updatedEventData.E_Super_Volunteers) && updatedEventData.E_Super_Volunteers.length === 0) {
-            updatedEventData.E_Super_Volunteers = null;
-        }
     
         const formData = new FormData();
         Object.keys(updatedEventData).forEach((key) => {
@@ -125,6 +117,7 @@ function AdminEditEvent() {
             setErrorMessage(`❌ Failed to update event: ${JSON.stringify(error.response?.data)}`);
         }
     };
+    
 
     if (!eventData) return <p className="text-white text-center">Loading event details...</p>;
 
