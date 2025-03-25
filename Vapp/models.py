@@ -120,7 +120,7 @@ class Event(models.Model):
     E_Start_Time = models.TimeField(null=True, blank=True)
     E_End_Time = models.TimeField(null=True, blank=True)
     E_Location = models.TextField()
-    E_Created_By = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_events", null=True, blank=True)
+    E_Created_By = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="created_events")
     E_Registered_Count = models.PositiveIntegerField(default=0)
 
     # Store event photo in Cloudinary
@@ -128,9 +128,9 @@ class Event(models.Model):
 
     # Volunteer & Role Assignments
     E_Required_Volunteers = models.PositiveIntegerField(default=10)
-    E_Volunteers = models.ManyToManyField(User, through="Registration", related_name="volunteered_events", blank=True)
-    E_Coordinators = models.ManyToManyField(User, related_name="coordinated_events", blank=True)
-    E_Super_Volunteers = models.ManyToManyField(User, related_name="super_volunteer_events", blank=True)
+    E_Coordinators = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="coordinated_events", blank=True)
+    E_Super_Volunteers = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="super_volunteer_events", blank=True)
+    E_Volunteers = models.ManyToManyField(settings.AUTH_USER_MODEL, through="Registration", related_name="volunteered_events")
 
     # ✅ Store status in the database instead of using @property
     E_Status = models.CharField(
