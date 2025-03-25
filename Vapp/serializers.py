@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from .models import User, Event, Task, Attendance, Registration,EventAnnouncement,SampleTask,Notification
+from django.utils import timezone 
 
 
 # ✅ User Serializerclass UserSerializer(serializers.ModelSerializer):
@@ -77,27 +78,38 @@ class EventSerializer(serializers.ModelSerializer):
     E_Created_By = UserSerializer(read_only=True)
     E_Volunteers = UserSerializer(many=True, read_only=True)
     E_Registered_Count = serializers.IntegerField(read_only=True)
-    E_Photo = serializers.ImageField()
+    E_Photo = serializers.SerializerMethodField()  # Changed from ImageField to SerializerMethodField
     announcements = EventAnnouncementSerializer(many=True, read_only=True)
     sample_tasks = SampleTaskSerializer(many=True, read_only=True)
-    E_Status = serializers.SerializerMethodField() 
+    E_Status = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
         fields = '__all__'
-        read_only_fields = ['E_ID', 'E_Status']  # ✅ Ensure E_Status is read-only
+        read_only_fields = ['E_ID', 'E_Status']
 
     def get_E_Status(self, obj):
-        return obj.E_Status  # ✅ This ensures the frontend receives E_Status dynamically
+        try:
+            current_time = timezone.now()
+            if not obj.E_Start_Date or not obj.E_End_Date:
+                return "Unknown"
+                
+            if current_time < obj.E_Start_Date:
+                return "Upcoming"
+            elif obj.E_Start_Date <= current_time <= obj.E_End_Date:
+                return "Ongoing"
+            return "Completed"
+        except Exception as e:
+            print(f"Error calculating status for event {obj.E_ID}: {str(e)}")
+            return "Error"
 
     def get_E_Photo(self, obj):
-        if obj.E_Photo:
-            try:
-                return obj.E_Photo.url  # ✅ Safe way to access Cloudinary image URL
-            except AttributeError:
-                return None  # ✅ Avoids errors if `.url` does not exist
-        return None  # ✅ Ensures None is returned safely
-
+        try:
+            if obj.E_Photo:
+                return obj.E_Photo.url
+        except Exception as e:
+            print(f"Error getting photo URL for event {obj.E_ID}: {str(e)}")
+        return None
 
 
 class EventAnnouncementSerializer(serializers.ModelSerializer):
