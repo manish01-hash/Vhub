@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
-import EventPost from "./EventPost"; // Event Card Component
+import EventPost from "./EventPost";
 import { FaSearch, FaFilter } from "react-icons/fa";
 
 function AllEvents() {
-    const { user, logout } = useAuth();
+    const { user } = useAuth();
     const [events, setEvents] = useState([]);
     const [backupEvents, setBackupEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
-    const [allEvents, setAllEvents] = useState([]); // Store all events
     const [noEventsMessage, setNoEventsMessage] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [filter, setFilter] = useState("All");
@@ -21,61 +20,52 @@ function AllEvents() {
     }, []);
 
     useEffect(() => {
-        console.log("🟡 Current Filter Value = ", filter);
+        fetchEvents();
+    }, [newRegistration]);
 
-        const filtered = allEvents.filter((event) => filter === "All" || event.E_Status === filter);
+    useEffect(() => {
+        const filtered = backupEvents.filter((event) => 
+            filter === "All" || event.E_Status === filter
+        );
         setEvents(filtered);
+    }, [filter, backupEvents]);
 
-        console.log("✅ Events Fetched", events);
-    }, [filter, allEvents]); // Depend on allEvents to avoid data loss
+    useEffect(() => {
+        const searchedEvents = backupEvents.filter((event) =>
+            event.E_Name.trim().toLowerCase().includes(searchTerm.trim().toLowerCase())
+        );
+        setEvents(searchedEvents);
+    }, [searchTerm, backupEvents]);
 
     async function fetchEvents() {
         try {
-            console.log("🟡 Fetching events...");
+            setLoading(true);
+            setErrorMessage("");
             const response = await axios.get("https://vhub-zb2y.onrender.com/api/events/", {
                 headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
             });
 
             if (response.data.length === 0) {
-                console.log("🔴 No events available");
                 setNoEventsMessage("No upcoming volunteer events. Stay tuned for new opportunities!");
+                setEvents([]);
+                setBackupEvents([]);
             } else {
-                console.log("✅ Events Fetched:", response.data);
-                setEvents(response.data); // Initialize displayed events
-                setAllEvents(response.data); // Store all events
+                setEvents(response.data);
                 setBackupEvents(response.data);
                 setNoEventsMessage("");
             }
         } catch (error) {
-            console.error("❌ Error fetching events:", error.response?.status, error.response?.data);
-            setNoEventsMessage("No events are available at the moment.");
+            console.error("Error fetching events:", error);
+            setErrorMessage("Failed to load events. Please try again later.");
+            setNoEventsMessage("");
         } finally {
             setLoading(false);
         }
     }
 
-    useEffect(() => {
-        fetchEvents();
-        setNewRegistration(false);
-    }, [newRegistration]);
-
-    useEffect(() => {
-        setAllEvents(backupEvents);
-        console.log("Events = ", allEvents);
-        console.log("Searched Item = ", searchTerm);
-
-        let searchedEvents = allEvents.filter((event) =>
-            event.E_Name.trim().toLowerCase().includes(searchTerm.trim().toLowerCase())
-        );
-
-        setEvents(searchedEvents);
-    }, [searchTerm, setSearchTerm]);
-
     return (
         <div className="h-full w-full p-6 bg-[#1a202c]">
-            {/* 🎯 Navigation Bar */}
             <nav className="bg-[#2d3748] p-4 rounded-lg shadow-md flex items-center justify-between mb-6">
-                {/* 🔍 Search Bar */}
                 <div className="flex items-center bg-[#1a202c] h-full px-4 py-2 rounded-lg w-[40%]">
                     <FaSearch className="text-gray-400 mr-2" />
                     <input
@@ -83,15 +73,16 @@ function AllEvents() {
                         placeholder="Search events..."
                         className="bg-transparent text-white w-full focus:outline-none"
                         onChange={(e) => setSearchTerm(e.target.value)}
+                        value={searchTerm}
                     />
                 </div>
 
-                {/* 🎯 Filter Dropdown */}
                 <div className="flex items-center bg-[#1a202c] px-4 py-2 rounded-lg">
                     <FaFilter className="text-gray-400 mr-2" />
                     <select
                         className="bg-transparent text-white focus:outline-none"
                         onChange={(e) => setFilter(e.target.value)}
+                        value={filter}
                     >
                         <option value="All">All Events</option>
                         <option value="Upcoming">Upcoming</option>
@@ -101,7 +92,6 @@ function AllEvents() {
                 </div>
             </nav>
 
-            {/* 🎯 Loading State */}
             {loading ? (
                 <div className="flex justify-center items-center h-[70vh]">
                     <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full"></div>
@@ -109,21 +99,18 @@ function AllEvents() {
                 </div>
             ) : (
                 <>
-                    {/* 🎯 Error Message */}
                     {errorMessage && (
                         <div className="text-center mt-10 text-red-500">
                             <p className="text-xl">{errorMessage}</p>
                         </div>
                     )}
 
-                    {/* 🎯 No Events Message */}
                     {noEventsMessage && (
                         <div className="text-center mt-10 text-gray-400">
                             <p className="text-xl">{noEventsMessage}</p>
                         </div>
                     )}
 
-                    {/* 🎯 Events Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {events.map((event) => (
                             <div
@@ -139,7 +126,7 @@ function AllEvents() {
                                     requiredVolunteers={event.E_Required_Volunteers}
                                     totVolunteers={event.E_Volunteers?.length || 0}
                                     fetchEvents={fetchEvents}
-                                    user={user} // Pass the user object to EventPost
+                                    user={user}
                                 />
                             </div>
                         ))}
