@@ -105,6 +105,12 @@ from cloudinary.models import CloudinaryField
 User = get_user_model()
 
 
+from django.db import models
+import uuid
+from django.utils.timezone import now, make_aware, is_naive
+from cloudinary.models import CloudinaryField
+from django.contrib.auth.models import User
+
 class Event(models.Model):
     E_ID = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
     E_Name = models.CharField(max_length=255)
@@ -114,59 +120,57 @@ class Event(models.Model):
     E_Start_Time = models.TimeField(null=True, blank=True)
     E_End_Time = models.TimeField(null=True, blank=True)
     E_Location = models.TextField()
-    E_Created_By = models.ForeignKey(
-    User, on_delete=models.CASCADE, related_name="created_events", null=True, blank=True
-)
+    E_Created_By = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_events", null=True, blank=True)
     E_Registered_Count = models.PositiveIntegerField(default=0)
 
     # Store event photo in Cloudinary
     E_Photo = CloudinaryField('event_photo', null=True, blank=True)
-    
 
     # Volunteer & Role Assignments
     E_Required_Volunteers = models.PositiveIntegerField(default=10)
-    E_Volunteers = models.ManyToManyField(
-        User, through="Registration", related_name="volunteered_events", blank=True
-    )
+    E_Volunteers = models.ManyToManyField(User, through="Registration", related_name="volunteered_events", blank=True)
     E_Coordinators = models.ManyToManyField(User, related_name="coordinated_events", blank=True)
     E_Super_Volunteers = models.ManyToManyField(User, related_name="super_volunteer_events", blank=True)
 
-    @property
-    def E_Status(self):
-        """Dynamically determine event status with proper timezone handling."""
-        try:
-            current_time = now()  # This is timezone-aware
+    # ✅ Store status in the database instead of using @property
+    E_Status = models.CharField(
+        max_length=20,
+        choices=[("Upcoming", "Upcoming"), ("Ongoing", "Ongoing"), ("Completed", "Completed")],
+        default="Upcoming"
+    )
 
-            if not self.E_Start_Date or not self.E_End_Date:
-                return "Unknown"  # Handle missing date
-            
+    def save(self, *args, **kwargs):
+        """Automatically update event status before saving."""
+        current_time = now()
+
+        if not self.E_Start_Date or not self.E_End_Date:
+            self.E_Status = "Unknown"
+        else:
             event_start = self.E_Start_Date
             event_end = self.E_End_Date
 
-            # Convert naive datetimes to timezone-aware
             if is_naive(event_start):
                 event_start = make_aware(event_start)
             if is_naive(event_end):
                 event_end = make_aware(event_end)
 
-            # Determine event status
             if current_time < event_start:
-                return "Upcoming"
+                self.E_Status = "Upcoming"
             elif event_start <= current_time <= event_end:
-                return "Ongoing"
+                self.E_Status = "Ongoing"
             else:
-                return "Completed"
+                self.E_Status = "Completed"
 
-        except Exception as e:
-            print(f"Error calculating event status: {e}")
-            return "Error"
+        super().save(*args, **kwargs)
 
     def has_event_ended(self):
         """Check if the event has ended."""
-        if self.E_End_Date and self.E_End_Time:
-            event_end = timezone.make_aware(timezone.datetime.combine(self.E_End_Date, self.E_End_Time))
+        if self.E_End_Date:
+            event_end = self.E_End_Date
+            if self.E_End_Time:
+                event_end = timezone.make_aware(timezone.datetime.combine(self.E_End_Date, self.E_End_Time))
             return timezone.now() >= event_end
-        return False    
+        return False
 
     def __str__(self):
         return self.E_Name

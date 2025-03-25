@@ -76,7 +76,7 @@ class SampleTaskSerializer(serializers.ModelSerializer):
 # Update EventSerializer to handle Cloudinary URLs
 class EventSerializer(serializers.ModelSerializer):
     E_Created_By = UserSerializer(read_only=True)
-    E_Volunteers = serializers.SerializerMethodField()  # Changed from UserSerializer
+    E_Volunteers = serializers.SerializerMethodField()  
     E_Registered_Count = serializers.IntegerField(read_only=True)
     E_Photo = serializers.SerializerMethodField()
     announcements = EventAnnouncementSerializer(many=True, read_only=True)
@@ -89,8 +89,7 @@ class EventSerializer(serializers.ModelSerializer):
         read_only_fields = ['E_ID', 'E_Status']
 
     def get_E_Volunteers(self, obj):
-        # Safely serialize through the registration relationship
-        from .serializers import UserSerializer
+        # Fetch volunteers via registrations
         volunteers = obj.registrations.values_list('volunteer', flat=True)
         return UserSerializer(
             User.objects.filter(id__in=volunteers),
@@ -100,25 +99,24 @@ class EventSerializer(serializers.ModelSerializer):
 
     def get_E_Status(self, obj):
         try:
-            current_time = timezone.now()  # Timezone-aware
+            current_time = timezone.localtime(timezone.now())  # Ensure timezone-aware current time
 
-            # Ensure we have both Date and Time values
-            if not obj.E_Start_Date or not obj.E_End_Date or not obj.E_Start_Time or not obj.E_End_Time:
+            # ✅ Ensure all date and time fields exist
+            if not all([obj.E_Start_Date, obj.E_Start_Time, obj.E_End_Date, obj.E_End_Time]):
                 return "Unknown"
 
-            # Combine Date and Time fields properly
-            start_datetime = datetime.combine(obj.E_Start_Date, obj.E_Start_Time)
-            end_datetime = datetime.combine(obj.E_End_Date, obj.E_End_Time)
+            # ✅ Construct timezone-aware start and end datetime
+            start_datetime = timezone.make_aware(
+                datetime.combine(obj.E_Start_Date, obj.E_Start_Time)
+            ) if timezone.is_naive(datetime.combine(obj.E_Start_Date, obj.E_Start_Time)) else datetime.combine(obj.E_Start_Date, obj.E_Start_Time)
 
-            # Convert naive datetime to timezone-aware
-            if timezone.is_naive(start_datetime):
-                start_datetime = timezone.make_aware(start_datetime)
-            if timezone.is_naive(end_datetime):
-                end_datetime = timezone.make_aware(end_datetime)
+            end_datetime = timezone.make_aware(
+                datetime.combine(obj.E_End_Date, obj.E_End_Time)
+            ) if timezone.is_naive(datetime.combine(obj.E_End_Date, obj.E_End_Time)) else datetime.combine(obj.E_End_Date, obj.E_End_Time)
 
             print(f"🔍 Debug: Current Time: {current_time}, Event Start: {start_datetime}, Event End: {end_datetime}")
 
-            # Determine status
+            # ✅ Determine event status based on current time
             if current_time < start_datetime:
                 return "Upcoming"
             elif start_datetime <= current_time <= end_datetime:
@@ -130,11 +128,9 @@ class EventSerializer(serializers.ModelSerializer):
             return "Error"
 
     def get_E_Photo(self, obj):
-        try:
-            if obj.E_Photo:
-                return obj.E_Photo.url
-        except Exception:
-            return None
+        if obj.E_Photo:
+            return obj.E_Photo.url if hasattr(obj.E_Photo, 'url') else None
+        return None
 
 
 class EventAnnouncementSerializer(serializers.ModelSerializer):

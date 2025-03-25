@@ -428,25 +428,28 @@ def get_event_by_id(request, E_ID):
 @parser_classes([MultiPartParser, FormParser])
 def create_event(request):
     try:
-        # Handle file upload to Cloudinary
+        request_data = request.data.copy()  # ✅ Create a mutable copy
+
+        # ✅ Handle file upload to Cloudinary
         if 'E_Photo' in request.FILES:
             uploaded_file = request.FILES['E_Photo']
             upload_result = cloudinary.uploader.upload(
                 uploaded_file,
                 folder="event_photos/"
             )
-            request.data._mutable = True
-            request.data['E_Photo'] = upload_result['secure_url']
-            request.data._mutable = False
+            request_data['E_Photo'] = upload_result['secure_url']  # ✅ Update mutable copy
 
-        serializer = EventSerializer(data=request.data)
+        serializer = EventSerializer(data=request_data)
+
         if serializer.is_valid():
-            serializer.save(E_Created_By=request.user)
+            serializer.save(E_Created_By=request.user)  # ✅ Save with created_by field
             return Response({"message": "Event created successfully!"}, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 @api_view(['PUT'])
@@ -455,11 +458,9 @@ def create_event(request):
 def update_event(request, E_ID):
     try:
         event = Event.objects.get(E_ID=E_ID)
-
-        # ✅ Create a mutable copy of request.data
         request_data = request.data.copy()
 
-        # ✅ Handle file upload to Cloudinary if a new photo is provided
+        # ✅ Handle file upload to Cloudinary
         if 'E_Photo' in request.FILES:
             uploaded_file = request.FILES['E_Photo']
             upload_result = cloudinary.uploader.upload(
@@ -469,29 +470,30 @@ def update_event(request, E_ID):
             request_data['E_Photo'] = upload_result['secure_url']
 
         # ✅ Convert empty lists (sent as strings) to None
-        if "E_Coordinators" in request_data:
-            if isinstance(request_data["E_Coordinators"], str) and request_data["E_Coordinators"] in ["null", "[]", ""]:
-                request_data["E_Coordinators"] = None
-        if "E_Super_Volunteers" in request_data:
-            if isinstance(request_data["E_Super_Volunteers"], str) and request_data["E_Super_Volunteers"] in ["null", "[]", ""]:
-                request_data["E_Super_Volunteers"] = None
+        for field in ["E_Coordinators", "E_Super_Volunteers"]:
+            if field in request_data and isinstance(request_data[field], str):
+                if request_data[field] in ["null", "[]", ""]:
+                    request_data[field] = None
 
         serializer = EventSerializer(event, data=request_data, partial=True, context={"request": request})
 
         if serializer.is_valid():
             updated_event = serializer.save()
 
-            # ✅ Automatically determine event status based on date & time
+            # ✅ Compute & Store E_Status in the database
             now = timezone.now()
-            if updated_event.E_Start_Date and updated_event.E_Start_Time and updated_event.E_End_Date and updated_event.E_End_Time:
-                start_datetime = timezone.make_aware(
-                    datetime.combine(updated_event.E_Start_Date, updated_event.E_Start_Time)
-                )
-                end_datetime = timezone.make_aware(
-                    datetime.combine(updated_event.E_End_Date, updated_event.E_End_Time)
-                )
+            if (
+                updated_event.E_Start_Date and updated_event.E_Start_Time and
+                updated_event.E_End_Date and updated_event.E_End_Time
+            ):
+                start_datetime = datetime.combine(updated_event.E_Start_Date, updated_event.E_Start_Time)
+                end_datetime = datetime.combine(updated_event.E_End_Date, updated_event.E_End_Time)
 
-                # ✅ No need to set `E_Status` manually, just return the computed value
+                if timezone.is_naive(start_datetime):
+                    start_datetime = timezone.make_aware(start_datetime)
+                if timezone.is_naive(end_datetime):
+                    end_datetime = timezone.make_aware(end_datetime)
+
                 if now < start_datetime:
                     event_status = "Upcoming"
                 elif start_datetime <= now <= end_datetime:
@@ -499,9 +501,12 @@ def update_event(request, E_ID):
                 else:
                     event_status = "Completed"
 
+                updated_event.E_Status = event_status  # ✅ Store in DB
+                updated_event.save()  # ✅ Save to database
+
             return Response({
                 "message": "Event updated successfully!",
-                "E_Status": event_status  # ✅ Return dynamically computed status
+                "E_Status": updated_event.E_Status  # ✅ Return stored status
             }, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -510,6 +515,7 @@ def update_event(request, E_ID):
         return Response({"error": "Event not found!"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 # Delete Event
 @api_view(['DELETE'])
