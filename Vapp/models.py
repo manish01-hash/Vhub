@@ -21,6 +21,7 @@ import cloudinary.uploader
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from cloudinary.models import CloudinaryField
+from django.utils.timezone import now, is_naive, make_aware
 
 # Custom User Manager
 class UserManager(BaseUserManager):
@@ -132,17 +133,30 @@ class Event(models.Model):
 
     @property
     def E_Status(self):
-        """Dynamically determine event status, with error handling."""
+        """Dynamically determine event status with proper timezone handling."""
         try:
-            current_time = now()
+            current_time = now()  # This is timezone-aware
+
             if not self.E_Start_Date or not self.E_End_Date:
                 return "Unknown"  # Handle missing date
-            if current_time < self.E_Start_Date:
+            
+            event_start = self.E_Start_Date
+            event_end = self.E_End_Date
+
+            # Convert naive datetimes to timezone-aware
+            if is_naive(event_start):
+                event_start = make_aware(event_start)
+            if is_naive(event_end):
+                event_end = make_aware(event_end)
+
+            # Determine event status
+            if current_time < event_start:
                 return "Upcoming"
-            elif self.E_Start_Date <= current_time <= self.E_End_Date:
+            elif event_start <= current_time <= event_end:
                 return "Ongoing"
             else:
                 return "Completed"
+
         except Exception as e:
             print(f"Error calculating event status: {e}")
             return "Error"

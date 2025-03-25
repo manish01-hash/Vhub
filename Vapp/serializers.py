@@ -100,7 +100,7 @@ class EventSerializer(serializers.ModelSerializer):
 
     def get_E_Status(self, obj):
         try:
-            current_time = timezone.now()
+            current_time = timezone.now()  # Timezone-aware
 
             # Ensure we have both Date and Time values
             if not obj.E_Start_Date or not obj.E_End_Date or not obj.E_Start_Time or not obj.E_End_Time:
@@ -110,6 +110,12 @@ class EventSerializer(serializers.ModelSerializer):
             start_datetime = datetime.combine(obj.E_Start_Date, obj.E_Start_Time)
             end_datetime = datetime.combine(obj.E_End_Date, obj.E_End_Time)
 
+            # Convert naive datetime to timezone-aware
+            if timezone.is_naive(start_datetime):
+                start_datetime = timezone.make_aware(start_datetime)
+            if timezone.is_naive(end_datetime):
+                end_datetime = timezone.make_aware(end_datetime)
+
             print(f"🔍 Debug: Current Time: {current_time}, Event Start: {start_datetime}, Event End: {end_datetime}")
 
             # Determine status
@@ -118,6 +124,7 @@ class EventSerializer(serializers.ModelSerializer):
             elif start_datetime <= current_time <= end_datetime:
                 return "Ongoing"
             return "Completed"
+
         except Exception as e:
             print(f"❌ Error in get_E_Status: {e}")
             return "Error"
