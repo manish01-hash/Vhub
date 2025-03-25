@@ -15,9 +15,8 @@ function AdminCreateEvent() {
         E_Location: "",
         E_Photo: null,
         E_Required_Volunteers: 10,
-        E_Status: "Upcoming",
     });
-    
+
     const [errorMessage, setErrorMessage] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [previewImage, setPreviewImage] = useState(null);
@@ -29,25 +28,20 @@ function AdminCreateEvent() {
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            // Validate file type
             if (!file.type.startsWith("image/")) {
-                setErrorMessage("❌ Please upload a valid image file (JPEG, PNG, etc.)");
+                setErrorMessage("❌ Please upload a valid image file.");
                 return;
             }
-            
-            // Validate file size (e.g., 5MB max)
             if (file.size > 5 * 1024 * 1024) {
-                setErrorMessage("❌ Image size should be less than 5MB");
+                setErrorMessage("❌ Image size should be less than 5MB.");
                 return;
             }
 
             setEventData({ ...eventData, E_Photo: file });
-            
-            // Create preview
+
+            // Preview image
             const reader = new FileReader();
-            reader.onload = () => {
-                setPreviewImage(reader.result);
-            };
+            reader.onload = () => setPreviewImage(reader.result);
             reader.readAsDataURL(file);
         }
     };
@@ -56,28 +50,22 @@ function AdminCreateEvent() {
         const currentDate = new Date().toISOString().split("T")[0];
         const errors = [];
 
-        if (!eventData.E_Name.trim()) errors.push("Event name is required");
-        if (!eventData.E_Description.trim()) errors.push("Description is required");
-        if (!eventData.E_Location.trim()) errors.push("Location is required");
-        if (!eventData.E_Photo) errors.push("Event photo is required");
-        if (eventData.E_Required_Volunteers <= 0) errors.push("Volunteers must be positive");
-        
-        // Date validations
-        if (!eventData.E_Start_Date) errors.push("Start date is required");
-        if (!eventData.E_End_Date) errors.push("End date is required");
-        
-        if (eventData.E_Start_Date && eventData.E_Start_Date < currentDate) {
-            errors.push("Start date cannot be in the past");
-        }
-        
+        if (!eventData.E_Name.trim()) errors.push("Event name is required.");
+        if (!eventData.E_Description.trim()) errors.push("Description is required.");
+        if (!eventData.E_Location.trim()) errors.push("Location is required.");
+        if (!eventData.E_Photo) errors.push("Event photo is required.");
+        if (eventData.E_Required_Volunteers <= 0) errors.push("Volunteers must be a positive number.");
+        if (!eventData.E_Start_Date) errors.push("Start date is required.");
+        if (!eventData.E_End_Date) errors.push("End date is required.");
+        if (eventData.E_Start_Date < currentDate) errors.push("Start date cannot be in the past.");
         if (eventData.E_Start_Date && eventData.E_End_Date && eventData.E_End_Date < eventData.E_Start_Date) {
-            errors.push("End date cannot be before start date");
+            errors.push("End date cannot be before start date.");
         }
-        
-        if (eventData.E_Start_Date === eventData.E_End_Date && 
-            eventData.E_Start_Time && eventData.E_End_Time && 
+        if (eventData.E_Start_Date === eventData.E_End_Date &&
+            eventData.E_Start_Time &&
+            eventData.E_End_Time &&
             eventData.E_End_Time <= eventData.E_Start_Time) {
-            errors.push("End time must be after start time for same-day events");
+            errors.push("End time must be after start time for same-day events.");
         }
 
         return errors;
@@ -105,8 +93,8 @@ function AdminCreateEvent() {
         try {
             const token = localStorage.getItem("accessToken");
             const response = await axios.post(
-                "https://vhub-zb2y.onrender.com/api/events/create/", 
-                formData, 
+                "https://vhub-zb2y.onrender.com/api/events/create/",
+                formData,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -120,65 +108,88 @@ function AdminCreateEvent() {
             }
         } catch (error) {
             console.error("Error creating event:", error);
-            let errorMsg = "❌ Error creating event. Please try again.";
-            
-            if (error.response) {
-                if (error.response.data?.E_Photo) {
-                    errorMsg = `❌ Image error: ${error.response.data.E_Photo[0]}`;
-                } else if (error.response.data?.detail) {
-                    errorMsg = `❌ ${error.response.data.detail}`;
-                }
-            }
-            
-            setErrorMessage(errorMsg);
+            setErrorMessage("❌ Error creating event. Please try again.");
         } finally {
             setIsSubmitting(false);
         }
     };
 
     return (
-        <div className="flex min-h-screen bg-[#1a202c] text-white">
+        <div className="flex min-h-screen bg-gray-900 text-white">
             <Sidebar />
             <div className="flex-1 p-6">
-                <h1 className="text-4xl font-bold mb-6">Create New Event</h1>
-                <form onSubmit={handleSubmit} className="bg-[#2d3748] p-6 rounded-lg shadow-md max-w-lg mx-auto">
-                    {/* Existing form fields remain the same */}
-                    <label className="block mb-2">Event Name:</label>
-                    <input type="text" name="E_Name" value={eventData.E_Name} onChange={handleChange} required className="w-full p-2 mb-4 bg-gray-700 rounded" />
+                <h1 className="text-4xl font-bold text-center mb-6">Create New Event</h1>
+                <form 
+                    onSubmit={handleSubmit} 
+                    className="bg-gray-800 p-6 rounded-lg shadow-lg max-w-lg mx-auto"
+                >
+                    {/* Input Fields */}
+                    {[
+                        { label: "Event Name", name: "E_Name", type: "text" },
+                        { label: "Description", name: "E_Description", type: "textarea" },
+                        { label: "Location", name: "E_Location", type: "text" },
+                        { label: "Start Date", name: "E_Start_Date", type: "date" },
+                        { label: "Start Time", name: "E_Start_Time", type: "time" },
+                        { label: "End Date", name: "E_End_Date", type: "date" },
+                        { label: "End Time", name: "E_End_Time", type: "time" },
+                        { label: "Required Volunteers", name: "E_Required_Volunteers", type: "number" },
+                    ].map((field, index) => (
+                        <div key={index} className="mb-4">
+                            <label className="block mb-2">{field.label}:</label>
+                            {field.type === "textarea" ? (
+                                <textarea
+                                    name={field.name}
+                                    value={eventData[field.name]}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full p-2 rounded-lg bg-gray-700 focus:ring-2 focus:ring-green-500"
+                                />
+                            ) : (
+                                <input
+                                    type={field.type}
+                                    name={field.name}
+                                    value={eventData[field.name]}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full p-2 rounded-lg bg-gray-700 focus:ring-2 focus:ring-green-500"
+                                />
+                            )}
+                        </div>
+                    ))}
 
-                    {/* ... other fields ... */}
-                    
-                    <label className="block mb-2">Event Photo:</label>
-                    <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={handleFileChange} 
-                        required 
-                        className="w-full p-2 mb-4 bg-gray-700 rounded" 
-                    />
+                    {/* File Upload */}
+                    <div className="mb-4">
+                        <label className="block mb-2">Event Photo:</label>
+                        <input 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={handleFileChange} 
+                            required 
+                            className="w-full p-2 rounded-lg bg-gray-700 focus:ring-2 focus:ring-green-500" 
+                        />
+                    </div>
+
+                    {/* Image Preview */}
                     {previewImage && (
-                        <div className="mb-4">
-                            <img 
-                                src={previewImage} 
-                                alt="Preview" 
-                                className="max-w-full h-auto max-h-40 rounded" 
-                            />
+                        <div className="mb-4 p-2 border border-gray-500 rounded-lg">
+                            <img src={previewImage} alt="Preview" className="max-w-full h-auto max-h-40 rounded-lg" />
                         </div>
                     )}
 
-                    {/* Error message display */}
+                    {/* Error Message */}
                     {errorMessage && (
-                        <div className="mb-4 p-3 bg-red-900 rounded text-red-200">
+                        <div className="mb-4 p-3 bg-red-900 rounded text-red-300 text-center">
                             {errorMessage}
                         </div>
                     )}
 
+                    {/* Submit Button */}
                     <button 
                         type="submit" 
                         disabled={isSubmitting}
-                        className={`w-full p-3 rounded-lg font-bold ${
+                        className={`w-full p-3 rounded-lg font-bold transition duration-300 ${
                             isSubmitting 
-                                ? "bg-gray-500 cursor-not-allowed" 
+                                ? "bg-gray-600 cursor-not-allowed"
                                 : "bg-green-500 hover:bg-green-700"
                         }`}
                     >
