@@ -179,7 +179,7 @@ class Event(models.Model):
 class EventCertificate(models.Model):
     id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
     event = models.ForeignKey("Event", on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     file = CloudinaryField('certificates', resource_type="raw")
     created_at = models.DateTimeField(auto_now_add=True) 
     
@@ -266,7 +266,7 @@ class SampleTask(models.Model):
 class Registration(models.Model):
     R_ID = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="registrations")
-    volunteer = models.ForeignKey(User, on_delete=models.CASCADE, related_name="registrations")
+    volunteer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     qr_code = models.ImageField(upload_to="qr_codes/", blank=True, null=True)  # ✅ Unique QR Code
     role = models.CharField(  # ✅ New field for event-specific roles
         max_length=50,
