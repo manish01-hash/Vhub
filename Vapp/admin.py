@@ -4,7 +4,7 @@ from django.utils.html import format_html
 from .models import Event, Task, Registration, Notification
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
-from django.core.exceptions import ProtectedError
+from django.db.models import ProtectedError  # ✅ CORRECT
 from django.contrib import messages
 from django.db.models import Count
 User = get_user_model()  # ✅ Get custom user model
