@@ -318,8 +318,6 @@ def get_events(request):
         events = Event.objects.select_related('E_Created_By').prefetch_related(
             'registrations',
             'registrations__volunteer',
-            'announcements',
-            'sample_tasks'
         ).all()
         
         serializer = EventSerializer(events, many=True, context={'request': request})
