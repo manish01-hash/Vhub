@@ -306,11 +306,9 @@ def get_profile(request):
 
 
 
-
 ### ------------------- EVENT MANAGEMENT ------------------- ###
 
-# Get All Events@api_view(["GET"])@api_view(["GET"])
-@api_view(["GET"])
+# Get All Events@api_view(["GET"])@api_view(["GET"])@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_events(request):
     try:
@@ -319,16 +317,27 @@ def get_events(request):
             'registrations',
             'registrations__volunteer',
         ).all()
-        
-        serializer = EventSerializer(events, many=True, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
-        
+
+        if not events.exists():
+            return Response({"message": "No events found"}, status=status.HTTP_200_OK)
+
+        event_list = []
+        for event in events:
+            if event is None:
+                continue  # ✅ Skip invalid events
+
+            serializer = EventSerializer(event, context={'request': request})
+            event_list.append(serializer.data)
+
+        return Response(event_list, status=status.HTTP_200_OK)
+
     except Exception as e:
-        print(f"Error in get_events: {str(e)}")
+        print(f"❌ Error in get_events: {str(e)}")
         return Response(
-            {"error": "Failed to load events. Please try again later."},
+            {"error": f"Failed to load events. Please try again later. Error: {str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
 
 #get my events
 @api_view(["GET"])

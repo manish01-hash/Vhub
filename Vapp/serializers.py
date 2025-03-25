@@ -75,8 +75,8 @@ class SampleTaskSerializer(serializers.ModelSerializer):
 
 # Update EventSerializer to handle Cloudinary URLs
 class EventSerializer(serializers.ModelSerializer):
-    E_Created_By = UserSerializer(read_only=True)
-    E_Volunteers = serializers.SerializerMethodField()  
+    E_Created_By = serializers.SerializerMethodField()  # Changed to handle null cases
+    E_Volunteers = serializers.SerializerMethodField()
     E_Registered_Count = serializers.IntegerField(read_only=True)
     E_Photo = serializers.SerializerMethodField()
     announcements = EventAnnouncementSerializer(many=True, read_only=True)
@@ -88,49 +88,64 @@ class EventSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['E_ID', 'E_Status']
 
+    def get_E_Created_By(self, obj):
+        """Safe handling of potentially null creator"""
+        if obj.E_Created_By:
+            return UserSerializer(obj.E_Created_By, context=self.context).data
+        return None
+
     def get_E_Volunteers(self, obj):
-        # Fetch volunteers via registrations
-        volunteers = obj.registrations.values_list('volunteer', flat=True)
-        return UserSerializer(
-            User.objects.filter(id__in=volunteers),
-            many=True,
-            context=self.context
-        ).data
+        """Safe volunteer list through registrations"""
+        if hasattr(obj, 'registrations') and obj.registrations is not None:
+            try:
+                volunteers = obj.registrations.select_related('volunteer').values_list('volunteer', flat=True)
+                return UserSerializer(
+                    User.objects.filter(id__in=volunteers),
+                    many=True,
+                    context=self.context
+                ).data
+            except Exception as e:
+                print(f"Error getting volunteers: {e}")
+        return []
 
     def get_E_Status(self, obj):
+        """Robust status calculation with timezone handling"""
         try:
-            current_time = timezone.localtime(timezone.now())  # Ensure timezone-aware current time
-
-            # ✅ Ensure all date and time fields exist
-            if not all([obj.E_Start_Date, obj.E_Start_Time, obj.E_End_Date, obj.E_End_Time]):
+            current_time = timezone.localtime(timezone.now())
+            
+            # Validate all required datetime components exist
+            if None in [obj.E_Start_Date, obj.E_Start_Time, obj.E_End_Date, obj.E_End_Time]:
                 return "Unknown"
 
-            # ✅ Construct timezone-aware start and end datetime
-            start_datetime = timezone.make_aware(
-                datetime.combine(obj.E_Start_Date, obj.E_Start_Time)
-            ) if timezone.is_naive(datetime.combine(obj.E_Start_Date, obj.E_Start_Time)) else datetime.combine(obj.E_Start_Date, obj.E_Start_Time)
+            # Create timezone-aware datetimes
+            start_datetime = datetime.combine(obj.E_Start_Date, obj.E_Start_Time)
+            end_datetime = datetime.combine(obj.E_End_Date, obj.E_End_Time)
 
-            end_datetime = timezone.make_aware(
-                datetime.combine(obj.E_End_Date, obj.E_End_Time)
-            ) if timezone.is_naive(datetime.combine(obj.E_End_Date, obj.E_End_Time)) else datetime.combine(obj.E_End_Date, obj.E_End_Time)
+            if timezone.is_naive(start_datetime):
+                start_datetime = timezone.make_aware(start_datetime)
+            if timezone.is_naive(end_datetime):
+                end_datetime = timezone.make_aware(end_datetime)
 
-            print(f"🔍 Debug: Current Time: {current_time}, Event Start: {start_datetime}, Event End: {end_datetime}")
-
-            # ✅ Determine event status based on current time
+            # Determine status
             if current_time < start_datetime:
                 return "Upcoming"
             elif start_datetime <= current_time <= end_datetime:
                 return "Ongoing"
             return "Completed"
-
+            
         except Exception as e:
-            print(f"❌ Error in get_E_Status: {e}")
+            print(f"Error calculating status for event {obj.E_ID}: {str(e)}")
             return "Error"
 
     def get_E_Photo(self, obj):
-        if obj.E_Photo:
-            return obj.E_Photo.url if hasattr(obj.E_Photo, 'url') else None
+        """Safe handling of Cloudinary field"""
+        try:
+            if obj.E_Photo and hasattr(obj.E_Photo, 'url'):
+                return obj.E_Photo.url
+        except Exception as e:
+            print(f"Error getting photo URL: {e}")
         return None
+
 
 
 class EventAnnouncementSerializer(serializers.ModelSerializer):
