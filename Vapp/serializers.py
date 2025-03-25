@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from .models import User, Event, Task, Attendance, Registration,EventAnnouncement,SampleTask,Notification
 from django.utils import timezone 
-
+from datetime import datetime, time
 
 # ✅ User Serializerclass UserSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
@@ -101,15 +101,25 @@ class EventSerializer(serializers.ModelSerializer):
     def get_E_Status(self, obj):
         try:
             current_time = timezone.now()
-            if not obj.E_Start_Date or not obj.E_End_Date:
+
+            # Ensure we have both Date and Time values
+            if not obj.E_Start_Date or not obj.E_End_Date or not obj.E_Start_Time or not obj.E_End_Time:
                 return "Unknown"
-                
-            if current_time < obj.E_Start_Date:
+
+            # Combine Date and Time fields properly
+            start_datetime = datetime.combine(obj.E_Start_Date, obj.E_Start_Time)
+            end_datetime = datetime.combine(obj.E_End_Date, obj.E_End_Time)
+
+            print(f"🔍 Debug: Current Time: {current_time}, Event Start: {start_datetime}, Event End: {end_datetime}")
+
+            # Determine status
+            if current_time < start_datetime:
                 return "Upcoming"
-            elif obj.E_Start_Date <= current_time <= obj.E_End_Date:
+            elif start_datetime <= current_time <= end_datetime:
                 return "Ongoing"
             return "Completed"
-        except Exception:
+        except Exception as e:
+            print(f"❌ Error in get_E_Status: {e}")
             return "Error"
 
     def get_E_Photo(self, obj):
