@@ -7,12 +7,11 @@ import { FaSearch, FaFilter, FaBell, FaCheckCircle } from "react-icons/fa";
 function MyEvents() {
     const { user } = useAuth(); 
     const [myEvents, setMyEvents] = useState([]);
+    const [filteredEvents, setFilteredEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [filter, setFilter] = useState("All");
-    const [backupEvents, setBackupEvents] = useState([]);
-    const [allEvents, setAllEvents] = useState([]);
     const [notifications, setNotifications] = useState([]);
     const [showNotifications, setShowNotifications] = useState(false);
     
@@ -22,28 +21,50 @@ function MyEvents() {
     }, []);
 
     useEffect(() => {
-        setAllEvents(backupEvents);
-        const filtered = allEvents.filter(event => filter === "All" || event.E_Status === filter);
-        setMyEvents(filtered);
-        setAllEvents(backupEvents);
-    }, [filter]); 
-    
+        // Apply both status filter and search filter
+        const filtered = myEvents.filter(event => {
+            const matchesStatus = filter === "All" || event.E_Status === filter;
+            const matchesSearch = event.E_Name.toLowerCase().includes(searchTerm.toLowerCase());
+            return matchesStatus && matchesSearch;
+        });
+        setFilteredEvents(filtered);
+    }, [filter, searchTerm, myEvents]);
+
     async function fetchMyEvents() {
         try {
+            setLoading(true);
+            setErrorMessage("");
             const response = await axios.get("https://vhub-zb2y.onrender.com/api/my-events/", {
                 headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
             });
+            
             if (response.data.length === 0) {
                 setErrorMessage("You are not involved in any events yet.");
                 setMyEvents([]);
+                setFilteredEvents([]);
             } else {
-                setMyEvents(response.data);
-                setBackupEvents(response.data);
-                setAllEvents(response.data);
-                setErrorMessage("");
+                // Calculate current status for each event
+                const eventsWithStatus = response.data.map(event => {
+                    const now = new Date();
+                    const startDate = new Date(event.E_Start_Date);
+                    const endDate = new Date(event.E_End_Date);
+                    
+                    let status = "Upcoming";
+                    if (now >= startDate && now <= endDate) {
+                        status = "Ongoing";
+                    } else if (now > endDate) {
+                        status = "Completed";
+                    }
+                    
+                    return { ...event, E_Status: status };
+                });
+                
+                setMyEvents(eventsWithStatus);
+                setFilteredEvents(eventsWithStatus);
             }
         } catch (error) {
             setErrorMessage("Failed to load your events.");
+            console.error("Error fetching events:", error);
         } finally {
             setLoading(false);
         }
@@ -81,6 +102,7 @@ function MyEvents() {
                         placeholder="Search my events..." 
                         className="bg-transparent text-white w-full focus:outline-none"
                         onChange={(e) => setSearchTerm(e.target.value)}
+                        value={searchTerm}
                     />
                 </div>
                 <div className="flex items-center bg-[#1a202c] px-4 py-2 rounded-lg">
@@ -88,6 +110,7 @@ function MyEvents() {
                     <select 
                         className="bg-transparent focus:outline-none"
                         onChange={(e) => setFilter(e.target.value)}
+                        value={filter}
                     >
                         <option value="All">All My Events</option>
                         <option value="Upcoming">Upcoming</option>
@@ -139,9 +162,15 @@ function MyEvents() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-                            {myEvents.filter(event => filter === "All" || event.E_Status === filter).filter(event => event.E_Name.toLowerCase().includes(searchTerm.toLowerCase())).map(event => (
+                            {filteredEvents.map(event => (
                                 <div key={event.E_ID} className="bg-[#2a3b4f] rounded-lg shadow-lg p-5 transition-transform transform hover:scale-105">
-                                    <EventPost ename={event.E_Name} event={event} description={event.E_Description} requiredVolunteers={event.E_Required_Volunteers} totVolunteers={event.E_Volunteers?.length || 0} />
+                                    <EventPost 
+                                        ename={event.E_Name} 
+                                        event={event} 
+                                        description={event.E_Description} 
+                                        requiredVolunteers={event.E_Required_Volunteers} 
+                                        totVolunteers={event.E_Volunteers?.length || 0} 
+                                    />
                                 </div>
                             ))}
                         </div>
