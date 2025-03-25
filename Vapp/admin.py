@@ -58,7 +58,7 @@ class EventStatusFilter(admin.SimpleListFilter):
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ("E_ID", "E_Name", "E_Start_Date", "E_End_Date", "E_Status", "total_volunteers", "checked_in_volunteers", "pending_volunteers")
+    list_display = ("E_ID", "E_Name", "E_Start_Date", "E_End_Date", "display_E_Status", "total_volunteers", "checked_in_volunteers", "pending_volunteers")
     list_filter = (EventStatusFilter, "E_Start_Date", "E_End_Date")
     search_fields = ("E_Name", "E_Location")
 
@@ -69,6 +69,9 @@ class EventAdmin(admin.ModelAdmin):
     )
 
     readonly_fields = ("E_ID", "E_Created_By")
+    def display_E_Status(self, obj):
+        return obj.E_Status  # ✅ Use dynamic status
+    display_E_Status.short_description = "Event Status"
 
     def display_event_photo(self, obj):
         if obj.E_Photo:

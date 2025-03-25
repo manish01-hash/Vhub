@@ -80,7 +80,7 @@ class EventSerializer(serializers.ModelSerializer):
     E_Photo = serializers.SerializerMethodField()
     announcements = EventAnnouncementSerializer(many=True, read_only=True)
     sample_tasks = SampleTaskSerializer(many=True, read_only=True)
-    E_Status = serializers.SerializerMethodField()  # ✅ Ensure status is computed dynamically
+    E_Status = serializers.SerializerMethodField() 
 
     class Meta:
         model = Event
