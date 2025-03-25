@@ -422,12 +422,12 @@ class LeaveEventView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Get Event by ID
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def get_event_by_id(request, E_ID):
-    event = get_object_or_404(Event, E_ID=E_ID)
-    serializer = EventSerializer(event, context={"request": request})
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    try:
+        event = Event.objects.get(E_ID=E_ID)
+        return JsonResponse({"event": event.E_Name})  # Debug output
+    except Event.DoesNotExist:
+        return JsonResponse({"error": "Event not found"}, status=404)
 
 
 # Update the create_event view

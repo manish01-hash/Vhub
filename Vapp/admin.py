@@ -68,7 +68,7 @@ class EventAdmin(admin.ModelAdmin):
         ("Media", {"fields": ("display_event_photo",)})
     )
 
-    readonly_fields = ("E_ID", "E_Created_By", "E_Status")
+    readonly_fields = ("E_ID", "E_Created_By")
 
     def display_event_photo(self, obj):
         if obj.E_Photo:
