@@ -14,7 +14,7 @@ export default defineConfig({
         target: "https://vhub-zb2y.onrender.com",
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, '') // Remove /api prefix when proxying
+        rewrite: (path) => path.replace(/^\/api/, '')
       }
     }
   },
@@ -24,17 +24,16 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       output: {
-        // Ensure consistent file naming
         entryFileNames: `assets/[name].[hash].js`,
         chunkFileNames: `assets/[name].[hash].js`,
         assetFileNames: `assets/[name].[hash].[ext]`,
       }
-    }
+    },
+    manifest: true
   },
-  preview: {
-    port: 5173,
-    headers: {
-      "Content-Type": "application/javascript"
-    }
+  esbuild: {
+    loader: 'jsx',
+    include: /src\/.*\.jsx?$/,
+    exclude: [],
   }
 });
