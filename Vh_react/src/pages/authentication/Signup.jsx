@@ -1,315 +1,402 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { isValidPhoneNumber } from "libphonenumber-js"; // Library for phone number validation
-import countries from "./countries.json"; // Import the updated countries.json file
-
+import { isValidPhoneNumber } from "libphonenumber-js";
+import countries from "./countries.json";
+import API_BASE_URL from "../../config";
 
 function Signup() {
-    const [name, setName] = useState("");
-    const [email, setEmail] = useState("");
-    const [phone, setPhone] = useState("");
-    const [countryCode, setCountryCode] = useState("+91"); // Default to India
-    const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-    const [role, setRole] = useState("Volunteer");
-    const [gender, setGender] = useState(""); // Gender state
-    const [college, setCollege] = useState("");
-    const [faculty, setFaculty] = useState("");
-    const [year, setYear] = useState("");
+    // State management
+    const [formData, setFormData] = useState({
+        name: "",
+        email: "",
+        phone: "",
+        countryCode: "+91",
+        password: "",
+        confirmPassword: "",
+        role: "Volunteer",
+        gender: "",
+        college: "",
+        faculty: "",
+        year: ""
+    });
+    const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
-    const [errorMessage, setErrorMessage] = useState("");
-    const [emailError, setEmailError] = useState("");
-    const [passwordError, setPasswordError] = useState("");
-    const [confirmPasswordError, setConfirmPasswordError] = useState("");
-    const [phoneError, setPhoneError] = useState("");
-    const [isLoggedIn, setIsLoggedIn] = useState(false); // State to check if user is logged in
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
     const navigate = useNavigate();
 
+    // Memoize country list to prevent unnecessary re-renders
+    const memoizedCountries = useMemo(() => countries, []);
 
-    // ✅ Check if the user is already logged in
+    // Check authentication status
     useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (token) {
+        if (localStorage.getItem("token")) {
             setIsLoggedIn(true);
-            console.log("🔒 User is already logged in.");
-        } else {
-            console.log("🔓 No token found. User not logged in.");
         }
-
-        console.log("✅ Signup Component Mounted");
     }, []);
 
-    // ✅ Validate email function
-    function validateEmail(email) {
-        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-        return emailRegex.test(email);
-    }
-
-    // Validate password
-    function validatePassword(password) {
-        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-        return passwordRegex.test(password);
-    }
-
-    // Validate phone number (accepts both with and without country code)
-    function validatePhone(phone, countryCode) {
-        // Remove any leading '+' from the phone number
-        const cleanedPhone = phone.replace(/^\+/, "");
-        // Remove any leading '+' from the country code
-        const cleanedCountryCode = countryCode.replace(/^\+/, "");
-
-        // Check if the phone number starts with the country code
-        if (cleanedPhone.startsWith(cleanedCountryCode)) {
-            // If it starts with the country code, validate the full number
-            return isValidPhoneNumber(`+${cleanedPhone}`, countryCode);
-        } else {
-            // If it doesn't start with the country code, prepend the country code and validate
-            return isValidPhoneNumber(`+${cleanedCountryCode}${cleanedPhone}`, countryCode);
+    // Validation functions
+    const validate = {
+        email: (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
+        password: (password) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(password),
+        phone: (phone, countryCode) => {
+            try {
+                return isValidPhoneNumber(`${countryCode}${phone}`);
+            } catch {
+                return false;
+            }
         }
-    }
+    };
 
-    // Handle input changes
-    function handleSignupChange(e) {
+    // Handle input changes with validation
+    const handleChange = (e) => {
         const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
 
-        switch (name) {
-            case "name":
-                setName(value);
-                break;
-            case "email":
-                setEmail(value);
-                setEmailError(validateEmail(value) ? "" : "Invalid email format");
-                break;
-            case "phone":
-                setPhone(value);
-                setPhoneError(validatePhone(value, countryCode) ? "" : "Invalid phone number");
-                break;
-            case "countryCode":
-                setCountryCode(value);
-                setPhoneError(validatePhone(phone, value) ? "" : "Invalid phone number");
-                break;
-            case "password":
-                setPassword(value);
-                setPasswordError(validatePassword(value)
-                    ? ""
-                    : "Password must have 8+ characters, 1 uppercase, 1 lowercase, 1 number & 1 special character."
-                );
-                setConfirmPasswordError(confirmPassword && value !== confirmPassword ? "Passwords do not match" : "");
-                break;
-            case "confirmPassword":
-                setConfirmPassword(value);
-                setConfirmPasswordError(value !== password ? "Passwords do not match" : "");
-                break;
-            case "gender":
-                setGender(value);
-                break;
-            case "college":
-                setCollege(value);
-                break;
-            case "faculty":
-                setFaculty(value);
-                break;
-            case "year":
-                setYear(value);
-                break;
-            case "role":
-                setRole(value);
-                break;
-            default:
-                break;
+        // Real-time validation
+        if (name === "email") {
+            setErrors(prev => ({
+                ...prev,
+                email: !validate.email(value) ? "Invalid email format" : ""
+            }));
+        } else if (name === "password") {
+            setErrors(prev => ({
+                ...prev,
+                password: !validate.password(value)
+                    ? "Must include uppercase, lowercase, number, and special character"
+                    : "",
+                confirmPassword: formData.confirmPassword && value !== formData.confirmPassword
+                    ? "Passwords don't match"
+                    : ""
+            }));
+        } else if (name === "confirmPassword") {
+            setErrors(prev => ({
+                ...prev,
+                confirmPassword: value !== formData.password
+                    ? "Passwords don't match"
+                    : ""
+            }));
+        } else if (name === "phone" || name === "countryCode") {
+            const phone = name === "phone" ? value : formData.phone;
+            const code = name === "countryCode" ? value : formData.countryCode;
+            setErrors(prev => ({
+                ...prev,
+                phone: !validate.phone(phone, code) ? "Invalid phone number" : ""
+            }));
         }
-    }
+    };
 
-    // Handle signup
-    async function handleSignup() {
-        if (!name || !email || !phone || !password || !confirmPassword || !gender || !role) {
-            setErrorMessage("All fields are required.");
-            return;
-        }
-        if (!validateEmail(email)) {
-            setErrorMessage("Invalid email format.");
-            return;
-        }
-        if (!validatePhone(phone, countryCode)) {
-            setErrorMessage("Invalid phone number.");
-            return;
-        }
-        if (!validatePassword(password)) {
-            setErrorMessage("Password must have at least 1 uppercase, 1 lowercase, 1 number, 1 special character, and be at least 8 characters long.");
-            return;
-        }
-        if (password !== confirmPassword) {
-            setErrorMessage("Passwords do not match.");
+    // Form submission handler
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        
+        // Validate all fields
+        const newErrors = {
+            name: !formData.name ? "Name is required" : "",
+            email: !formData.email ? "Email is required" 
+                 : !validate.email(formData.email) ? "Invalid email" : "",
+            phone: !formData.phone ? "Phone is required" 
+                 : !validate.phone(formData.phone, formData.countryCode) ? "Invalid phone" : "",
+            password: !formData.password ? "Password is required" 
+                     : !validate.password(formData.password) ? "Doesn't meet requirements" : "",
+            confirmPassword: formData.password !== formData.confirmPassword ? "Passwords don't match" : "",
+            gender: !formData.gender ? "Gender is required" : "",
+            role: !formData.role ? "Role is required" : ""
+        };
+
+        setErrors(newErrors);
+
+        // Check if any errors exist
+        if (Object.values(newErrors).some(error => error)) {
             return;
         }
 
         setLoading(true);
-        setErrorMessage("");
 
         try {
-            // Format the phone number correctly before sending it to the backend
-            const formattedPhone = phone.startsWith("+") ? phone : `${countryCode}${phone}`;
+            // Format phone number
+            const formattedPhone = formData.phone.startsWith(formData.countryCode) 
+                ? formData.phone 
+                : `${formData.countryCode}${formData.phone.replace(/^\+/, '')}`;
 
-            await axios.post('https://vhub-zb2y.onrender.com/api/auth/signup/', {
-                name,
-                email,
-                phone,
-                password,
-                role,
-                gender,
-                college_name: college || "",
-                faculty: faculty || "",
-                year_of_study: year || null,
+            // API request
+            await axios.post(`${API_BASE_URL}/api/auth/signup/`, {
+                name: formData.name,
+                email: formData.email,
+                phone: formattedPhone,
+                password: formData.password,
+                role: formData.role,
+                gender: formData.gender,
+                college_name: formData.college || "",
+                faculty: formData.faculty || "",
+                year_of_study: formData.year || null
             }, {
-                headers: { "Content-Type": "application/json" }
+                headers: { "Content-Type": "application/json" },
+                timeout: 10000
             });
 
-            console.log("✅ Signup Success");
-
+            // Success handling
             Swal.fire({
                 icon: "success",
-                title: "Signup Successful!",
+                title: "Account Created!",
                 text: "Redirecting to login...",
-                showConfirmButton: false,
-                timer: 2000
+                timer: 2000,
+                showConfirmButton: false
             });
-
             setTimeout(() => navigate("/login"), 2000);
 
         } catch (error) {
-            console.log("❌ Signup Error:", error.response?.data);
-
-            if (error.response?.data?.email) {
-                setErrorMessage("❌ Email is already registered! Try a different one.");
-            } else {
-                setErrorMessage(error.response?.data?.error || "Signup failed! Try again.");
+            let errorMessage = "Signup failed. Please try again.";
+            
+            if (error.response) {
+                if (error.response.status === 400 && error.response.data.email) {
+                    errorMessage = "Email already exists";
+                } else if (error.response.data.error) {
+                    errorMessage = error.response.data.error;
+                }
+            } else if (error.code === "ECONNABORTED") {
+                errorMessage = "Request timed out. Please try again.";
+            } else if (error.message === "Network Error") {
+                errorMessage = "Network error. Please check your connection.";
             }
+
+            Swal.fire({
+                icon: "error",
+                title: "Error",
+                text: errorMessage
+            });
         } finally {
             setLoading(false);
         }
+    };
+
+    // If user is already logged in
+    if (isLoggedIn) {
+        return (
+            <div className="w-full h-screen flex flex-col justify-center items-center bg-[#1a202c]">
+                <div className="w-[35%] bg-[#2d3748] p-8 rounded-lg shadow-md text-center">
+                    <h2 className="text-2xl font-bold text-white mb-4">You're Already Logged In</h2>
+                    <button
+                        onClick={() => navigate("/dashboard")}
+                        className="bg-[#22c55e] text-white font-bold py-2 px-6 rounded-md hover:bg-[#1ea94d] transition"
+                    >
+                        Go to Dashboard
+                    </button>
+                </div>
+            </div>
+        );
     }
 
+    // Main signup form
     return (
         <div className="w-full h-screen flex flex-col justify-center items-center bg-[#1a202c]">
             <h1 className="text-4xl font-bold text-white mb-8">Create Account</h1>
-            <div className="w-[35%] flex flex-col items-center text-white bg-[#2d3748] p-8 rounded-lg shadow-md space-y-6">
+            
+            <form 
+                onSubmit={handleSubmit}
+                className="w-[35%] flex flex-col items-center text-white bg-[#2d3748] p-8 rounded-lg shadow-md space-y-4"
+                noValidate
+            >
+                {/* Name */}
+                <div className="w-full">
+                    <label htmlFor="name" className="block mb-1 text-sm font-medium">Full Name*</label>
+                    <input
+                        id="name"
+                        name="name"
+                        type="text"
+                        value={formData.name}
+                        onChange={handleChange}
+                        className="w-full h-12 px-4 rounded-md bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#22c55e]"
+                        required
+                    />
+                    {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+                </div>
 
-                {/* If user is already logged in, show a message and redirect option */}
-                {isLoggedIn ? (
-                    <div className="text-center">
-                        <p className="text-lg mb-4">You are already logged in.</p>
-                        <button
-                            className="bg-[#22c55e] font-bold text-lg px-5 py-2 rounded-md hover:bg-[#1ea94d] transition-colors"
-                            onClick={() => navigate("/dashboard")} // Redirect to dashboard or any other page
+                {/* Email */}
+                <div className="w-full">
+                    <label htmlFor="email" className="block mb-1 text-sm font-medium">Email*</label>
+                    <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        className="w-full h-12 px-4 rounded-md bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#22c55e]"
+                        required
+                    />
+                    {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                </div>
+
+                {/* Phone */}
+                <div className="w-full">
+                    <label htmlFor="phone" className="block mb-1 text-sm font-medium">Phone Number*</label>
+                    <div className="flex gap-2">
+                        <select
+                            name="countryCode"
+                            value={formData.countryCode}
+                            onChange={handleChange}
+                            className="w-1/4 h-12 px-2 rounded-md bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#22c55e]"
                         >
-                            Go to Dashboard
-                        </button>
-                    </div>
-                ) : (
-                    <>
-                        {/* Personal Information */}
-                        <div className="w-full space-y-4">
-                            <input type="text" name="name" placeholder="Full Name" value={name}
-                                className="w-full h-12 px-4 rounded-md bg-gray-700 text-lg focus:outline-none focus:ring-2 focus:ring-[#22c55e]"
-                                onChange={handleSignupChange} />
-
-                            <input type="email" name="email" placeholder="Email" value={email}
-                                className="w-full h-12 px-4 rounded-md bg-gray-700 text-lg focus:outline-none focus:ring-2 focus:ring-[#22c55e]"
-                                onChange={handleSignupChange} />
-                            {emailError && <p className="text-red-500 text-sm mt-1">{emailError}</p>}
-
-                            <div className="flex gap-2">
-                                <select name="countryCode" value={countryCode} onChange={handleSignupChange}
-                                    className="w-1/4 h-12 px-4 rounded-md bg-gray-700 text-lg focus:outline-none focus:ring-2 focus:ring-[#22c55e]">
-                                    {countries.map((country) => (
-                                        <option key={country.code} value={country.dial_code}>
-                                            {country.name} ({country.dial_code})
-                                        </option>
-                                    ))}
-                                </select>
-                                <input type="text" name="phone" placeholder="Phone Number" value={phone}
-                                    className="w-3/4 h-12 px-4 rounded-md bg-gray-700 text-lg focus:outline-none focus:ring-2 focus:ring-[#22c55e]"
-                                    onChange={handleSignupChange} />
-                            </div>
-                            {phoneError && <p className="text-red-500 text-sm mt-1">{phoneError}</p>}
-
-                            <input type="password" name="password" placeholder="Password" value={password}
-                                className="w-full h-12 px-4 rounded-md bg-gray-700 text-lg focus:outline-none focus:ring-2 focus:ring-[#22c55e]"
-                                onChange={handleSignupChange} />
-                            {passwordError && <p className="text-red-500 text-sm mt-1">{passwordError}</p>}
-
-                            <input type="password" name="confirmPassword" placeholder="Confirm Password" value={confirmPassword}
-                                className="w-full h-12 px-4 rounded-md bg-gray-700 text-lg focus:outline-none focus:ring-2 focus:ring-[#22c55e]"
-                                onChange={handleSignupChange} />
-                            {confirmPasswordError && <p className="text-red-500 text-sm mt-1">{confirmPasswordError}</p>}
-
-                            {/* Gender Selection */}
-                            <div className="flex gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setGender("Male")}
-                                    className={`flex-1 h-12 px-4 rounded-md text-lg focus:outline-none focus:ring-2 focus:ring-[#22c55e] ${gender === "Male" ? "bg-[#22c55e]" : "bg-gray-700"
-                                        }`}
-                                >
-                                    Male
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setGender("Female")}
-                                    className={`flex-1 h-12 px-4 rounded-md text-lg focus:outline-none focus:ring-2 focus:ring-[#22c55e] ${gender === "Female" ? "bg-[#22c55e]" : "bg-gray-700"
-                                        }`}
-                                >
-                                    Female
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* College Information */}
-                        <div className="w-full space-y-4">
-                            <input type="text" name="college" placeholder="College Name (Optional)" value={college}
-                                className="w-full h-12 px-4 rounded-md bg-gray-700 text-lg focus:outline-none focus:ring-2 focus:ring-[#22c55e]"
-                                onChange={handleSignupChange} />
-
-                            <input type="text" name="faculty" placeholder="Faculty (Optional)" value={faculty}
-                                className="w-full h-12 px-4 rounded-md bg-gray-700 text-lg focus:outline-none focus:ring-2 focus:ring-[#22c55e]"
-                                onChange={handleSignupChange} />
-
-                            <input type="text" name="year" placeholder="Year of Study (Optional)" value={year}
-                                className="w-full h-12 px-4 rounded-md bg-gray-700 text-lg focus:outline-none focus:ring-2 focus:ring-[#22c55e]"
-                                onChange={handleSignupChange} />
-                        </div>
-
-                        {/* Role Selection */}
-                        <select name="role" value={role} onChange={handleSignupChange}
-                            className="w-full h-12 px-4 rounded-md bg-gray-700 text-lg focus:outline-none focus:ring-2 focus:ring-[#22c55e]">
-                            <option value="Volunteer">Volunteer</option>
-                            <option value="Event Organizer">Event Organizer</option>
-                            <option value="Admin">Admin</option>
+                            {memoizedCountries.map(country => (
+                                <option key={country.code} value={country.dial_code}>
+                                    {country.flag} {country.dial_code}
+                                </option>
+                            ))}
                         </select>
+                        <input
+                            id="phone"
+                            name="phone"
+                            type="tel"
+                            value={formData.phone}
+                            onChange={handleChange}
+                            className="w-3/4 h-12 px-4 rounded-md bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#22c55e]"
+                            required
+                        />
+                    </div>
+                    {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+                </div>
 
-                        {errorMessage && <p className="text-red-500 text-sm text-center">{errorMessage}</p>}
+                {/* Password */}
+                <div className="w-full">
+                    <label htmlFor="password" className="block mb-1 text-sm font-medium">Password*</label>
+                    <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        className="w-full h-12 px-4 rounded-md bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#22c55e]"
+                        required
+                    />
+                    {errors.password && (
+                        <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+                    )}
+                    {formData.password && !errors.password && (
+                        <div className="text-xs mt-1 text-green-500">
+                            ✓ Meets requirements
+                        </div>
+                    )}
+                </div>
 
-                        <button className="bg-[#22c55e] font-bold text-lg px-5 py-2 rounded-md w-full hover:bg-[#1ea94d] transition-colors"
-                            disabled={loading}
-                            onClick={handleSignup}>
-                            {loading ? "Creating Account..." : "Signup"}
-                        </button>
+                {/* Confirm Password */}
+                <div className="w-full">
+                    <label htmlFor="confirmPassword" className="block mb-1 text-sm font-medium">Confirm Password*</label>
+                    <input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type="password"
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
+                        className="w-full h-12 px-4 rounded-md bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#22c55e]"
+                        required
+                    />
+                    {errors.confirmPassword && (
+                        <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>
+                    )}
+                </div>
 
-                        {/* Link to login page for users who already have an account */}
-                        <p className="text-center">
-                            Already have an account?{" "}
-                            <span
-                                className="text-[#3b82f6] cursor-pointer hover:underline" // Changed color to blue
-                                onClick={() => navigate("/login")}
+                {/* Gender */}
+                <div className="w-full">
+                    <label className="block mb-1 text-sm font-medium">Gender*</label>
+                    <div className="flex gap-2">
+                        {["Male", "Female", "Other"].map(genderOption => (
+                            <button
+                                key={genderOption}
+                                type="button"
+                                onClick={() => setFormData(prev => ({ ...prev, gender: genderOption }))}
+                                className={`flex-1 h-12 rounded-md focus:outline-none focus:ring-2 focus:ring-[#22c55e] ${
+                                    formData.gender === genderOption 
+                                        ? "bg-[#22c55e] text-white" 
+                                        : "bg-gray-700"
+                                }`}
                             >
-                                Login here
-                            </span>
-                        </p>
-                    </>
-                )}
-            </div>
+                                {genderOption}
+                            </button>
+                        ))}
+                    </div>
+                    {errors.gender && <p className="text-red-500 text-xs mt-1">{errors.gender}</p>}
+                </div>
+
+                {/* College Info */}
+                <div className="w-full space-y-4">
+                    <div>
+                        <label htmlFor="college" className="block mb-1 text-sm font-medium">College Name</label>
+                        <input
+                            id="college"
+                            name="college"
+                            type="text"
+                            value={formData.college}
+                            onChange={handleChange}
+                            className="w-full h-12 px-4 rounded-md bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#22c55e]"
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor="faculty" className="block mb-1 text-sm font-medium">Faculty</label>
+                        <input
+                            id="faculty"
+                            name="faculty"
+                            type="text"
+                            value={formData.faculty}
+                            onChange={handleChange}
+                            className="w-full h-12 px-4 rounded-md bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#22c55e]"
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor="year" className="block mb-1 text-sm font-medium">Year of Study</label>
+                        <input
+                            id="year"
+                            name="year"
+                            type="text"
+                            value={formData.year}
+                            onChange={handleChange}
+                            className="w-full h-12 px-4 rounded-md bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#22c55e]"
+                        />
+                    </div>
+                </div>
+
+                {/* Role */}
+                <div className="w-full">
+                    <label htmlFor="role" className="block mb-1 text-sm font-medium">Role*</label>
+                    <select
+                        id="role"
+                        name="role"
+                        value={formData.role}
+                        onChange={handleChange}
+                        className="w-full h-12 px-4 rounded-md bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#22c55e]"
+                        required
+                    >
+                        <option value="Volunteer">Volunteer</option>
+                        <option value="Event Organizer">Event Organizer</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                </div>
+
+                {/* Submit Button */}
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className={`w-full h-12 bg-[#22c55e] font-bold rounded-md mt-4 ${
+                        loading ? "opacity-70 cursor-not-allowed" : "hover:bg-[#1ea94d]"
+                    }`}
+                >
+                    {loading ? "Creating Account..." : "Sign Up"}
+                </button>
+
+                {/* Login Link */}
+                <p className="text-center text-sm mt-4">
+                    Already have an account?{" "}
+                    <button
+                        type="button"
+                        onClick={() => navigate("/login")}
+                        className="text-blue-400 hover:underline focus:outline-none"
+                    >
+                        Log In
+                    </button>
+                </p>
+            </form>
         </div>
     );
 }

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "./Sidebar";
 import { useAuth } from "../../context/AuthContext";
-
+import API_BASE_URL from "../../config";
 
 function AdminEvents() {
     const [events, setEvents] = useState([]);
@@ -24,7 +24,7 @@ function AdminEvents() {
                 return;
             }
 
-            const response = await axios.get("https://vhub-zb2y.onrender.com/api/events/", {
+            const response = await axios.get(`${API_BASE_URL}/api/events/`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
@@ -41,84 +41,26 @@ function AdminEvents() {
             setEvents([]);
         }
     };
-    const determineEventStatus = (startDate, startTime, endDate, endTime) => {
-        if (!startDate || !startTime || !endDate || !endTime) return "Unknown";  
-    
-        try {
-            const now = new Date();
-    
-            // Convert UTC date to local timezone
-            const startDateLocal = new Date(startDate);  
-            const endDateLocal = new Date(endDate);
-    
-            // Combine local date with provided local time correctly
-            const start = new Date(
-                startDateLocal.getFullYear(),
-                startDateLocal.getMonth(),
-                startDateLocal.getDate(),
-                ...startTime.split(":").map(Number)  // Extract HH:MM:SS
-            );
-    
-            const end = new Date(
-                endDateLocal.getFullYear(),
-                endDateLocal.getMonth(),
-                endDateLocal.getDate(),
-                ...endTime.split(":").map(Number)
-            );
-    
-            console.log(`⏳ Current Local Time: ${now}`);
-            console.log(`📅 Fixed Event Start (Local): ${start}, End: ${end}`);
-    
-            if (now < start) return "Upcoming";
-            if (now >= start && now <= end) return "Ongoing";
-            return "Completed";
-        } catch (error) {
-            console.error("❌ Error parsing event time:", error);
-            return "Unknown";
-        }
-    };
-    
-
 
     function searchEvents(e) {
         const search = e.target.value;
         setSearchQuery(search);
-
-        console.log("🔎 Searching for:", search);
-
-        if (!backupEvents || backupEvents.length === 0) {
-            console.log("🛑 No events available for search!");
-            return;
-        }
-
-        const searchedEvents = backupEvents.filter((event) =>
-            event.E_Name.toLowerCase().includes(search.trim().toLowerCase())
-        );
-
-        console.log("✅ Searched Events:", searchedEvents);
+        setAllEvents(backupEvents);
+        const searchedEvents = allEvents.filter((event) => {
+            return event.E_Name.toLowerCase().includes(search.trim().toLowerCase());
+        });
 
         setEvents(searchedEvents);
+        setAllEvents(backupEvents);
     }
 
     useEffect(() => {
-        console.log("🟡 Current Filter Status:", filterStatus);
-        console.log("🟡 Backup Events:", backupEvents); // Debugging log
-
-        // Ensure `backupEvents` contains data before filtering
-        if (!backupEvents || backupEvents.length === 0) {
-            console.log("🛑 No backup events found!");
-            return;
-        }
-
-        // Filter events based on status
-        let filteredEvents = backupEvents.filter(
-            (event) => filterStatus === 'all' || event.E_Status === filterStatus
-        );
-
-        console.log("✅ Filtered Events:", filteredEvents); // Debugging log
-
+        console.log("🟡 Filter Status:", filterStatus);
+        setAllEvents(backupEvents);
+        let filteredEvents = allEvents.filter((event) => filterStatus === 'all' || event.E_Status === filterStatus);
         setEvents(filteredEvents);
-    }, [filterStatus, backupEvents]);
+        setAllEvents(backupEvents);
+    }, [filterStatus]);
 
     useEffect(() => {
         fetchEvents();
@@ -134,7 +76,7 @@ function AdminEvents() {
 
         let msg = confirm("Are you sure you want to delete this event?");
         if (msg) {
-            axios.delete(`https://vhub-zb2y.onrender.com/api/events/${id}/delete/`, {
+            axios.delete(`${API_BASE_URL}/api/events/${id}/delete/`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
                 .then(() => {
@@ -222,10 +164,7 @@ function AdminEvents() {
                                         </td>
                                         <td className="p-3">{formatDate(event.E_Start_Date)}</td>
                                         <td className="p-3">{formatDate(event.E_End_Date)}</td>
-                                        <td className="p-3">
-                                            {determineEventStatus(event.E_Start_Date, event.E_Start_Time, event.E_End_Date, event.E_End_Time)}
-                                        </td>
-
+                                        <td className="p-3">{event.E_Status}</td>
                                         <td className="p-3 flex space-x-3">
                                             <button title="View" onClick={() => navigate(`/events/${event.E_ID}`)} className="text-blue-400 hover:text-blue-600">
                                                 <FaEye />
