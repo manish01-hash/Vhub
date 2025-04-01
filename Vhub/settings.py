@@ -15,11 +15,7 @@ from datetime import timedelta
 import os
 from dotenv import load_dotenv
 import platform
-import json
 import dj_database_url
-import cloudinary
-import cloudinary.uploader
-import cloudinary.api
 PORT = os.getenv("PORT")  # Let Render define the correct port
 
 
@@ -37,9 +33,12 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False") == "True"
-
-ALLOWED_HOSTS = ["*"]  # Allows all hosts (for testing)
-
+ALLOWED_HOSTS = [
+    "vhub-zb2y.onrender.com", 
+    "vhub-manishs-projects-8b731aa4.vercel.app",
+    "localhost",
+    "127.0.0.1"
+]
 
 
 STATIC_URL = "/static/"
@@ -48,15 +47,13 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 
 # MEDIA FILES (For User Uploads)
 MEDIA_URL = "/media/"
-MEDIA_ROOT = '/opt/render/project/media/'
-
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")  # Ensure this exists
 
 
 # Application definition
 
 INSTALLED_APPS = [
     'corsheaders',
-    'whitenoise.runserver_nostatic',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -64,13 +61,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'Vapp',
-    'cloudinary',
-    'cloudinary_storage',
+    
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
-    "whitenoise.middleware.WhiteNoiseMiddleware",
+    'corsheaders.middleware.CorsMiddleware', 
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -78,6 +73,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
 
 ROOT_URLCONF = 'Vhub.urls'
@@ -200,41 +196,34 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )
 
-CORS_ALLOW_ALL_ORIGINS = False  # ❌ DO NOT use True in production
-CORS_ALLOW_CREDENTIALS = True
-
+# Add your Vercel frontend URL to allowed origins
 CORS_ALLOWED_ORIGINS = [
-    "https://vhub-zb2y.onrender.com",
-    "https://vhub-manish01-hash-manishs-projects-8b731aa4.vercel.app",
-    "https://vhub-khaki.vercel.app"
+    "https://vhub-4385uxrzr-manishs-projects-8b731aa4.vercel.app",
+    "https://vhub-manishs-projects-8b731aa4.vercel.app",
+    "https://vhub-zb2y.onrender.com",  # Optional: If frontend makes requests to itself
 ]
 
+# Also add CSRF trusted origins if using session/auth
 CSRF_TRUSTED_ORIGINS = [
     "https://vhub-zb2y.onrender.com",
-    "https://vhub-manish01-hash-manishs-projects-8b731aa4.vercel.app",
-    "https://vhub-khaki.vercel.app"
+    "https://vhub-*.vercel.app",  # Wildcard for all Vercel preview URLs
 ]
 
-CORS_ALLOW_METHODS = [
-    "GET",
-    "POST",
-    "PUT",
-    "PATCH",
-    "DELETE",
-    "OPTIONS"
-]
+# Allow credentials if using cookies
+CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_HEADERS = [
-    "accept",
-    "accept-encoding",
-    "authorization",
-    "content-type",
-    "dnt",
-    "origin",
-    "user-agent",
-    "x-csrftoken",
-    "x-requested-with",
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
 ]
+
 if platform.system() == "Windows":
     WKHTMLTOPDF_PATH = "C:/Program Files/wkhtmltopdf/bin/wkhtmltopdf.exe"
 else:
@@ -254,17 +243,3 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'xelu bpum rhvl odmz')  #
 
 
 API_BASE_URL = os.getenv("API_BASE_URL","https://vhub-zb2y.onrender.com") 
-
-DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
-
-CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': 'deih0ghdz',
-    'API_KEY': '158678226591292',
-    'API_SECRET': 'zKVIAZputYd8n6CkUgZdz9tjMWs'
-}
-
-cloudinary.config(
-    cloud_name=CLOUDINARY_STORAGE['CLOUD_NAME'],
-    api_key=CLOUDINARY_STORAGE['API_KEY'],
-    api_secret=CLOUDINARY_STORAGE['API_SECRET']
-)

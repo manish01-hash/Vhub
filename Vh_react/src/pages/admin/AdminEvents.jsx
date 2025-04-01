@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "./Sidebar";
 import { useAuth } from "../../context/AuthContext";
-import API_BASE_URL from "../../config";
+
+const API_BASE_URL = "https://vhub-zb2y.onrender.com";
 
 function AdminEvents() {
     const [events, setEvents] = useState([]);
