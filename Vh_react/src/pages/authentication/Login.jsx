@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
-import API_BASE_URL from "../../config";
-
+const API_BASE_URL = "https://vhub-zb2y.onrender.com";
 function Login() {
     // State management
     const [formData, setFormData] = useState({

@@ -4,7 +4,8 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import { isValidPhoneNumber } from "libphonenumber-js";
 import countries from "./countries.json";
-import API_BASE_URL from "../../config";
+const API_BASE_URL = "https://vhub-zb2y.onrender.com";
+
 
 function Signup() {
     // State management
