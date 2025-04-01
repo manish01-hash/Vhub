@@ -11,45 +11,24 @@ class ErrorBoundary extends React.Component {
     return { hasError: true };
   }
 
-  componentDidCatch(error, info) {
-    console.error('App crashed:', error, info);
-    // Consider sending error to monitoring service (Sentry, etc.)
-  }
-
   render() {
-    if (this.state.hasError) {
-      return (
-        <div className="error-fallback">
-          <h1>Something went wrong</h1>
-          <button 
-            onClick={() => window.location.reload()}
-            className="reload-button"
-          >
-            Reload App
-          </button>
-        </div>
-      );
-    }
-    return this.props.children;
+    return this.state.hasError ? (
+      <div>
+        <h1>Something went wrong</h1>
+        <button onClick={() => window.location.reload()}>Reload</button>
+      </div>
+    ) : (
+      this.props.children
+    );
   }
 }
 
-const Root = () => (
-  <BrowserRouter basename="/">
-    <App />
-  </BrowserRouter>
-);
-
 createRoot(document.getElementById('root')).render(
-  process.env.NODE_ENV === 'development' ? (
-    <React.StrictMode>
-      <ErrorBoundary>
-        <Root />
-      </ErrorBoundary>
-    </React.StrictMode>
-  ) : (
+  <React.StrictMode>
     <ErrorBoundary>
-      <Root />
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
     </ErrorBoundary>
-  )
+  </React.StrictMode>
 );

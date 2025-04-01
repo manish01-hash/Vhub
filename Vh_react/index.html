@@ -3,17 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Your App Name</title>
-  
-  <!-- Favicon (using vite.svg since that's what you have) -->
+  <title>VHub</title>
   <link rel="icon" href="/vite.svg" type="image/svg+xml" />
   
-  <!-- Preconnect to API if needed -->
+  <!-- Base tag is CRITICAL for your config -->
+  <base href="/" />
+  
+  <!-- Preload hints (optional but recommended) -->
   <link rel="preconnect" href="https://vhub-zb2y.onrender.com" crossorigin />
+  <link rel="preload" as="script" href="/assets/main.[hash].js" />
 </head>
 <body>
   <div id="root"></div>
   
-  <!-- No script tags needed - Vite will inject them -->
+  <!-- 
+    Vite will transform this during build - DO NOT manually add hashes here
+    The build will replace [hash] with the actual hash value
+  -->
+  <script type="module" src="/assets/main.[hash].js"></script>
 </body>
 </html>
