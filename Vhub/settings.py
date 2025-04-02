@@ -202,7 +202,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://vhub-4385uxrzr-manishs-projects-8b731aa4.vercel.app",
     "https://vhub-manishs-projects-8b731aa4.vercel.app",
     "https://vhub-zb2y.onrender.com",# Optional: If frontend makes requests to itself
-    "https://vhub-khaki.vercel.app/"
+    
 
 ]
 
@@ -210,9 +210,7 @@ CORS_ALLOWED_ORIGINS = [
 CSRF_TRUSTED_ORIGINS = [
     "https://vhub-zb2y.onrender.com",
     "https://vhub-*.vercel.app",# Wildcard for all Vercel preview URLs
-    "https://vhub-manishs-projects-8b731aa4.vercel.app",
-    "https://vhub-4385uxrzr-manishs-projects-8b731aa4.vercel.app",
-    "https://vhub-khaki.vercel.app/"
+    
     
 
 ]
