@@ -4,6 +4,7 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import { jwtDecode } from "jwt-decode";
 
+
 function EventPost({ event, ename, description, requiredVolunteers, totVolunteers, fetchEvents, setNewRegistration }) {
     const navigate = useNavigate();
     const [isRegistered, setIsRegistered] = useState(false);

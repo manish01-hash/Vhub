@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { FaEnvelope, FaPhone, FaUniversity, FaUserGraduate, FaBriefcase, FaEdit, FaCertificate, FaCalendarAlt, FaChartBar } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 function Profile() {
     const { user, loading, logout, refreshAuth } = useAuth();
