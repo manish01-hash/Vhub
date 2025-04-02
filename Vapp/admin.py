@@ -13,21 +13,79 @@ User = get_user_model()
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ("email", "name", "phone", "role", "gender" ,"college_name", "faculty", "year_of_study", "is_active", "is_staff", "profile_image",)
+    list_display = ("email", "name", "phone", "role", "gender", "college_name", 
+                   "faculty", "year_of_study", "is_active", "is_staff", "profile_image_display")
+    list_filter = ("role", "gender", "is_active", "is_staff", "college_name")
     search_fields = ("email", "name", "phone", "college_name", "faculty")
     ordering = ("email",)
+    readonly_fields = ("last_login", "created_at")
+    
+    # Safe handling of profile images
+    def profile_image_display(self, obj):
+        if obj.profile_image:
+            try:
+                return format_html(
+                    '<img src="{}" width="50" height="50" style="border-radius: 5px;" />', 
+                    obj.profile_image.url
+                )
+            except:
+                return "Image unavailable"
+        return "No image"
+    profile_image_display.short_description = "Profile Image"
+    profile_image_display.allow_tags = True
 
     fieldsets = (
-        ("Basic Info", {"fields": ("email", "password", "name", "profile_image", "phone", "role", "gender", "college_name", "faculty", "year_of_study")}),
-        ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser")}),
-        ("Important Dates", {"fields": ("last_login", "created_at")}),
+        ("Basic Info", {
+            "fields": (
+                "email", 
+                "password", 
+                "name", 
+                "profile_image", 
+                "phone", 
+                "role", 
+                "gender", 
+                "college_name", 
+                "faculty", 
+                "year_of_study"
+            )
+        }),
+        ("Permissions", {
+            "fields": (
+                "is_active", 
+                "is_staff", 
+                "is_superuser",
+                "groups",
+                "user_permissions"
+            ),
+            "classes": ("collapse",)
+        }),
+        ("Important Dates", {
+            "fields": (
+                "last_login", 
+                "created_at"
+            ),
+            "classes": ("collapse",)
+        }),
     )
 
     add_fieldsets = (
         (None, {
             "classes": ("wide",),
-            "fields": ("email", "name", "phone", "password1", "password2", "role", 
-            "gender", "college_name", "profile_image", "faculty", "year_of_study", "is_staff"),
+            "fields": (
+                "email", 
+                "name", 
+                "phone", 
+                "password1", 
+                "password2", 
+                "role", 
+                "gender", 
+                "college_name", 
+                "profile_image", 
+                "faculty", 
+                "year_of_study", 
+                "is_staff",
+                "is_active"
+            ),
         }),
     )
 

@@ -80,7 +80,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return f"{self.name} ({self.role})"
 
-User = get_user_model()  # ✅ Correct Placement
+User = get_user_model()  # ✅ Correct Placement  # noqa: F811
 
 # ✅ OTP Verification Model (Moved Below User Model)
 class OTPVerification(models.Model):
