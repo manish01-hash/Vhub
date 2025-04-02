@@ -13,74 +13,23 @@ User = get_user_model()
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ("email", "name", "role", "college_name", "is_active", "is_staff", "profile_image_tag")
-    list_filter = ("role", "is_staff", "is_active", "college_name")
-    search_fields = ("email", "name", "phone", "college_name__icontains")
-    ordering = ("-created_at",)
-    readonly_fields = ("id", "created_at", "last_login", "profile_image_tag")
-    filter_horizontal = ("groups", "user_permissions",)
-    
+    list_display = ("email", "name", "phone", "role", "gender" ,"college_name", "faculty", "year_of_study", "is_active", "is_staff", "profile_image",)
+    search_fields = ("email", "name", "phone", "college_name", "faculty")
+    ordering = ("email",)
+
     fieldsets = (
-        (None, {"fields": ("email", "password")}),
-        (_("Personal Info"), {"fields": (
-            "id",
-            "name",
-            "phone",
-            "gender",
-            "profile_image",
-            "profile_image_tag"
-        )}),
-        (_("Education"), {"fields": (
-            "college_name",
-            "faculty",
-            "year_of_study"
-        )}),
-        (_("Permissions"), {
-            "classes": ("collapse",),
-            "fields": (
-                "role",
-                "is_active",
-                "is_staff",
-                "is_superuser",
-                "groups",
-                "user_permissions",
-            ),
-        }),
-        (_("Important Dates"), {"fields": ("last_login", "created_at")}),
+        ("Basic Info", {"fields": ("email", "password", "name", "profile_image", "phone", "role", "gender", "college_name", "faculty", "year_of_study")}),
+        ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser")}),
+        ("Important Dates", {"fields": ("last_login", "created_at")}),
     )
 
     add_fieldsets = (
         (None, {
             "classes": ("wide",),
-            "fields": (
-                "email",
-                "name",
-                "password1",
-                "password2",
-                "role",
-                "phone",
-                "is_staff",
-                "is_active"
-            ),
+            "fields": ("email", "name", "phone", "password1", "password2", "role", 
+            "gender", "college_name", "profile_image", "faculty", "year_of_study", "is_staff"),
         }),
     )
-
-    def profile_image_tag(self, obj):
-        if obj.profile_image:
-            return format_html(
-                '<img src="{}" width="50" height="50" style="border-radius:50%;object-fit:cover"/>',
-                obj.profile_image.url
-            )
-        return format_html('<div class="no-image" style="width:50px;height:50px;"></div>')
-    profile_image_tag.short_description = _("Profile Picture")
-    profile_image_tag.allow_tags = True
-
-    def get_form(self, request, obj=None, **kwargs):
-        form = super().get_form(request, obj, **kwargs)
-        # Make role required during user creation
-        if 'role' in form.base_fields:
-            form.base_fields['role'].required = True
-        return form
 
 class EventStatusFilter(admin.SimpleListFilter):
     title = _('Event Status')
