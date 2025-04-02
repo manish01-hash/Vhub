@@ -502,26 +502,54 @@ def create_event(request):
     try:
         request_data = request.data.copy()  # ✅ Create a mutable copy
 
-        # ✅ Handle file upload to Cloudinary
+        # ✅ Handle Cloudinary upload with error handling
         if 'E_Photo' in request.FILES:
             uploaded_file = request.FILES['E_Photo']
-            upload_result = cloudinary.uploader.upload(
-                uploaded_file,
-                folder="event_photos/"
-            )
-            request_data['E_Photo'] = upload_result['secure_url']  # ✅ Update mutable copy
+            try:
+                upload_result = cloudinary.uploader.upload(
+                    uploaded_file,
+                    folder="event_photos/"
+                )
+                request_data['E_Photo'] = upload_result['secure_url']  # ✅ Store Cloudinary URL
+            except Exception as cloudinary_error:
+                return Response({"error": f"Image upload failed: {str(cloudinary_error)}"},
+                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         serializer = EventSerializer(data=request_data)
 
         if serializer.is_valid():
-            serializer.save(E_Created_By=request.user)  # ✅ Save with created_by field
-            return Response({"message": "Event created successfully!"}, status=status.HTTP_201_CREATED)
+            event = serializer.save(E_Created_By=request.user)  # ✅ Save with created_by field
+
+            # ✅ Compute E_Status for newly created events
+            now = timezone.now()
+            if (
+                event.E_Start_Date and event.E_Start_Time and
+                event.E_End_Date and event.E_End_Time
+            ):
+                start_datetime = datetime.combine(event.E_Start_Date, event.E_Start_Time)
+                end_datetime = datetime.combine(event.E_End_Date, event.E_End_Time)
+
+                if timezone.is_naive(start_datetime):
+                    start_datetime = timezone.make_aware(start_datetime)
+                if timezone.is_naive(end_datetime):
+                    end_datetime = timezone.make_aware(end_datetime)
+
+                if now < start_datetime:
+                    event.E_Status = "Upcoming"
+                elif start_datetime <= now <= end_datetime:
+                    event.E_Status = "Ongoing"
+                else:
+                    event.E_Status = "Completed"
+
+                event.save()  # ✅ Save updated status
+
+            return Response({"message": "Event created successfully!", "E_Status": event.E_Status},
+                            status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 
 @api_view(['PUT'])
@@ -532,19 +560,26 @@ def update_event(request, E_ID):
         event = Event.objects.get(E_ID=E_ID)
         request_data = request.data.copy()
 
-        # ✅ Handle file upload to Cloudinary
+        # ✅ Handle Cloudinary upload with error handling
         if 'E_Photo' in request.FILES:
             uploaded_file = request.FILES['E_Photo']
-            upload_result = cloudinary.uploader.upload(
-                uploaded_file,
-                folder="event_photos/"
-            )
-            request_data['E_Photo'] = upload_result['secure_url']
+            try:
+                upload_result = cloudinary.uploader.upload(
+                    uploaded_file,
+                    folder="event_photos/"
+                )
+                request_data['E_Photo'] = upload_result['secure_url']
+            except Exception as cloudinary_error:
+                return Response({"error": f"Image upload failed: {str(cloudinary_error)}"},
+                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # ✅ Convert empty lists (sent as strings) to None
+        # ✅ Convert empty lists (sent as strings) to actual None values
         for field in ["E_Coordinators", "E_Super_Volunteers"]:
-            if field in request_data and isinstance(request_data[field], str):
-                if request_data[field] in ["null", "[]", ""]:
+            if field in request_data:
+                if isinstance(request_data[field], str):
+                    if request_data[field] in ["null", "[]", ""]:
+                        request_data[field] = None
+                elif isinstance(request_data[field], list) and not request_data[field]:
                     request_data[field] = None
 
         serializer = EventSerializer(event, data=request_data, partial=True, context={"request": request})
@@ -576,7 +611,6 @@ def update_event(request, E_ID):
                 updated_event.E_Status = event_status
                 updated_event.save()
 
-
             return Response({
                 "message": "Event updated successfully!",
                 "E_Status": updated_event.E_Status  # ✅ Return stored status
@@ -588,7 +622,6 @@ def update_event(request, E_ID):
         return Response({"error": "Event not found!"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 # Delete Event
 @api_view(['DELETE'])

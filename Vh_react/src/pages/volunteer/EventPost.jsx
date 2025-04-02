@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { jwtDecode } from "jwt-decode";  // ✅ Correct
-
+import { jwtDecode } from "jwt-decode";
 
 function EventPost({ event, ename, description, requiredVolunteers, totVolunteers, fetchEvents, setNewRegistration }) {
     const navigate = useNavigate();
@@ -108,16 +107,16 @@ function EventPost({ event, ename, description, requiredVolunteers, totVolunteer
     return (
         <div className="bg-[#1E293B] bg-opacity-90 backdrop-blur-md p-6 rounded-2xl shadow-lg border border-gray-600 transition-transform hover:scale-[1.02] hover:border-blue-400 duration-300">
             <div className="relative">
-                <img
-                    src={event.E_Photo ? event.E_Photo : "https://via.placeholder.com/400x200"}
-                    alt={event.E_Name}
-                    className="w-full h-52 object-cover rounded-xl shadow-md border border-gray-700 transition-all duration-300 hover:brightness-110"
-                />
+            <img
+                src={event.E_Photo ? event.E_Photo : "https://via.placeholder.com/400x200"}
+                alt={event.E_Name}
+                className="w-full h-52 object-cover rounded-xl shadow-md border border-gray-700 transition-all duration-300 hover:brightness-110"
+            />
+
                 <span className="absolute top-2 right-2 bg-blue-600 text-white text-xs px-3 py-1 rounded-lg shadow-md">
                     {totVolunteers}/{requiredVolunteers} Volunteers
                 </span>
             </div>
-
             <div className="mt-4 text-center">
                 <h2 className="text-2xl font-bold text-green-400">{ename}</h2>
                 <p className="text-gray-300 mt-2 line-clamp-3">{description}</p>

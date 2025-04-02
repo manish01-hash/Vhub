@@ -134,7 +134,7 @@ function Signup() {
                 year_of_study: formData.year || null
             }, {
                 headers: { "Content-Type": "application/json" },
-                timeout: 10000
+                timeout: 5000
             });
 
             // Success handling
