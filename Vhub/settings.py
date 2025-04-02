@@ -61,6 +61,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'Vapp',
+    'cloudinary',
+    'cloudinary_storage',
     
     
 ]
@@ -256,3 +258,13 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'xelu bpum rhvl odmz')  #
 
 
 API_BASE_URL = "https://vhub-zb2y.onrender.com"
+
+# Cloudinary Configuration
+CLOUDINARY_STORAGE = {
+    "CLOUD_NAME": "deih0ghdz",
+    "API_KEY": "158678226591292",
+    "API_SECRET": "zKVIAZputYd8n6CkUgZdz9tjMWs"
+}
+
+# Use Cloudinary as the default storage
+DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
