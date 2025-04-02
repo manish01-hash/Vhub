@@ -6,23 +6,7 @@ import axios from "axios";
 function Profile() {
     const { user, loading, fetchProfile } = useAuth(); 
     const [editMode, setEditMode] = useState(false);
-    const [profileData, setProfileData] = useState({
-        user: {
-            name: "",
-            email: "",
-            phone: "",
-            college_name: "",
-            faculty: "", 
-            year_of_study: "", 
-            role: "",
-            profile_image: ""
-        },
-        stats: {
-            events_attended: 0
-        },
-        recent_certificates: [],
-        profile_completion: 0
-    });
+    const [profileData, setProfileData] = useState(null);
     const [updatedUser, setUpdatedUser] = useState({
         name: "",
         email: "",
@@ -33,12 +17,13 @@ function Profile() {
         profile_image: null
     });
     const [imagePreview, setImagePreview] = useState("");
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         console.log("🔍 Debugging Profile:");
         console.log("Loading:", loading);
-        console.log("Profile Data:", profileData);
-    }, [loading, profileData]);
+        console.log("User Data:", user);
+    }, [loading, user]);
 
     useEffect(() => {
         if (user) {
@@ -67,7 +52,17 @@ function Profile() {
     };
 
     const saveProfile = async () => {
+        if (!profileData?.id) {
+            setError("User ID is missing. Please try refreshing the page.");
+            return;
+        }
+
         const token = localStorage.getItem("accessToken");
+        if (!token) {
+            setError("Authentication token is missing. Please log in again.");
+            return;
+        }
+
         const formData = new FormData();
         for (const key in updatedUser) {
             if (updatedUser[key] !== null && key !== "profile_image") {
@@ -90,11 +85,14 @@ function Profile() {
                     },
                 }
             );
+            
             console.log("✅ Profile updated successfully!", response.data);
-            fetchProfile(); // Refresh profile data
+            setError(null);
+            await fetchProfile(); // Refresh profile data
             setEditMode(false);
         } catch (error) {
-            console.error("❌ Error updating profile:", error.response ? error.response.data : error);
+            console.error("❌ Error updating profile:", error);
+            setError(error.response?.data?.message || "Failed to update profile. Please try again.");
         }
     };
 
@@ -114,7 +112,7 @@ function Profile() {
 
     if (loading) return <p className="text-center text-white">⏳ Loading profile...</p>;
 
-    if (!profileData.user) {
+    if (!profileData) {
         console.error("🚨 Unauthorized: User data is null. Check API or token.");
         return <p className="text-center text-red-500">❌ Unauthorized. Please log in.</p>;
     }
@@ -122,6 +120,12 @@ function Profile() {
     return (
         <div className="flex justify-center items-start h-full w-full bg-gradient-to-br from-[#1c202c] to-[#283046] p-6">
             <div className="bg-[#2a2d3e] text-white p-6 rounded-lg shadow-lg w-full max-w-4xl border border-gray-700">
+                {error && (
+                    <div className="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-300">
+                        {error}
+                    </div>
+                )}
+
                 {/* Profile Completion Bar */}
                 <div className="mb-6">
                     <div className="flex justify-between items-center mb-1">
@@ -151,8 +155,8 @@ function Profile() {
                                 {editMode && (
                                     <input type="file" id="profileImageUpload" accept="image/*" onChange={handleImageChange} className="hidden" />
                                 )}
-                                <h2 className="text-3xl font-bold text-green-400 mt-4">{profileData.user.name}</h2>
-                                <p className="text-gray-400 text-sm">{profileData.user.role}</p>
+                                <h2 className="text-3xl font-bold text-green-400 mt-4">{profileData.name}</h2>
+                                <p className="text-gray-400 text-sm">{profileData.role}</p>
                             </div>
                         </div>
 
@@ -162,7 +166,7 @@ function Profile() {
                                 {editMode ? (
                                     <input type="email" placeholder="Email" name="email" value={updatedUser.email} onChange={handleChange} className="bg-gray-700 text-white px-3 py-1 rounded-md w-full" />
                                 ) : (
-                                    <p>Email: {profileData.user.email}</p>
+                                    <p>Email: {profileData.email}</p>
                                 )}
                             </div>
                             <div className="flex items-center space-x-3 text-gray-300">
@@ -170,7 +174,7 @@ function Profile() {
                                 {editMode ? (
                                     <input type="text" placeholder="Phone" name="phone" value={updatedUser.phone} onChange={handleChange} className="bg-gray-700 text-white px-3 py-1 rounded-md w-full" />
                                 ) : (
-                                    <p>Phone: {profileData.user.phone || "Not Provided"}</p>
+                                    <p>Phone: {profileData.phone || "Not Provided"}</p>
                                 )}
                             </div>
                             <div className="flex items-center space-x-3 text-gray-300">
@@ -178,7 +182,7 @@ function Profile() {
                                 {editMode ? (
                                     <input type="text" placeholder="College" name="college_name" value={updatedUser.college_name} onChange={handleChange} className="bg-gray-700 text-white px-3 py-1 rounded-md w-full" />
                                 ) : (
-                                    <p>College: {profileData.user.college_name}</p>
+                                    <p>College: {profileData.college_name}</p>
                                 )}
                             </div>
                             <div className="flex items-center space-x-3 text-gray-300">
@@ -186,7 +190,7 @@ function Profile() {
                                 {editMode ? (
                                     <input type="text" placeholder="Faculty" name="faculty" value={updatedUser.faculty} onChange={handleChange} className="bg-gray-700 text-white px-3 py-1 rounded-md w-full" />
                                 ) : (
-                                    <p>Faculty: {profileData.user.faculty}</p>
+                                    <p>Faculty: {profileData.faculty}</p>
                                 )}
                             </div>
                             <div className="flex items-center space-x-3 text-gray-300">
@@ -194,7 +198,7 @@ function Profile() {
                                 {editMode ? (
                                     <input type="number" placeholder="Year of Study" name="year_of_study" value={updatedUser.year_of_study} onChange={handleChange} className="bg-gray-700 text-white px-3 py-1 rounded-md w-full" />
                                 ) : (
-                                    <p>Current Year: {yearOfStudyText(profileData.user.year_of_study)}</p>
+                                    <p>Current Year: {yearOfStudyText(profileData.year_of_study)}</p>
                                 )}
                             </div>
                         </div>
@@ -224,7 +228,6 @@ function Profile() {
                                     </span>
                                     <span className="font-bold">{profileData.stats?.events_attended || 0}</span>
                                 </div>
-                                {/* Add more stats here as needed */}
                             </div>
                         </div>
 
