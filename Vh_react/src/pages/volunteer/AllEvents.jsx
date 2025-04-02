@@ -20,12 +20,19 @@ function AllEvents() {
     }, []);
 
     // ✅ Refetch events only if new registration happens
-    useEffect(() => {
-        if (newRegistration) {
-            fetchEvents();
-            setNewRegistration(false);
-        }
-    }, [newRegistration]);
+    if (response.status === 201) {
+        Swal.fire({
+            title: "🎉 Success!",
+            text: "You have successfully registered for the event.",
+            icon: "success",
+            timer: 3000,
+            timerProgressBar: true,
+            confirmButtonText: "OK",
+        });
+        fetchEvents(); // Call API directly instead of using `newRegistration`
+        setIsRegistered(true);
+        navigate(`/home/`);
+    }
 
     // ✅ Fetch Events from API
     async function fetchEvents() {

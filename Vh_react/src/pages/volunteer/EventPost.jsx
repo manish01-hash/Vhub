@@ -2,44 +2,53 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
+import jwt_decode from "jwt-decode";
 
-function EventPost({ event, ename, description, requiredVolunteers, totVolunteers, fetchEvents, newRegistration, setNewRegistration }) {
+function EventPost({ event, ename, description, requiredVolunteers, totVolunteers, fetchEvents, setNewRegistration }) {
     const navigate = useNavigate();
-    const [isJoined, setIsJoined] = useState(false);
     const [isRegistered, setIsRegistered] = useState(false);
-    const [currentStatus, setCurrentStatus] = useState(event.E_Status);
+    
+    const calculateStatus = (start, end) => {
+        const now = new Date();
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+        if (now < startDate) return "Upcoming";
+        if (now >= startDate && now <= endDate) return "Ongoing";
+        return "Completed";
+    };
+
+    const [currentStatus, setCurrentStatus] = useState(
+        calculateStatus(event.E_Start_Date, event.E_End_Date)
+    );
 
     useEffect(() => {
-        // Check if the current user is already registered for the event
+        setCurrentStatus(calculateStatus(event.E_Start_Date, event.E_End_Date));
+    }, [event.E_Start_Date, event.E_End_Date]);
+
+    useEffect(() => {
         const token = localStorage.getItem("accessToken");
         if (token) {
-            const userRegistered = event.E_Volunteers?.some((volunteer) => volunteer.id === JSON.parse(atob(token.split(".")[1])).user_id);
-            setIsRegistered(userRegistered);
+            try {
+                const decoded = jwt_decode(token);
+                const userRegistered = (event.E_Volunteers || []).some(
+                    (volunteer) => volunteer.id === decoded.user_id
+                );
+                setIsRegistered(userRegistered);
+            } catch (error) {
+                console.error("Invalid token:", error);
+            }
         }
-
-        // Calculate current status based on dates
-        const now = new Date();
-        const startDate = new Date(event.E_Start_Date);
-        const endDate = new Date(event.E_End_Date);
-
-        if (now < startDate) {
-            setCurrentStatus("Upcoming");
-        } else if (now >= startDate && now <= endDate) {
-            setCurrentStatus("Ongoing");
-        } else {
-            setCurrentStatus("Completed");
-        }
-    }, [event.E_Volunteers, event.E_Start_Date, event.E_End_Date]);
+    }, [event.E_Volunteers]);
 
     const handleJoin = async () => {
         const token = localStorage.getItem("accessToken");
         if (!token) {
-            Swal.fire({
-                title: "⚠️ Not Logged In",
-                text: "You must be logged in to register for an event!",
-                icon: "warning",
-                confirmButtonText: "OK",
-            });
+            Swal.fire("⚠️ Not Logged In", "You must be logged in to register!", "warning");
+            return;
+        }
+
+        if ((totVolunteers || 0) >= (requiredVolunteers || 1)) {
+            Swal.fire("Event Full", "This event has reached capacity.", "info");
             return;
         }
 
@@ -97,7 +106,6 @@ function EventPost({ event, ename, description, requiredVolunteers, totVolunteer
 
     return (
         <div className="bg-[#1E293B] bg-opacity-90 backdrop-blur-md p-6 rounded-2xl shadow-lg border border-gray-600 transition-transform hover:scale-[1.02] hover:border-blue-400 duration-300">
-            {/* Event Image */}
             <div className="relative">
                 <img
                     src={event.E_Photo ? event.E_Photo : "https://via.placeholder.com/400x200"}
@@ -109,13 +117,11 @@ function EventPost({ event, ename, description, requiredVolunteers, totVolunteer
                 </span>
             </div>
 
-            {/* Event Info */}
             <div className="mt-4 text-center">
                 <h2 className="text-2xl font-bold text-green-400">{ename}</h2>
                 <p className="text-gray-300 mt-2 line-clamp-3">{description}</p>
             </div>
 
-            {/* Action Buttons */}
             <div className="mt-5 flex flex-col gap-3">
                 {isRegistered ? (
                     <button

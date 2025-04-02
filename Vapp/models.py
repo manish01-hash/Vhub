@@ -91,25 +91,13 @@ class OTPVerification(models.Model):
     def __str__(self):
         return f"OTP for {self.user.email}"
 
-# Event Modelfrom django.db import models
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
-from django.utils import timezone
-from django.contrib.auth import get_user_model
-import uuid
-import cloudinary
-import cloudinary.uploader
-from cloudinary.models import CloudinaryField
+
 
 
 User = get_user_model()
 
 
-from django.db import models
-import uuid
-from django.utils.timezone import now, make_aware, is_naive
-from cloudinary.models import CloudinaryField
-from django.contrib.auth.models import User
+
 
 class Event(models.Model):
     E_ID = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
