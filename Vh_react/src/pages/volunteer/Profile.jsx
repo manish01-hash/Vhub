@@ -4,79 +4,114 @@ import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
 
 function Profile() {
-    const { user, loading, fetchProfile } = useAuth(); 
+    const { user, loading, logout, refreshAuth } = useAuth();
+    const navigate = useNavigate();
     const [editMode, setEditMode] = useState(false);
-    const [profileData, setProfileData] = useState(null);
+    const [localProfile, setLocalProfile] = useState(null);
     const [updatedUser, setUpdatedUser] = useState({
         name: "",
         email: "",
         phone: "",
         college_name: "",
-        faculty: "", 
-        year_of_study: "", 
+        faculty: "",
+        year_of_study: "",
         profile_image: null
     });
     const [imagePreview, setImagePreview] = useState("");
     const [error, setError] = useState(null);
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
 
+    // Enhanced profile data loading with token validation
     useEffect(() => {
-        console.log("🔍 Debugging Profile:");
-        console.log("Loading:", loading);
-        console.log("User Data:", user);
-    }, [loading, user]);
+        const loadProfile = async () => {
+            try {
+                // 1. First check if we have a token
+                const token = localStorage.getItem("accessToken");
+                if (!token) {
+                    console.log("No token found - redirecting to login");
+                    logout();
+                    navigate("/login");
+                    return;
+                }
 
-    useEffect(() => {
-        if (user) {
-            setProfileData(user);
-            setUpdatedUser({
-                name: user.name || "",
-                email: user.email || "",
-                phone: user.phone || "",
-                college_name: user.college_name || "",
-                faculty: user.faculty || "", 
-                year_of_study: user.year_of_study || "", 
-                profile_image: user.profile_image || null
-            });
-            setImagePreview(user.profile_image || "");
-        }
-    }, [user]);
+                // 2. Check if user exists in context (may be cached)
+                if (user) {
+                    console.log("Using cached user data from context");
+                    initializeProfileData(user);
+                    return;
+                }
 
-    const yearOfStudyText = (year) => {
-        const yearMapping = {
-            1: "First Year",
-            2: "Second Year",
-            3: "Third Year",
-            4: "Fourth Year"
+                // 3. If no user in context, try to fetch fresh data
+                console.log("Fetching fresh user data from API");
+                const response = await axios.get("https://vhub-zb2y.onrender.com/api/users/me/", {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                if (response.data) {
+                    // Update auth context with fresh data
+                    await refreshAuth();
+                    initializeProfileData(response.data);
+                } else {
+                    throw new Error("No user data received");
+                }
+            } catch (err) {
+                console.error("Profile load error:", err);
+                handleAuthError(err);
+            } finally {
+                setIsInitialLoad(false);
+            }
         };
-        return yearMapping[year] || "Unknown Year";
+
+        loadProfile();
+    }, [user]); // Only re-run if user context changes
+
+    const initializeProfileData = (userData) => {
+        setLocalProfile(userData);
+        setUpdatedUser({
+            name: userData.name || "",
+            email: userData.email || "",
+            phone: userData.phone || "",
+            college_name: userData.college_name || "",
+            faculty: userData.faculty || "",
+            year_of_study: userData.year_of_study || "",
+            profile_image: userData.profile_image || null
+        });
+        setImagePreview(userData.profile_image || "");
+    };
+
+    const handleAuthError = (error) => {
+        console.error("Authentication error:", error);
+        setError("Session expired. Please log in again.");
+        logout();
+        navigate("/login");
     };
 
     const saveProfile = async () => {
-        if (!profileData?.id) {
-            setError("User ID is missing. Please try refreshing the page.");
+        if (!localProfile?.id) {
+            setError("Cannot save - no user ID found");
             return;
-        }
-
-        const token = localStorage.getItem("accessToken");
-        if (!token) {
-            setError("Authentication token is missing. Please log in again.");
-            return;
-        }
-
-        const formData = new FormData();
-        for (const key in updatedUser) {
-            if (updatedUser[key] !== null && key !== "profile_image") {
-                formData.append(key, updatedUser[key]);
-            }
-        }
-
-        if (updatedUser.profile_image && updatedUser.profile_image instanceof File) {
-            formData.append("profile_image", updatedUser.profile_image);
         }
 
         try {
+            const token = localStorage.getItem("accessToken");
+            if (!token) {
+                handleAuthError(new Error("No authentication token"));
+                return;
+            }
+
+            const formData = new FormData();
+            Object.entries(updatedUser).forEach(([key, value]) => {
+                if (value !== null && key !== "profile_image") {
+                    formData.append(key, value);
+                }
+            });
+
+            if (updatedUser.profile_image instanceof File) {
+                formData.append("profile_image", updatedUser.profile_image);
+            }
+
             const response = await axios.patch(
-                `https://vhub-zb2y.onrender.com/api/users/${profileData.id}/update/`,
+                `https://vhub-zb2y.onrender.com/api/users/${localProfile.id}/update/`,
                 formData,
                 {
                     headers: {
@@ -85,14 +120,19 @@ function Profile() {
                     },
                 }
             );
-            
-            console.log("✅ Profile updated successfully!", response.data);
-            setError(null);
-            await fetchProfile(); // Refresh profile data
+
+            console.log("Profile updated successfully");
+            await refreshAuth(); // Refresh auth context
             setEditMode(false);
-        } catch (error) {
-            console.error("❌ Error updating profile:", error);
-            setError(error.response?.data?.message || "Failed to update profile. Please try again.");
+            setError(null);
+        } catch (err) {
+            console.error("Profile update error:", err);
+            setError(err.response?.data?.message || "Failed to update profile");
+            
+            // If unauthorized, force logout
+            if (err.response?.status === 401) {
+                handleAuthError(err);
+            }
         }
     };
 
@@ -110,11 +150,32 @@ function Profile() {
 
     const toggleEdit = () => setEditMode(!editMode);
 
-    if (loading) return <p className="text-center text-white">⏳ Loading profile...</p>;
+    const yearOfStudyText = (year) => {
+        const yearMapping = {
+            1: "First Year",
+            2: "Second Year",
+            3: "Third Year",
+            4: "Fourth Year"
+        };
+        return yearMapping[year] || "Unknown Year";
+    };
 
-    if (!profileData) {
-        console.error("🚨 Unauthorized: User data is null. Check API or token.");
-        return <p className="text-center text-red-500">❌ Unauthorized. Please log in.</p>;
+    if (isInitialLoad || loading) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <div className="text-white text-xl">Loading your profile...</div>
+            </div>
+        );
+    }
+
+    if (!localProfile) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <div className="text-red-500 text-xl">
+                    {error || "Failed to load profile. Redirecting..."}
+                </div>
+            </div>
+        );
     }
 
     return (
