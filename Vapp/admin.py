@@ -7,26 +7,33 @@ from django.utils.translation import gettext_lazy as _
 from django.db.models import ProtectedError  # ✅ CORRECT
 from django.contrib import messages
 from django.db.models import Count
-User = get_user_model()  # ✅ Get custom user model
+import logging
+logger = logging.getLogger(__name__)
+User = get_user_model()
 
-# ✅ Custom User Admin
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     list_display = ("email", "name", "phone", "role", "gender", "college_name", "faculty", "year_of_study", "is_active", "is_staff", "profile_image_tag")
     search_fields = ("email", "name", "phone", "college_name", "faculty")
     ordering = ("email",)
+    readonly_fields = ('created_at', 'last_login')
+    list_filter = ('is_staff', 'is_superuser', 'is_active', 'role')
+    filter_horizontal = ('groups', 'user_permissions')
 
     fieldsets = (
-        ("Basic Info", {"fields": ("email", "password", "name", "profile_image", "phone", "role", "gender", "college_name", "faculty", "year_of_study")}),
-        ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser")}),
-        ("Important Dates", {"fields": ("last_login", "created_at")}),
+        (None, {'fields': ('email', 'password')}),
+        (_('Personal info'), {'fields': ('name', 'profile_image', 'phone', 'gender', 'college_name', 'faculty', 'year_of_study')}),
+        (_('Permissions'), {
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions', 'role'),
+        }),
+        (_('Important dates'), {'fields': ('last_login', 'created_at')}),
     )
 
     add_fieldsets = (
         (None, {
-            "classes": ("wide",),
-            "fields": ("email", "name", "phone", "password1", "password2", "role", 
-            "gender", "college_name", "profile_image", "faculty", "year_of_study", "is_staff"),
+            'classes': ('wide',),
+            'fields': ('email', 'name', 'phone', 'password1', 'password2', 'role',
+                      'gender', 'college_name', 'profile_image', 'faculty', 'year_of_study', 'is_staff'),
         }),
     )
 
@@ -36,6 +43,12 @@ class CustomUserAdmin(UserAdmin):
         return "No Image"
     profile_image_tag.short_description = "Profile Image"
 
+    def changelist_view(self, request, extra_context=None):
+        try:
+            return super().changelist_view(request, extra_context)
+        except Exception as e:
+            logger.error(f"User admin error: {str(e)}", exc_info=True)
+            raise
 
 # ✅ Event Admin (Now Includes Attendance & Volunteers Info)
 
