@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'Vapp',
+    'Vapp.apps.VappConfig',
     
 ]
 
@@ -200,13 +201,20 @@ AUTHENTICATION_BACKENDS = (
 CORS_ALLOWED_ORIGINS = [
     "https://vhub-4385uxrzr-manishs-projects-8b731aa4.vercel.app",
     "https://vhub-manishs-projects-8b731aa4.vercel.app",
-    "https://vhub-zb2y.onrender.com",  # Optional: If frontend makes requests to itself
+    "https://vhub-zb2y.onrender.com",# Optional: If frontend makes requests to itself
+    "https://vhub-khaki.vercel.app/"
+
 ]
 
 # Also add CSRF trusted origins if using session/auth
 CSRF_TRUSTED_ORIGINS = [
     "https://vhub-zb2y.onrender.com",
-    "https://vhub-*.vercel.app",  # Wildcard for all Vercel preview URLs
+    "https://vhub-*.vercel.app",# Wildcard for all Vercel preview URLs
+    "https://vhub-manishs-projects-8b731aa4.vercel.app",
+    "https://vhub-4385uxrzr-manishs-projects-8b731aa4.vercel.app",
+    "https://vhub-khaki.vercel.app/"
+    
+
 ]
 
 # Allow credentials if using cookies
@@ -242,4 +250,4 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'vcoders04@gmail.com')  # ✅ Def
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'xelu bpum rhvl odmz')  # ✅ Default value
 
 
-API_BASE_URL = os.getenv("API_BASE_URL","https://vhub-zb2y.onrender.com") 
+API_BASE_URL = "https://vhub-zb2y.onrender.com"

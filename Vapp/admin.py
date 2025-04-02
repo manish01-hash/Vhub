@@ -13,18 +13,22 @@ User = get_user_model()
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ("email", "name", "phone", "role", "gender", "college_name", "faculty", "year_of_study", "is_active", "is_staff", "profile_image_tag")
+    list_display = ("email", "name", "phone", "role", "gender", "college_name", 
+                   "faculty", "year_of_study", "is_active", "is_staff", "profile_image_tag")
     search_fields = ("email", "name", "phone", "college_name", "faculty")
     ordering = ("email",)
-    readonly_fields = ('created_at', 'last_login')
+    readonly_fields = ('created_at', 'last_login', 'profile_image_tag')
     list_filter = ('is_staff', 'is_superuser', 'is_active', 'role')
-    filter_horizontal = ('groups', 'user_permissions')
+    filter_horizontal = ('groups', 'user_permissions',)  # Note the comma for single-item tuples
 
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        (_('Personal info'), {'fields': ('name', 'profile_image', 'phone', 'gender', 'college_name', 'faculty', 'year_of_study')}),
+        (_('Personal info'), {'fields': ('name', 'profile_image', 'profile_image_tag', 
+                                       'phone', 'gender', 'college_name', 
+                                       'faculty', 'year_of_study')}),
         (_('Permissions'), {
-            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions', 'role'),
+            'fields': ('is_active', 'is_staff', 'is_superuser', 
+                      'groups', 'user_permissions', 'role'),
         }),
         (_('Important dates'), {'fields': ('last_login', 'created_at')}),
     )
@@ -32,24 +36,31 @@ class CustomUserAdmin(UserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'name', 'phone', 'password1', 'password2', 'role',
-                      'gender', 'college_name', 'profile_image', 'faculty', 'year_of_study', 'is_staff'),
+            'fields': ('email', 'name', 'phone', 'password1', 'password2',
+                      'role', 'gender', 'college_name', 'profile_image', 
+                      'faculty', 'year_of_study', 'is_staff'),
         }),
     )
 
     def profile_image_tag(self, obj):
         if obj.profile_image:
-            return format_html('<img src="{}" width="50" height="50" style="border-radius: 5px;" />', obj.profile_image.url)
-        return "No Image"
-    profile_image_tag.short_description = "Profile Image"
+            return format_html(
+                '<img src="{}" width="50" height="50" style="border-radius: 5px;" />', 
+                obj.profile_image.url
+            )
+        return format_html('<div style="width:50px; height:50px;"></div>')
+    profile_image_tag.short_description = _("Profile Preview")
+    profile_image_tag.allow_tags = True
 
     def changelist_view(self, request, extra_context=None):
         try:
             return super().changelist_view(request, extra_context)
         except Exception as e:
             logger.error(f"User admin error: {str(e)}", exc_info=True)
-            raise
-
+            from django.contrib import messages
+            from django.shortcuts import redirect
+            messages.error(request, f"Error loading user list: {str(e)[:200]}...")
+            return redirect('admin:index')  # Or your custom error page
 # ✅ Event Admin (Now Includes Attendance & Volunteers Info)
 
 class EventStatusFilter(admin.SimpleListFilter):
