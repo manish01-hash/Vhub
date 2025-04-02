@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
-import jwt_decode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";  // ✅ Correct
+
 
 function EventPost({ event, ename, description, requiredVolunteers, totVolunteers, fetchEvents, setNewRegistration }) {
     const navigate = useNavigate();
@@ -29,7 +30,7 @@ function EventPost({ event, ename, description, requiredVolunteers, totVolunteer
         const token = localStorage.getItem("accessToken");
         if (token) {
             try {
-                const decoded = jwt_decode(token);
+                const decoded = jwtDecode(token);
                 const userRegistered = (event.E_Volunteers || []).some(
                     (volunteer) => volunteer.id === decoded.user_id
                 );
