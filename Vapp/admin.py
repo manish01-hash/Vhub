@@ -13,29 +13,32 @@ User = get_user_model()
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ("email", "name", "phone", "role", "is_active", "is_staff", "profile_image_tag")
-    list_filter = ("is_staff", "is_superuser", "is_active", "role")
-    search_fields = ("email", "name", "phone")
-    ordering = ("email",)
-    filter_horizontal = ("groups", "user_permissions",)
+    list_display = ("email", "name", "role", "college_name", "is_active", "is_staff", "profile_image_tag")
+    list_filter = ("role", "is_staff", "is_active", "college_name")
+    search_fields = ("email", "name", "phone", "college_name__icontains")
+    ordering = ("-created_at",)
     readonly_fields = ("id", "created_at", "last_login", "profile_image_tag")
+    filter_horizontal = ("groups", "user_permissions",)
     
     fieldsets = (
         (None, {"fields": ("email", "password")}),
         (_("Personal Info"), {"fields": (
             "id",
-            "name", 
+            "name",
             "phone",
-            "profile_image",
-            "profile_image_tag",
             "gender",
+            "profile_image",
+            "profile_image_tag"
+        )}),
+        (_("Education"), {"fields": (
             "college_name",
             "faculty",
-            "year_of_study",
-            "role"
+            "year_of_study"
         )}),
         (_("Permissions"), {
+            "classes": ("collapse",),
             "fields": (
+                "role",
                 "is_active",
                 "is_staff",
                 "is_superuser",
@@ -52,10 +55,10 @@ class CustomUserAdmin(UserAdmin):
             "fields": (
                 "email",
                 "name",
-                "phone",
-                "role",
                 "password1",
                 "password2",
+                "role",
+                "phone",
                 "is_staff",
                 "is_active"
             ),
@@ -65,11 +68,11 @@ class CustomUserAdmin(UserAdmin):
     def profile_image_tag(self, obj):
         if obj.profile_image:
             return format_html(
-                '<img src="{}" width="50" height="50" style="border-radius:5px"/>',
+                '<img src="{}" width="50" height="50" style="border-radius:50%;object-fit:cover"/>',
                 obj.profile_image.url
             )
-        return "No Image"
-    profile_image_tag.short_description = "Profile Image"
+        return format_html('<div class="no-image" style="width:50px;height:50px;"></div>')
+    profile_image_tag.short_description = _("Profile Picture")
     profile_image_tag.allow_tags = True
 
     def get_form(self, request, obj=None, **kwargs):
@@ -78,7 +81,6 @@ class CustomUserAdmin(UserAdmin):
         if 'role' in form.base_fields:
             form.base_fields['role'].required = True
         return form
-# ✅ Event Admin (Now Includes Attendance & Volunteers Info)
 
 class EventStatusFilter(admin.SimpleListFilter):
     title = _('Event Status')
