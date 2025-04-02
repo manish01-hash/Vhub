@@ -3,16 +3,14 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  base: '/',
   build: {
     outDir: 'dist',
-    assetsDir: 'assets', // Explicit assets directory
+    assetsDir: 'assets',
+    emptyOutDir: true,
     rollupOptions: {
-      input: './src/main.jsx', // Critical: Entry point
-      output: {
-        assetFileNames: 'assets/[name].[hash][extname]',
-        chunkFileNames: 'assets/[name].[hash].js',
-        entryFileNames: 'assets/[name].[hash].js'
-      }
+      input: './index.html' // Simplified path
     }
-  }
+  },
+  publicDir: 'public'
 });

@@ -77,7 +77,7 @@ function App() {
         <Route path="/qr/scan-result" element={<QRCodeScanResult />} />
 
         {/* Catch All - Redirect to Home */}
-        <Route path="*" element={<Navigate to="/" />} />
+        <Route path="*" element={<Navigate to="/" />} /> {/* Catch-all */}
       </Routes>
     </AuthProvider>
   );

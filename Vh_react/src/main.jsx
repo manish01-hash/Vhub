@@ -26,7 +26,7 @@ class ErrorBoundary extends React.Component {
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <BrowserRouter>
+      <BrowserRouter basename="/home">
         <App />
       </BrowserRouter>
     </ErrorBoundary>
